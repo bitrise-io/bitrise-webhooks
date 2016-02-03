@@ -1,0 +1,30 @@
+{
+	"ImportPath": "github.com/bitrise-io/bitrise-webhooks",
+	"GoVersion": "go1.5",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/gorilla/context",
+			"Rev": "1c83b3eabd45b6d76072b66b746c20815fb2872d"
+		},
+		{
+			"ImportPath": "github.com/gorilla/mux",
+			"Rev": "26a6070f849969ba72b72256e9f14cf519751690"
+		},
+		{
+			"ImportPath": "github.com/yvasiyarov/go-metrics",
+			"Rev": "c25f46c4b94079672242ec48a545e7ca9ebe3aec"
+		},
+		{
+			"ImportPath": "github.com/yvasiyarov/gorelic",
+			"Comment": "v0.0.6-38-g899fe5e",
+			"Rev": "899fe5e1be7138f2440c28e77532f0635c1249f1"
+		},
+		{
+			"ImportPath": "github.com/yvasiyarov/newrelic_platform_go",
+			"Rev": "db03d6dfd965ebc22dbfd910567c641b326ff055"
+		}
+	]
+}
