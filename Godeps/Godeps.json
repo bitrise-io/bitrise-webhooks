@@ -6,6 +6,10 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/bitrise-io/go-utils/sliceutil",
+			"Rev": "c05b0f3ba8e82958daa745a182d15e47c099dcb0"
+		},
+		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "1c83b3eabd45b6d76072b66b746c20815fb2872d"
 		},

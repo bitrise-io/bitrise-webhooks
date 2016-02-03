@@ -49,8 +49,8 @@ func hookTypeCheckBitbucketV1(header http.Header) hookTypeModel {
 	userAgents := header["User-Agent"]
 	contentTypes := header["Content-Type"]
 
-	if sliceutil.IsSliceIncludesString("Bitbucket.org", userAgents) &&
-		sliceutil.IsSliceIncludesString("application/x-www-form-urlencoded", contentTypes) {
+	if sliceutil.IsStringInSlice("Bitbucket.org", userAgents) &&
+		sliceutil.IsStringInSlice("application/x-www-form-urlencoded", contentTypes) {
 		return hookTypeModel{typeID: hookTypeIDBitbucketV1, isDontProcess: false}
 	}
 
