@@ -11,6 +11,9 @@ const (
 
 var (
 	serverEnvironmentMode = ServerEnvModeDev
+
+	// SendRequestTo ...
+	SendRequestTo = ""
 )
 
 // GetServerEnvMode ...

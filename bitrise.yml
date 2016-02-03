@@ -5,6 +5,10 @@ app:
   envs:
   - GO_PROJECT_PATH: github.com/bitrise-io/bitrise-webhooks
   - PORT: "3002"
+  # if set to "yes" we'll use github.com/codegangsta/gin to live-reload the code on change
+  - IS_USE_GIN: "yes"
+  # optionally define these in your .bitrise.secrets.yml
+  - SEND_REQUEST_TO: $SEND_REQUEST_TO
 
 workflows:
   start:
@@ -16,7 +20,12 @@ workflows:
             set -e
             set -x
             godep go install $GO_PROJECT_PATH
-            bitrise-webhooks -port $PORT
+            if [ "$IS_USE_GIN" == "yes" ] ; then
+              go get github.com/codegangsta/gin
+              gin --godep --port 3002
+            else
+              bitrise-webhooks -port $PORT
+            fi
 
   _install_test_tools:
     steps:
