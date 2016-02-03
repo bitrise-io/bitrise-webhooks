@@ -1,0 +1,125 @@
+format_version: 1.1.0
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+
+app:
+  envs:
+  - GO_PROJECT_PATH: github.com/bitrise-io/bitrise-webhooks
+  - PORT: "3002"
+
+workflows:
+  start:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -e
+            set -x
+            godep go install $GO_PROJECT_PATH
+            bitrise-webhooks -port $PORT
+
+  _install_test_tools:
+    steps:
+    - script:
+        title: Install required testing tools
+        run_if: .IsCI
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -e
+            set -x
+
+            # Install dependencies
+            go get -u github.com/tools/godep
+
+            # Check for unhandled errors
+            go get -u github.com/kisielk/errcheck
+
+            # Go lint
+            go get -u github.com/golang/lint/golint
+  test:
+    before_run:
+    - _install_test_tools
+    steps:
+    - script:
+        title: Godeps - GOPATH patch
+        inputs:
+        - content: |-
+            set -e
+            set -x
+            envman add --key ORIG_GOPATH --value "$GOPATH"
+            envman add --key GOPATH --value "$(godep path):$GOPATH"
+    - script:
+        title: Go Test
+        inputs:
+        - content: godep go test ./...
+    - script:
+        title: Err check
+        inputs:
+        - content: errcheck -asserts=true -blank=true $(godep go list ./...)
+    - script:
+        title: Go Lint
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -e
+
+            golint_out="$(golint ./...)"
+            if [[ "${golint_out}" != "" ]] ; then
+              echo "=> Golint issues found:"
+              echo "${golint_out}"
+              exit 1
+            fi
+    - script:
+        title: Restore original GOPATH
+        inputs:
+        - content: envman add --key GOPATH --value "$ORIG_GOPATH"
+  godeps-update:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -e
+            set -x
+            godep save ./...
+  create-release:
+    steps:
+    - ensure-clean-git:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -e
+
+            echo
+            echo 'How to roll-back?'
+            echo '* if you want to undo the last commit you can call:'
+            echo '    $ git reset --hard HEAD~1'
+            echo '* to roll back to the remote state:'
+            echo '    $ git reset --hard origin/[branch-name]'
+            echo
+
+            set -x
+            version_file_path="./version.go"
+            release_start_branch='master'
+            release_destination_branch='prod'
+            current_branch="$(git symbolic-ref --short HEAD)"
+            if [[ "$current_branch" != "${release_start_branch}" ]] ; then
+              echo " [!] You have to be on the ${release_start_branch} branch to create a release!"
+              exit 1
+            fi
+
+            current_version="$(go run _scripts/get_version.go -file "$version_file_path")"
+            bumped_version=$(ruby -e "splits='${current_version}'.split('.');major=splits[0];minor=splits[1];puts \"#{major}.#{minor.to_i.next}\"")
+
+            bash _scripts/set_version.sh "$version_file_path" "$bumped_version"
+
+            git add "$version_file_path"
+            git commit -m "v${bumped_version}"
+
+            git checkout ${release_destination_branch}
+            git merge ${release_start_branch} --no-ff -m "Merge ${release_start_branch} into ${release_destination_branch}, release: v${bumped_version}"
+            git tag "${bumped_version}"
+
+            git checkout ${release_start_branch}
