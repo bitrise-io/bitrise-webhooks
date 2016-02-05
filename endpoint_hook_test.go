@@ -12,77 +12,77 @@ import (
 func Test_selectProvider(t *testing.T) {
 	t.Log("Unsupported")
 	{
-		provider, isCantTransform := selectProvider(http.Header{})
+		provider, cantTransformReason := selectProvider(http.Header{})
 		require.Nil(t, provider)
-		require.False(t, isCantTransform)
+		require.NoError(t, cantTransformReason)
 	}
 	{
 		header := http.Header{
 			"X-Github-Event": {"push"},
 		}
-		provider, isCantTransform := selectProvider(header)
+		provider, cantTransformReason := selectProvider(header)
 		require.Nil(t, provider)
-		require.False(t, isCantTransform)
+		require.NoError(t, cantTransformReason)
 	}
 
 	t.Log("GitHub - push - json")
 	{
 		header := http.Header{
 			"X-Github-Event": {"push"},
-			"Content-Type":        {"application/json"},
+			"Content-Type":   {"application/json"},
 		}
-		provider, isCantTransform := selectProvider(header)
+		provider, cantTransformReason := selectProvider(header)
 		require.NotNil(t, provider)
 		require.IsType(t, github.HookProvider{}, *provider)
-		require.False(t, isCantTransform)
+		require.NoError(t, cantTransformReason)
 	}
 	t.Log("GitHub - push - x-www-form-urlencoded")
 	{
 		header := http.Header{
 			"X-Github-Event": {"push"},
-			"Content-Type":        {"application/x-www-form-urlencoded"},
+			"Content-Type":   {"application/x-www-form-urlencoded"},
 		}
-		provider, isCantTransform := selectProvider(header)
+		provider, cantTransformReason := selectProvider(header)
 		require.NotNil(t, provider)
 		require.IsType(t, github.HookProvider{}, *provider)
-		require.False(t, isCantTransform)
+		require.NoError(t, cantTransformReason)
 	}
 	t.Log("GitHub - pull request - json")
 	{
 		header := http.Header{
 			"X-Github-Event": {"pull_request"},
-			"Content-Type":        {"application/json"},
+			"Content-Type":   {"application/json"},
 		}
 
-		provider, isCantTransform := selectProvider(header)
+		provider, cantTransformReason := selectProvider(header)
 		require.NotNil(t, provider)
 		require.IsType(t, github.HookProvider{}, *provider)
-		require.False(t, isCantTransform)
+		require.NoError(t, cantTransformReason)
 	}
 	t.Log("GitHub - pull request - x-www-form-urlencoded")
 	{
 		header := http.Header{
 			"X-Github-Event": {"pull_request"},
-			"Content-Type":        {"application/x-www-form-urlencoded"},
+			"Content-Type":   {"application/x-www-form-urlencoded"},
 		}
 
-		provider, isCantTransform := selectProvider(header)
+		provider, cantTransformReason := selectProvider(header)
 		require.NotNil(t, provider)
 		require.IsType(t, github.HookProvider{}, *provider)
-		require.False(t, isCantTransform)
+		require.NoError(t, cantTransformReason)
 	}
 
 	// --- Bitbucket ---
 	t.Log("Bitbucket-V2 - push")
 	{
 		header := http.Header{
-			"HTTP_USER_AGENT": {"Bitbucket-Webhooks/2.0"},
-			"X-Event-Key":     {"repo:push"},
+			"User-Agent":  {"Bitbucket-Webhooks/2.0"},
+			"X-Event-Key": {"repo:push"},
 		}
-		provider, isCantTransform := selectProvider(header)
+		provider, cantTransformReason := selectProvider(header)
 		require.NotNil(t, provider)
 		require.IsType(t, bitbucketv2.HookProvider{}, *provider)
-		require.False(t, isCantTransform)
+		require.NoError(t, cantTransformReason)
 	}
 	// TODO: tests for Bitbucket V2
 }

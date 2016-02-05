@@ -17,33 +17,33 @@ func Test_HookProvider_HookCheck(t *testing.T) {
 	{
 		header := http.Header{
 			"X-Github-Event": {"push"},
-			"Content-Type":        {"application/json"},
+			"Content-Type":   {"application/json"},
 		}
 		hookCheckResult := provider.HookCheck(header)
 		require.True(t, hookCheckResult.IsSupportedByProvider)
-		require.False(t, hookCheckResult.IsCantTransform)
+		require.NoError(t, hookCheckResult.CantTransformReason)
 	}
 
 	t.Log("Pull Request event - should handle")
 	{
 		header := http.Header{
 			"X-Github-Event": {"pull_request"},
-			"Content-Type":        {"application/json"},
+			"Content-Type":   {"application/json"},
 		}
 		hookCheckResult := provider.HookCheck(header)
 		require.True(t, hookCheckResult.IsSupportedByProvider)
-		require.False(t, hookCheckResult.IsCantTransform)
+		require.NoError(t, hookCheckResult.CantTransformReason)
 	}
 
 	t.Log("Ping event (unsupported GH event) - should not transform, should skip")
 	{
 		header := http.Header{
 			"X-Github-Event": {"ping"},
-			"Content-Type":        {"application/json"},
+			"Content-Type":   {"application/json"},
 		}
 		hookCheckResult := provider.HookCheck(header)
 		require.True(t, hookCheckResult.IsSupportedByProvider)
-		require.True(t, hookCheckResult.IsCantTransform)
+		require.EqualError(t, hookCheckResult.CantTransformReason, "Unsupported GitHub hook event type: ping")
 	}
 
 	t.Log("Not a GitHub style webhook")
@@ -53,7 +53,7 @@ func Test_HookProvider_HookCheck(t *testing.T) {
 		}
 		hookCheckResult := provider.HookCheck(header)
 		require.False(t, hookCheckResult.IsSupportedByProvider)
-		require.False(t, hookCheckResult.IsCantTransform)
+		require.NoError(t, hookCheckResult.CantTransformReason)
 	}
 
 	t.Log("Missing Content-Type")
@@ -63,7 +63,7 @@ func Test_HookProvider_HookCheck(t *testing.T) {
 		}
 		hookCheckResult := provider.HookCheck(header)
 		require.False(t, hookCheckResult.IsSupportedByProvider)
-		require.False(t, hookCheckResult.IsCantTransform)
+		require.NoError(t, hookCheckResult.CantTransformReason)
 	}
 }
 

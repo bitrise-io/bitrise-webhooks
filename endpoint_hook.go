@@ -37,7 +37,7 @@ const (
 // 	return hookTypeModel{typeID: "", isDontProcess: false}
 // }
 
-func selectProvider(header http.Header) (useProvider *providers.HookProvider, isCantTransform bool) {
+func selectProvider(header http.Header) (useProvider *providers.HookProvider, cantTransformReason error) {
 	supportedProviders := []providers.HookProvider{
 		github.HookProvider{},
 		bitbucketv2.HookProvider{},
@@ -47,7 +47,7 @@ func selectProvider(header http.Header) (useProvider *providers.HookProvider, is
 		if hookCheckResult := aProvider.HookCheck(header); hookCheckResult.IsSupportedByProvider {
 			// found the Provider
 			useProvider = &aProvider
-			isCantTransform = hookCheckResult.IsCantTransform
+			cantTransformReason = hookCheckResult.CantTransformReason
 			return
 		}
 	}
@@ -70,9 +70,9 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var useProvider *providers.HookProvider
-	isCantTransform := false
+	var cantTransformReason error
 	metrics.Trace("Hook: determine type", func() {
-		useProvider, isCantTransform = selectProvider(r.Header)
+		useProvider, cantTransformReason = selectProvider(r.Header)
 	})
 
 	if useProvider == nil {
@@ -80,9 +80,9 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isCantTransform {
+	if cantTransformReason != nil {
 		resp := HookMessageRespModel{
-			Message: "Acknowledged, but skipping - not enough information to start a build, or unsupported event type",
+			Message: fmt.Sprintf("Acknowledged, but skipping: %s", cantTransformReason),
 		}
 		respondWithSuccess(w, resp)
 		return

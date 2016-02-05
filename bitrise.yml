@@ -7,7 +7,7 @@ app:
   - PORT: "3002"
   # if set to "yes" we'll use github.com/codegangsta/gin to live-reload the code on change
   - IS_USE_GIN: "yes"
-  # optionally define these in your .bitrise.secrets.yml
+  # optionally, define these in your .bitrise.secrets.yml
   - SEND_REQUEST_TO: $SEND_REQUEST_TO
 
 workflows:

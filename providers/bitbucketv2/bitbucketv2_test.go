@@ -13,33 +13,33 @@ func Test_HookProvider_HookCheck(t *testing.T) {
 	t.Log("Push event - should handle")
 	{
 		header := http.Header{
-			"HTTP_USER_AGENT": {"Bitbucket-Webhooks/2.0"},
-			"X-Event-Key":     {"repo:push"},
+			"User-Agent":  {"Bitbucket-Webhooks/2.0"},
+			"X-Event-Key": {"repo:push"},
 		}
 		hookCheckResult := provider.HookCheck(header)
 		require.True(t, hookCheckResult.IsSupportedByProvider)
-		require.False(t, hookCheckResult.IsCantTransform)
+		require.NoError(t, hookCheckResult.CantTransformReason)
 	}
 
 	t.Log("Issue create event (unsupported event) - should not transform, should skip")
 	{
 		header := http.Header{
-			"HTTP_USER_AGENT": {"Bitbucket-Webhooks/2.0"},
-			"X-Event-Key":     {"issue:create"},
+			"User-Agent":  {"Bitbucket-Webhooks/2.0"},
+			"X-Event-Key": {"issue:create"},
 		}
 		hookCheckResult := provider.HookCheck(header)
 		require.True(t, hookCheckResult.IsSupportedByProvider)
-		require.True(t, hookCheckResult.IsCantTransform)
+		require.EqualError(t, hookCheckResult.CantTransformReason, "Unsupported Bitbucket hook event type: issue:create")
 	}
 
 	t.Log("Not a BitbucketV2 style webhook")
 	{
 		header := http.Header{
-			"HTTP_USER_AGENT": {"Bitbucket-Webhooks/1.0"},
-			"X-Event-Key":     {"repo:push"},
+			"User-Agent":  {"Bitbucket-Webhooks/1.0"},
+			"X-Event-Key": {"repo:push"},
 		}
 		hookCheckResult := provider.HookCheck(header)
 		require.False(t, hookCheckResult.IsSupportedByProvider)
-		require.False(t, hookCheckResult.IsCantTransform)
+		require.NoError(t, hookCheckResult.CantTransformReason)
 	}
 }

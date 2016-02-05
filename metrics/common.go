@@ -1,16 +1,18 @@
 package metrics
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/bitrise-io/go-utils/httputil"
 )
 
 func getContentTypeFromHeader(header http.Header) string {
-	ct := header["Content-Type"]
-	contentType := ""
-	if len(ct) >= 1 {
-		contentType = ct[0]
+	contentType, err := httputil.GetSingleValueFromHeader("Content-Type", header)
+	if err != nil {
+		return fmt.Sprintf("CONTENT-TYPE-ERROR:%s", err)
 	}
 	return contentType
 }

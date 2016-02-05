@@ -1,11 +1,12 @@
 package bitbucketv2
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/providers"
-	"github.com/bitrise-io/go-utils/sliceutil"
+	"github.com/bitrise-io/go-utils/httputil"
 )
 
 // HookProvider ...
@@ -13,33 +14,27 @@ type HookProvider struct{}
 
 // HookCheck ...
 func (hp HookProvider) HookCheck(header http.Header) providers.HookCheckModel {
-	userAgents := header["HTTP_USER_AGENT"]
-	eventKeys := header["X-Event-Key"]
-
-	if len(eventKeys) < 1 {
-		// not a Bitbucket webhook
-		return providers.HookCheckModel{IsSupportedByProvider: false, IsCantTransform: false}
+	if userAgent, err := httputil.GetSingleValueFromHeader("User-Agent", header); err != nil {
+		return providers.HookCheckModel{IsSupportedByProvider: false}
+	} else if !strings.HasPrefix(userAgent, "Bitbucket-Webhooks/2") {
+		return providers.HookCheckModel{IsSupportedByProvider: false}
 	}
 
-	isBitbucketAgent := false
-	for _, aUserAgent := range userAgents {
-		if strings.HasPrefix(aUserAgent, "Bitbucket-Webhooks/2") {
-			isBitbucketAgent = true
-		}
-	}
-	if !isBitbucketAgent {
-		// not a Bitbucket webhook
-		return providers.HookCheckModel{IsSupportedByProvider: false, IsCantTransform: false}
+	eventKey, err := httputil.GetSingleValueFromHeader("X-Event-Key", header)
+	if err != nil {
+		return providers.HookCheckModel{IsSupportedByProvider: false}
 	}
 
-	// check event type/key
-	if sliceutil.IsStringInSlice("repo:push", eventKeys) {
+	if eventKey == "repo:push" {
 		// We'll process this
-		return providers.HookCheckModel{IsSupportedByProvider: true, IsCantTransform: false}
+		return providers.HookCheckModel{IsSupportedByProvider: true}
 	}
 
 	// Bitbucket webhook, but not supported event type - skip it
-	return providers.HookCheckModel{IsSupportedByProvider: true, IsCantTransform: true}
+	return providers.HookCheckModel{
+		IsSupportedByProvider: true,
+		CantTransformReason:   fmt.Errorf("Unsupported Bitbucket hook event type: %s", eventKey),
+	}
 }
 
 // Transform ...
