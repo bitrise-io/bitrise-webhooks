@@ -65,13 +65,10 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 		}
 	}()
 
-	log.Println("response Status:", resp.Status)
-	log.Println("response Headers:", resp.Header)
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return []byte{}, fmt.Errorf("TriggerBuild: request sent, but failed to read response body (http-code:%d): %s", resp.StatusCode, body)
 	}
-	log.Println("response Body:", string(body))
 
 	if resp.StatusCode != 200 {
 		return []byte{}, fmt.Errorf("TriggerBuild: request sent, but received a non success response (http-code:%d): %s", resp.StatusCode, body)
