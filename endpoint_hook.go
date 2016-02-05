@@ -14,8 +14,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// HookRespModel ...
-type HookRespModel struct {
+// HookMessageRespModel ...
+type HookMessageRespModel struct {
 	Message string `json:"message"`
 }
 
@@ -81,7 +81,7 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isCantTransform {
-		resp := HookRespModel{
+		resp := HookMessageRespModel{
 			Message: "Acknowledged, but skipping - not enough information to start a build, or unsupported event type",
 		}
 		respondWithSuccess(w, resp)
@@ -94,7 +94,7 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if hookTransformResult.ShouldSkip {
-		resp := HookRespModel{
+		resp := HookMessageRespModel{
 			Message: fmt.Sprintf("Acknowledged, but skipping, because: %s", hookTransformResult.Error),
 		}
 		respondWithSuccess(w, resp)
@@ -108,6 +108,7 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// do call
+	respondWithBytes := []byte{}
 	metrics.Trace("Hook: Trigger Build", func() {
 		url := config.SendRequestToURL
 		if url == nil {
@@ -121,11 +122,14 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
-		bitriseapi.TriggerBuild(url, apiToken, hookTransformResult.TriggerAPIParams, isOnlyLog)
+
+		responseFromServerBytes, err := bitriseapi.TriggerBuild(url, apiToken, hookTransformResult.TriggerAPIParams, isOnlyLog)
+		if err != nil {
+			respondWithBadRequestError(w, fmt.Sprintf("Failed to Trigger the Build: %s", err))
+			return
+		}
+		respondWithBytes = responseFromServerBytes
 	})
 
-	resp := HookRespModel{
-		Message: "ok",
-	}
-	respondWithSuccess(w, resp)
+	respondWithSuccessJSONBytes(w, respondWithBytes)
 }

@@ -15,8 +15,8 @@ type TriggerAPIParamsModel struct {
 	CommitHash    string `json:"commit_hash"`
 	CommitMessage string `json:"commit_message"`
 	Branch        string `json:"branch"`
-	Tag           string `json:"tag"`
-	PullRequestID int64  `json:"pull_request_id"`
+	Tag           string `json:"tag,omitempty"`
+	PullRequestID *int   `json:"pull_request_id,omitempty"`
 }
 
 // BuildTriggerURL ...
@@ -34,22 +34,22 @@ func BuildTriggerURL(apiRootURL string, appSlug string) (*url.URL, error) {
 }
 
 // TriggerBuild ...
-func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) error {
+func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) ([]byte, error) {
 	jsonStr, err := json.Marshal(params)
 	if err != nil {
-		return fmt.Errorf("TriggerBuild: failed to json marshal: %s", err)
+		return []byte{}, fmt.Errorf("TriggerBuild: failed to json marshal: %s", err)
 	}
 
 	log.Printf("===> Triggering Build: (url:%s)", url)
 	log.Printf("====> JSON body: %s", jsonStr)
 
 	if isOnlyLog {
-		return nil
+		return []byte("LOG-ONLY-MODE"), nil
 	}
 
 	req, err := http.NewRequest("POST", url.String(), bytes.NewBuffer(jsonStr))
 	if err != nil {
-		return fmt.Errorf("TriggerBuild: failed to create request: %s", err)
+		return []byte{}, fmt.Errorf("TriggerBuild: failed to create request: %s", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Api-Token", apiToken)
@@ -57,14 +57,25 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("TriggerBuild: failed to send request: %s", err)
+		return []byte{}, fmt.Errorf("TriggerBuild: failed to send request: %s", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf(" [!] Exception: TriggerBuild: Failed to close response body, error: %s", err)
+		}
+	}()
 
-	fmt.Println("response Status:", resp.Status)
-	fmt.Println("response Headers:", resp.Header)
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println("response Body:", string(body))
+	log.Println("response Status:", resp.Status)
+	log.Println("response Headers:", resp.Header)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return []byte{}, fmt.Errorf("TriggerBuild: request sent, but failed to read response body (http-code:%d): %s", resp.StatusCode, body)
+	}
+	log.Println("response Body:", string(body))
 
-	return nil
+	if resp.StatusCode != 200 {
+		return []byte{}, fmt.Errorf("TriggerBuild: request sent, but received a non success response (http-code:%d): %s", resp.StatusCode, body)
+	}
+
+	return body, nil
 }
