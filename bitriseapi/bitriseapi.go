@@ -1,9 +1,12 @@
 package bitriseapi
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"net/url"
 )
 
@@ -44,21 +47,24 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 		return nil
 	}
 
-	// req, err := http.NewRequest("POST", url.String(), bytes.NewBuffer(jsonStr))
-	// req.Header.Set("X-Custom-Header", "myvalue")
-	// req.Header.Set("Content-Type", "application/json")
-	//
-	// client := &http.Client{}
-	// resp, err := client.Do(req)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer resp.Body.Close()
-	//
-	// fmt.Println("response Status:", resp.Status)
-	// fmt.Println("response Headers:", resp.Header)
-	// body, _ := ioutil.ReadAll(resp.Body)
-	// fmt.Println("response Body:", string(body))
+	req, err := http.NewRequest("POST", url.String(), bytes.NewBuffer(jsonStr))
+	if err != nil {
+		return fmt.Errorf("TriggerBuild: failed to create request: %s", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Api-Token", apiToken)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("TriggerBuild: failed to send request: %s", err)
+	}
+	defer resp.Body.Close()
+
+	fmt.Println("response Status:", resp.Status)
+	fmt.Println("response Headers:", resp.Header)
+	body, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println("response Body:", string(body))
 
 	return nil
 }

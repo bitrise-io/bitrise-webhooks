@@ -87,12 +87,6 @@ func (hp HookProvider) Transform(r *http.Request) providers.HookTransformResultM
 		return providers.HookTransformResultModel{Error: fmt.Errorf("Failed to read content of request body: no or empty request body")}
 	}
 
-	// bodyContentBytes, err := ioutil.ReadAll(r.Body)
-	// if err != nil {
-	// 	return providers.HookTransformResultModel{Error: fmt.Errorf("Failed to read content of request body: %s", err)}
-	// }
-	// log.Printf("bodyContentBytes: %s", bodyContentBytes)
-
 	ghEvents := r.Header["X-Github-Event"]
 	if sliceutil.IsStringInSlice("push", ghEvents) {
 		// code push

@@ -125,7 +125,7 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	resp := HookRespModel{
-		Message: fmt.Sprintf("Processing: %#v", useProvider),
+		Message: "ok",
 	}
 	respondWithSuccess(w, resp)
 }
