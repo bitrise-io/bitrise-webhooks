@@ -16,7 +16,7 @@ func Test_HookProvider_HookCheck(t *testing.T) {
 	t.Log("Push event - should handle")
 	{
 		header := http.Header{
-			"HTTP_X_GITHUB_EVENT": {"push"},
+			"X-Github-Event": {"push"},
 			"Content-Type":        {"application/json"},
 		}
 		hookCheckResult := provider.HookCheck(header)
@@ -27,7 +27,7 @@ func Test_HookProvider_HookCheck(t *testing.T) {
 	t.Log("Pull Request event - should handle")
 	{
 		header := http.Header{
-			"HTTP_X_GITHUB_EVENT": {"pull_request"},
+			"X-Github-Event": {"pull_request"},
 			"Content-Type":        {"application/json"},
 		}
 		hookCheckResult := provider.HookCheck(header)
@@ -38,7 +38,7 @@ func Test_HookProvider_HookCheck(t *testing.T) {
 	t.Log("Ping event (unsupported GH event) - should not transform, should skip")
 	{
 		header := http.Header{
-			"HTTP_X_GITHUB_EVENT": {"ping"},
+			"X-Github-Event": {"ping"},
 			"Content-Type":        {"application/json"},
 		}
 		hookCheckResult := provider.HookCheck(header)
@@ -59,7 +59,7 @@ func Test_HookProvider_HookCheck(t *testing.T) {
 	t.Log("Missing Content-Type")
 	{
 		header := http.Header{
-			"HTTP_X_GITHUB_EVENT": {"push"},
+			"X-Github-Event": {"push"},
 		}
 		hookCheckResult := provider.HookCheck(header)
 		require.False(t, hookCheckResult.IsSupportedByProvider)
@@ -73,7 +73,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 	t.Log("Code Push")
 	{
 		request := http.Request{
-			Header: http.Header{"HTTP_X_GITHUB_EVENT": {"push"}},
+			Header: http.Header{"X-Github-Event": {"push"}},
 			Body:   ioutil.NopCloser(strings.NewReader("hi")),
 		}
 		hookTransformResult := provider.Transform(&request)
@@ -83,7 +83,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 	t.Log("Pull Request")
 	{
 		request := http.Request{
-			Header: http.Header{"HTTP_X_GITHUB_EVENT": {"pull_request"}},
+			Header: http.Header{"X-Github-Event": {"pull_request"}},
 			Body:   ioutil.NopCloser(strings.NewReader("hi")),
 		}
 		hookTransformResult := provider.Transform(&request)
@@ -93,7 +93,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 	t.Log("No Request Body")
 	{
 		request := http.Request{
-			Header: http.Header{"HTTP_X_GITHUB_EVENT": {"push"}},
+			Header: http.Header{"X-Github-Event": {"push"}},
 		}
 		hookTransformResult := provider.Transform(&request)
 		require.False(t, hookTransformResult.ShouldSkip)

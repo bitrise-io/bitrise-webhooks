@@ -44,7 +44,7 @@ func (hp HookProvider) HookCheck(header http.Header) providers.HookCheckModel {
 		return providers.HookCheckModel{IsSupportedByProvider: false, IsCantTransform: false}
 	}
 
-	ghEvents := header["HTTP_X_GITHUB_EVENT"]
+	ghEvents := header["X-Github-Event"]
 	if len(ghEvents) < 1 {
 		// not a GitHub webhook
 		return providers.HookCheckModel{IsSupportedByProvider: false, IsCantTransform: false}
@@ -93,7 +93,7 @@ func (hp HookProvider) Transform(r *http.Request) providers.HookTransformResultM
 	// }
 	// log.Printf("bodyContentBytes: %s", bodyContentBytes)
 
-	ghEvents := r.Header["HTTP_X_GITHUB_EVENT"]
+	ghEvents := r.Header["X-Github-Event"]
 	if sliceutil.IsStringInSlice("push", ghEvents) {
 		// code push
 		var codePushEvent CodePushEventModel

@@ -18,7 +18,7 @@ func Test_selectProvider(t *testing.T) {
 	}
 	{
 		header := http.Header{
-			"HTTP_X_GITHUB_EVENT": {"push"},
+			"X-Github-Event": {"push"},
 		}
 		provider, isCantTransform := selectProvider(header)
 		require.Nil(t, provider)
@@ -28,7 +28,7 @@ func Test_selectProvider(t *testing.T) {
 	t.Log("GitHub - push - json")
 	{
 		header := http.Header{
-			"HTTP_X_GITHUB_EVENT": {"push"},
+			"X-Github-Event": {"push"},
 			"Content-Type":        {"application/json"},
 		}
 		provider, isCantTransform := selectProvider(header)
@@ -39,7 +39,7 @@ func Test_selectProvider(t *testing.T) {
 	t.Log("GitHub - push - x-www-form-urlencoded")
 	{
 		header := http.Header{
-			"HTTP_X_GITHUB_EVENT": {"push"},
+			"X-Github-Event": {"push"},
 			"Content-Type":        {"application/x-www-form-urlencoded"},
 		}
 		provider, isCantTransform := selectProvider(header)
@@ -50,7 +50,7 @@ func Test_selectProvider(t *testing.T) {
 	t.Log("GitHub - pull request - json")
 	{
 		header := http.Header{
-			"HTTP_X_GITHUB_EVENT": {"pull_request"},
+			"X-Github-Event": {"pull_request"},
 			"Content-Type":        {"application/json"},
 		}
 
@@ -62,7 +62,7 @@ func Test_selectProvider(t *testing.T) {
 	t.Log("GitHub - pull request - x-www-form-urlencoded")
 	{
 		header := http.Header{
-			"HTTP_X_GITHUB_EVENT": {"pull_request"},
+			"X-Github-Event": {"pull_request"},
 			"Content-Type":        {"application/x-www-form-urlencoded"},
 		}
 
