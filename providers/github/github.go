@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -56,6 +57,7 @@ func (hp HookProvider) HookCheck(header http.Header) providers.HookCheckModel {
 	}
 
 	// GitHub webhook, but not supported event type - skip it
+	log.Printf(" (debug) Skipping GitHub event: %#v", ghEvents)
 	return providers.HookCheckModel{IsSupportedByProvider: true, IsCantTransform: true}
 }
 
