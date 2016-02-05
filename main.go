@@ -50,8 +50,7 @@ func main() {
 	}
 
 	// Monitoring
-	if config.GetServerEnvMode() == config.ServerEnvModeProd {
-		newRelicKey := stringFlagOrEnv(newRelicKeyFlag, "NEW_RELIC_LICENSE_KEY")
+	if newRelicKey := stringFlagOrEnv(newRelicKeyFlag, "NEW_RELIC_LICENSE_KEY"); newRelicKey != "" && config.GetServerEnvMode() == config.ServerEnvModeProd {
 		metrics.SetupNewRelic("BitriseWebhooksProcessor", newRelicKey)
 	} else {
 		log.Println(" (!) Skipping NewRelic setup - environment is not 'production'")
