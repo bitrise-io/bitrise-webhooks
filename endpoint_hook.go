@@ -5,10 +5,13 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
+	"github.com/bitrise-io/bitrise-webhooks/config"
 	"github.com/bitrise-io/bitrise-webhooks/metrics"
 	"github.com/bitrise-io/bitrise-webhooks/providers"
 	"github.com/bitrise-io/bitrise-webhooks/providers/bitbucketv2"
 	"github.com/bitrise-io/bitrise-webhooks/providers/github"
+	"github.com/gorilla/mux"
 )
 
 // HookRespModel ...
@@ -34,34 +37,45 @@ const (
 // 	return hookTypeModel{typeID: "", isDontProcess: false}
 // }
 
-func hookHandler(w http.ResponseWriter, r *http.Request) {
+func selectProvider(header http.Header) (useProvider *providers.HookProvider, isCantTransform bool) {
 	supportedProviders := []providers.HookProvider{
 		github.HookProvider{},
 		bitbucketv2.HookProvider{},
 	}
 
-	var useProvider providers.HookProvider
-	isProviderFound := false
-	isCantTransform := false
-	metrics.Trace("Determine hook type", func() {
-		requestHeader := r.Header
-		for _, aProvider := range supportedProviders {
-			if hookCheckResult := aProvider.HookCheck(requestHeader); hookCheckResult.IsSupportedByProvider {
-				// found the Provider
-				useProvider = aProvider
-				isProviderFound = true
-				if hookCheckResult.IsCantTransform {
-					// can't transform into a build
-					isCantTransform = true
-				}
-				break
-			}
+	for _, aProvider := range supportedProviders {
+		if hookCheckResult := aProvider.HookCheck(header); hookCheckResult.IsSupportedByProvider {
+			// found the Provider
+			useProvider = &aProvider
+			isCantTransform = hookCheckResult.IsCantTransform
+			return
 		}
-		// 	type = "bitbucket" if @body["canon_url"].eql?('https://bitbucket.org')
-		log.Println("UNSUPPORTED webhook")
+	}
+
+	return
+}
+
+func hookHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	appSlug := vars["app-slug"]
+	apiToken := vars["api-token"]
+
+	if appSlug == "" {
+		respondWithBadRequestError(w, "No App Slug parameter defined")
+		return
+	}
+	if apiToken == "" {
+		respondWithBadRequestError(w, "No API Token parameter defined")
+		return
+	}
+
+	var useProvider *providers.HookProvider
+	isCantTransform := false
+	metrics.Trace("Hook: determine type", func() {
+		useProvider, isCantTransform = selectProvider(r.Header)
 	})
 
-	if !isProviderFound {
+	if useProvider == nil {
 		respondWithBadRequestError(w, "Unsupported Webhook Type / Provider")
 		return
 	}
@@ -73,6 +87,42 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 		respondWithSuccess(w, resp)
 		return
 	}
+
+	hookTransformResult := providers.HookTransformResultModel{}
+	metrics.Trace("Hook: Transform", func() {
+		hookTransformResult = (*useProvider).Transform(r)
+	})
+
+	if hookTransformResult.ShouldSkip {
+		resp := HookRespModel{
+			Message: fmt.Sprintf("Acknowledged, but skipping, because: %s", hookTransformResult.Error),
+		}
+		respondWithSuccess(w, resp)
+		return
+	}
+	if hookTransformResult.Error != nil {
+		errMsg := fmt.Sprintf("Failed to transform the webhook: %s", hookTransformResult.Error)
+		log.Printf(" (debug) %s", errMsg)
+		respondWithBadRequestError(w, errMsg)
+		return
+	}
+
+	// do call
+	metrics.Trace("Hook: Trigger Build", func() {
+		url := config.SendRequestToURL
+		if url == nil {
+			u, err := bitriseapi.BuildTriggerURL("https://www.bitrise.io", appSlug)
+			if err != nil {
+				log.Printf(" [!] Exception: hookHandler: failed to create Build Trigger URL: %s", err)
+				respondWithBadRequestError(w, fmt.Sprintf("Failed to create Build Trigger URL: %s", err))
+				return
+			}
+			url = u
+		}
+
+		isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
+		bitriseapi.TriggerBuild(url, apiToken, hookTransformResult.TriggerAPIParams, isOnlyLog)
+	})
 
 	resp := HookRespModel{
 		Message: fmt.Sprintf("Processing: %#v", useProvider),

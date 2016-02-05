@@ -1,6 +1,9 @@
 package config
 
-import "os"
+import (
+	"net/url"
+	"os"
+)
 
 const (
 	// ServerEnvModeDev ...
@@ -12,8 +15,8 @@ const (
 var (
 	serverEnvironmentMode = ServerEnvModeDev
 
-	// SendRequestTo ...
-	SendRequestTo = ""
+	// SendRequestToURL ...
+	SendRequestToURL *url.URL
 )
 
 // GetServerEnvMode ...

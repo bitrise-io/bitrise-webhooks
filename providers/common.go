@@ -1,6 +1,10 @@
 package providers
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
+)
 
 // HookCheckModel ...
 type HookCheckModel struct {
@@ -17,6 +21,18 @@ type HookCheckModel struct {
 	IsCantTransform bool
 }
 
+// HookTransformResultModel ...
+type HookTransformResultModel struct {
+	// TriggerAPIParams is the transformed Bitrise Trigger API params
+	TriggerAPIParams bitriseapi.TriggerAPIParamsModel
+	// ShouldSkip if true then no build should be started for this webhook
+	//  but we should respond with a succcess HTTP status code
+	ShouldSkip bool
+	// Error in transforming the hook. If ShouldSkip=true this is
+	//  the reason why the hook should be skipped.
+	Error error
+}
+
 // HookProvider ...
 type HookProvider interface {
 	// HookCheck should return whether this provider supports
@@ -25,4 +41,10 @@ type HookProvider interface {
 	//  but the event itself should not be processed - it won't start a build.
 	// For more information check the HookCheckModel's description
 	HookCheck(header http.Header) HookCheckModel
+
+	// Transform should transform the hook into a bitriseapi.TriggerAPIParamsModel
+	//  which can then be called.
+	// It might still decide to skip the actual call - for more info
+	//  check the docs of HookTransformResultModel
+	Transform(r *http.Request) HookTransformResultModel
 }

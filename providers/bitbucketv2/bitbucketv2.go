@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/providers"
+	"github.com/bitrise-io/go-utils/sliceutil"
 )
 
 // HookProvider ...
@@ -32,13 +33,16 @@ func (hp HookProvider) HookCheck(header http.Header) providers.HookCheckModel {
 	}
 
 	// check event type/key
-	for _, aEventKey := range eventKeys {
-		if aEventKey == "repo:push" {
-			// We'll process this
-			return providers.HookCheckModel{IsSupportedByProvider: true, IsCantTransform: false}
-		}
+	if sliceutil.IsStringInSlice("repo:push", eventKeys) {
+		// We'll process this
+		return providers.HookCheckModel{IsSupportedByProvider: true, IsCantTransform: false}
 	}
 
 	// Bitbucket webhook, but not supported event type - skip it
 	return providers.HookCheckModel{IsSupportedByProvider: true, IsCantTransform: true}
+}
+
+// Transform ...
+func (hp HookProvider) Transform(r *http.Request) providers.HookTransformResultModel {
+	return providers.HookTransformResultModel{}
 }

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/bitrise-io/bitrise-webhooks/config"
@@ -38,9 +39,14 @@ func main() {
 	}
 	config.SetupServerEnvMode()
 
-	config.SendRequestTo = stringFlagOrEnv(sendRequestToFlag, "SEND_REQUEST_TO")
-	if config.SendRequestTo != "" {
-		log.Printf(" (!) Send-Request-To specified, every request will be sent to: %s", config.SendRequestTo)
+	requestToStr := stringFlagOrEnv(sendRequestToFlag, "SEND_REQUEST_TO")
+	if requestToStr != "" {
+		url, err := url.Parse(requestToStr)
+		if err != nil {
+			log.Fatalf("Failed to parse send-request-to (%s) as a URL, error: %s", requestToStr, err)
+		}
+		config.SendRequestToURL = url
+		log.Printf(" (!) Send-Request-To specified, every request will be sent to: %s", config.SendRequestToURL)
 	}
 
 	// Monitoring
