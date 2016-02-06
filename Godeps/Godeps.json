@@ -14,6 +14,10 @@
 			"Rev": "5f0e17d02f0d981841eb1dbf312b6b97921be376"
 		},
 		{
+			"ImportPath": "github.com/bitrise-io/go-utils/pointers",
+			"Rev": "5f0e17d02f0d981841eb1dbf312b6b97921be376"
+		},
+		{
 			"ImportPath": "github.com/bitrise-io/go-utils/sliceutil",
 			"Rev": "5f0e17d02f0d981841eb1dbf312b6b97921be376"
 		},
