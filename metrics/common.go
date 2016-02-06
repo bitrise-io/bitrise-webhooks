@@ -1,7 +1,6 @@
 package metrics
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -12,7 +11,7 @@ import (
 func getContentTypeFromHeader(header http.Header) string {
 	contentType, err := httputil.GetSingleValueFromHeader("Content-Type", header)
 	if err != nil {
-		return fmt.Sprintf("CONTENT-TYPE-ERROR:%s", err)
+		return ""
 	}
 	return contentType
 }
@@ -22,7 +21,7 @@ func WrapHandlerFunc(h func(http.ResponseWriter, *http.Request)) func(http.Respo
 	requestWrap := func(w http.ResponseWriter, req *http.Request) {
 		startTime := time.Now()
 		h(w, req)
-		log.Printf(" => %s: %s: %s - %s", req.Method, getContentTypeFromHeader(req.Header), req.RequestURI, time.Since(startTime))
+		log.Printf(" => %s: %s - %s (%s)", req.Method, req.RequestURI, time.Since(startTime), getContentTypeFromHeader(req.Header))
 	}
 	if newRelicAgent == nil {
 		return requestWrap
