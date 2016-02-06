@@ -5,10 +5,13 @@ Bitrise Webhooks processor.
 Transforms various webhooks (GitHub, Bitbucket, Slack, ...) to [bitrise.io](https://www.bitrise.io)'s
 Build Trigger API format, and calls it to start a build.
 
+**Feel free to add your own webhook transform provider to this project!**
+For more information check the *How to add support for a new Provider* section.
+
 
 ## Supported webhooks / providers
 
-* GitHub - WIP
+* GitHub
 * Bitbucket V2 (aka Webhooks) - WIP
 
 
@@ -89,10 +92,51 @@ should present a JSON data, including the server's `version`,
 the current `time`, the server's `environment_mode` and a welcome `message`.
 
 
+## How to add support for a new Provider
+
+Implement your support code into `./providers/theprovider`.
+Unit tests are **required**.
+
+Once the implementation is ready add it to the `selectProvider` function,
+to the `supportedProviders` list, in the `endpoint_hook.go` file.
+
+For an example you should check the `providers/github` provider implementation.
+
+### Notes, tips & tricks
+
+* You can use [http://requestb.in](http://requestb.in) to debug the webhook format
+  of the (new) service.
+* Once you have an example webhook of the service you can create the provider
+  in the `./providers` folder.
+* You should now declare the data model of the webhook. You don't have to
+  specify the whole webhook format, just the pieces which you'll use.
+  You can check the `./providers/github/github.go` file for an example.
+* Once you have at least the base data model you should start writing your
+  unit tests.
+  * Probably the best is to start with the `HookCheck` method, which doesn't
+    do any transformation, just determines whether the provider should be used
+    for processing the webhook or not.
+  * Now you should write a minimal `Transform`, but because this method
+    requires a full http request object it's probably better to keep it minimal
+    first, and instead write your internal transformer functions which work
+    with the parsed data, instead of the raw http request object.
+    The GitHub provider has two separate internal transformer functions,
+    `transformCodePushEvent` and `transformPullRequestEvent`.
+  * You should define your tests and make your code pass the tests.
+    The final touch is to define a sample, raw request data,
+    and write a proper test for the `Transform` function.
+* Once the implementation is ready add it to the `supportedProviders` list,
+  (`endpoint_hook.go` file, `selectProvider` function), and implement the related
+  Unit Test to make sure that your provider will actually be selected.
+  You don't have to change any other code, adding your provider to
+  the `supportedProviders` list is all what's required.
+* Done! You can now test your provider on a server (check the *Deployment* section),
+  and you can create a Pull Request, to have it merged with the official
+  [bitrise.io](https://www.bitrise.io) webhook processor.
+
+
 ## TODO
 
-* only send request to bitrise.io if serverEnvironmentMode==production
-  * in every other case just log the request, but don't send it
 * Provider Support: Bitbucket V1 (aka Services)
 * Provider Support: Visual Studio Online
 * Provider Support: GitLab
