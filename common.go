@@ -15,7 +15,15 @@ func respondWithSuccess(w http.ResponseWriter, respModel interface{}) {
 	w.Header().Set("Content Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(&respModel); err != nil {
-		log.Println("Error: ", err)
+		log.Println("respondWithSuccess: Error: ", err)
+	}
+}
+
+func respondWithSuccessJSONBytes(w http.ResponseWriter, respBytes []byte) {
+	w.Header().Set("Content Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write(respBytes); err != nil {
+		log.Println("respondWithSuccessJSONBytes: Error: ", err)
 	}
 }
 

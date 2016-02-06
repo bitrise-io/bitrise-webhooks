@@ -9,7 +9,10 @@ import (
 
 func setupRoutes() {
 	r := mux.NewRouter()
-	r.HandleFunc("/hook/{repo-slug}/{api-token}", metrics.WrapHandlerFunc(hookHandler))
-	r.HandleFunc("/", metrics.WrapHandlerFunc(rootHandler))
+	r.HandleFunc("/hook/{app-slug}/{api-token}", metrics.WrapHandlerFunc(hookHandler)).
+		Methods("POST")
+	r.HandleFunc("/", metrics.WrapHandlerFunc(rootHandler)).
+		Methods("GET")
+	r.NotFoundHandler = http.HandlerFunc(metrics.WrapHandlerFunc(routeNotFoundHandler))
 	http.Handle("/", r)
 }
