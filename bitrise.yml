@@ -4,7 +4,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 app:
   envs:
   - GO_PROJECT_PATH: github.com/bitrise-io/bitrise-webhooks
-  - PORT: "3002"
+  - PORT: "4000"
   # if set to "yes" we'll use github.com/codegangsta/gin to live-reload the code on change
   - IS_USE_GIN: "yes"
   # optionally, define these in your .bitrise.secrets.yml
@@ -19,10 +19,11 @@ workflows:
             #!/bin/bash
             set -e
             set -x
+            go get github.com/tools/godep
             godep go install $GO_PROJECT_PATH
             if [ "$IS_USE_GIN" == "yes" ] ; then
               go get github.com/codegangsta/gin
-              gin --godep --port 3002
+              gin --godep --port $PORT
             else
               bitrise-webhooks -port $PORT
             fi
