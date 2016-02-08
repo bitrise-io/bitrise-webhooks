@@ -13,6 +13,7 @@ For more information check the *How to add support for a new Provider* section.
 
 * GitHub
 * Bitbucket V2 (aka Webhooks) - WIP
+* Visual Studio Team Services - WIP
 
 
 ## Development: How to start the server
@@ -138,6 +139,5 @@ For an example you should check the `providers/github` provider implementation.
 ## TODO
 
 * Provider Support: Bitbucket V1 (aka Services)
-* Provider Support: Visual Studio Online
 * Provider Support: GitLab
 * Provider Support: Slack
