@@ -144,12 +144,6 @@ func detectContentTypeAndEventID(header http.Header) (string, string, error) {
 
 // Transform ...
 func (hp HookProvider) Transform(r *http.Request) hookCommon.TransformResultModel {
-	if r.Body == nil {
-		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Failed to read content of request body: no or empty request body"),
-		}
-	}
-
 	contentType, ghEvent, err := detectContentTypeAndEventID(r.Header)
 	if err != nil {
 		return hookCommon.TransformResultModel{
@@ -167,6 +161,12 @@ func (hp HookProvider) Transform(r *http.Request) hookCommon.TransformResultMode
 		// Unsupported GitHub Event
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Unsupported GitHub Webhook event: %s", ghEvent),
+		}
+	}
+
+	if r.Body == nil {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Failed to read content of request body: no or empty request body"),
 		}
 	}
 

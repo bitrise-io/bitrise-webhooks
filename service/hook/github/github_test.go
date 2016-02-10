@@ -113,30 +113,65 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 func Test_HookProvider_Transform(t *testing.T) {
 	provider := HookProvider{}
 
-	t.Log("Code Push - should not be skipped")
+	t.Log("Ping - should be skipped")
 	{
 		request := http.Request{
-			Header: http.Header{"X-Github-Event": {"push"}},
-			Body:   ioutil.NopCloser(strings.NewReader("hi")),
+			Header: http.Header{
+				"Content-Type":   {"application/json"},
+				"X-Github-Event": {"ping"},
+			},
+		}
+		hookTransformResult := provider.Transform(&request)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Ping event received")
+	}
+
+	t.Log("Unsupported event type - should error")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type":   {"application/json"},
+				"X-Github-Event": {"label"},
+			},
 		}
 		hookTransformResult := provider.Transform(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Unsupported GitHub Webhook event: label")
+	}
+
+	t.Log("Code Push - should not be skipped")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type":   {"application/json"},
+				"X-Github-Event": {"push"},
+			},
+		}
+		hookTransformResult := provider.Transform(&request)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
 	}
 
 	t.Log("Pull Request - should not be skipped")
 	{
 		request := http.Request{
-			Header: http.Header{"X-Github-Event": {"pull_request"}},
-			Body:   ioutil.NopCloser(strings.NewReader("hi")),
+			Header: http.Header{
+				"Content-Type":   {"application/json"},
+				"X-Github-Event": {"pull_request"},
+			},
 		}
 		hookTransformResult := provider.Transform(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
 	}
 
 	t.Log("No Request Body")
 	{
 		request := http.Request{
-			Header: http.Header{"X-Github-Event": {"push"}},
+			Header: http.Header{
+				"Content-Type":   {"application/json"},
+				"X-Github-Event": {"push"},
+			},
 		}
 		hookTransformResult := provider.Transform(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
