@@ -8,7 +8,7 @@ import (
 
 // StandardErrorRespModel ...
 type StandardErrorRespModel struct {
-	ErrorMessage string `json:"error_message"`
+	ErrorMessage string `json:"error"`
 }
 
 // -----------------

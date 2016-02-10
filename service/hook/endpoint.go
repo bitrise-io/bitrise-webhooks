@@ -28,21 +28,21 @@ type SuccessRespModel struct {
 	Message string `json:"message"`
 }
 
-// ErrorRespModel ...
-type ErrorRespModel struct {
-	Errors []error `json:"errors"`
-}
-
-func respondWithSingleError(w http.ResponseWriter, err error) {
-	respondWithErrors(w, []error{err})
+// ErrorsRespModel ...
+type ErrorsRespModel struct {
+	Errors []string `json:"errors"`
 }
 
 func respondWithSingleErrorStr(w http.ResponseWriter, errStr string) {
-	respondWithSingleError(w, errors.New(errStr))
+	service.RespondWithError(w, http.StatusBadRequest, errStr)
 }
 
 func respondWithErrors(w http.ResponseWriter, errs []error) {
-	service.RespondWithErrorJSON(w, http.StatusBadRequest, ErrorRespModel{Errors: errs})
+	errStrs := []string{}
+	for _, aErr := range errs {
+		errStrs = append(errStrs, aErr.Error())
+	}
+	service.RespondWithErrorJSON(w, http.StatusBadRequest, ErrorsRespModel{Errors: errStrs})
 }
 
 func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitriseapi.TriggerAPIParamsModel) error {
@@ -112,29 +112,29 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		triggerURL = u
 	}
 
-	respondWithErrors := []error{}
+	respondWithErrs := []error{}
 	buildTriggerCount := len(hookTransformResult.TriggerAPIParams)
 	metrics.Trace("Hook: Trigger Builds", func() {
 		if buildTriggerCount == 0 {
-			respondWithErrors = append(respondWithErrors, errors.New("After processing the webhook we failed to detect any event in it which could be turned into a build."))
+			respondWithErrs = append(respondWithErrs, errors.New("After processing the webhook we failed to detect any event in it which could be turned into a build."))
 			return
 		} else if buildTriggerCount == 1 {
 			err := triggerBuild(triggerURL, apiToken, hookTransformResult.TriggerAPIParams[0])
 			if err != nil {
-				respondWithErrors = append(respondWithErrors, err)
+				respondWithErrs = append(respondWithErrs, err)
 				return
 			}
 		} else {
 			for _, aBuildTriggerParam := range hookTransformResult.TriggerAPIParams {
 				if err := triggerBuild(triggerURL, apiToken, aBuildTriggerParam); err != nil {
-					respondWithErrors = append(respondWithErrors, err)
+					respondWithErrs = append(respondWithErrs, err)
 				}
 			}
 		}
 	})
 
-	if len(respondWithErrors) > 0 {
-		service.RespondWithErrorJSON(w, http.StatusBadRequest, ErrorRespModel{Errors: respondWithErrors})
+	if len(respondWithErrs) > 0 {
+		respondWithErrors(w, respondWithErrs)
 		return
 	}
 
