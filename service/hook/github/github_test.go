@@ -38,18 +38,17 @@ const (
 }`
 )
 
-func Test_HookProvider_HookCheck(t *testing.T) {
-	provider := HookProvider{}
-
+func Test_detectContentTypeAndEventID(t *testing.T) {
 	t.Log("Push event - should handle")
 	{
 		header := http.Header{
 			"X-Github-Event": {"push"},
 			"Content-Type":   {"application/json"},
 		}
-		hookCheckResult := provider.HookCheck(header)
-		require.True(t, hookCheckResult.IsSupportedByProvider)
-		require.NoError(t, hookCheckResult.CantTransformReason)
+		contentType, ghEvent, err := detectContentTypeAndEventID(header)
+		require.NoError(t, err)
+		require.Equal(t, "application/json", contentType)
+		require.Equal(t, "push", ghEvent)
 	}
 
 	t.Log("Pull Request event - should handle")
@@ -58,30 +57,45 @@ func Test_HookProvider_HookCheck(t *testing.T) {
 			"X-Github-Event": {"pull_request"},
 			"Content-Type":   {"application/json"},
 		}
-		hookCheckResult := provider.HookCheck(header)
-		require.True(t, hookCheckResult.IsSupportedByProvider)
-		require.NoError(t, hookCheckResult.CantTransformReason)
+		contentType, ghEvent, err := detectContentTypeAndEventID(header)
+		require.NoError(t, err)
+		require.Equal(t, "application/json", contentType)
+		require.Equal(t, "pull_request", ghEvent)
 	}
 
-	t.Log("Ping event (unsupported GH event) - should not transform, should skip")
+	t.Log("Ping event")
 	{
 		header := http.Header{
 			"X-Github-Event": {"ping"},
 			"Content-Type":   {"application/json"},
 		}
-		hookCheckResult := provider.HookCheck(header)
-		require.True(t, hookCheckResult.IsSupportedByProvider)
-		require.EqualError(t, hookCheckResult.CantTransformReason, "Unsupported GitHub hook event type: ping")
+		contentType, ghEvent, err := detectContentTypeAndEventID(header)
+		require.NoError(t, err)
+		require.Equal(t, "application/json", contentType)
+		require.Equal(t, "ping", ghEvent)
 	}
 
-	t.Log("Not a GitHub style webhook")
+	t.Log("Unsupported GH event")
+	{
+		header := http.Header{
+			"X-Github-Event": {"label"},
+			"Content-Type":   {"application/json"},
+		}
+		contentType, ghEvent, err := detectContentTypeAndEventID(header)
+		require.NoError(t, err)
+		require.Equal(t, "application/json", contentType)
+		require.Equal(t, "label", ghEvent)
+	}
+
+	t.Log("Missing X-Github-Event header")
 	{
 		header := http.Header{
 			"Content-Type": {"application/json"},
 		}
-		hookCheckResult := provider.HookCheck(header)
-		require.False(t, hookCheckResult.IsSupportedByProvider)
-		require.NoError(t, hookCheckResult.CantTransformReason)
+		contentType, ghEvent, err := detectContentTypeAndEventID(header)
+		require.EqualError(t, err, "Issue with X-Github-Event Header: No value found in HEADER for the key: X-Github-Event")
+		require.Equal(t, "", contentType)
+		require.Equal(t, "", ghEvent)
 	}
 
 	t.Log("Missing Content-Type")
@@ -89,9 +103,10 @@ func Test_HookProvider_HookCheck(t *testing.T) {
 		header := http.Header{
 			"X-Github-Event": {"push"},
 		}
-		hookCheckResult := provider.HookCheck(header)
-		require.False(t, hookCheckResult.IsSupportedByProvider)
-		require.NoError(t, hookCheckResult.CantTransformReason)
+		contentType, ghEvent, err := detectContentTypeAndEventID(header)
+		require.EqualError(t, err, "Issue with Content-Type Header: No value found in HEADER for the key: Content-Type")
+		require.Equal(t, "", contentType)
+		require.Equal(t, "", ghEvent)
 	}
 }
 

@@ -13,7 +13,7 @@ if [[ "$versionNumber" == "" ]] ; then
 fi
 
 cat >"${version_file_path}" <<EOL
-package main
+package version
 
 // VERSION ...
 const VERSION = "${versionNumber}"

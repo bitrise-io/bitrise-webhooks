@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"encoding/json"
@@ -11,7 +11,8 @@ type StandardErrorRespModel struct {
 	ErrorMessage string `json:"error_message"`
 }
 
-func respondWithSuccess(w http.ResponseWriter, respModel interface{}) {
+// RespondWithSuccess ...
+func RespondWithSuccess(w http.ResponseWriter, respModel interface{}) {
 	w.Header().Set("Content Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(&respModel); err != nil {
@@ -19,7 +20,8 @@ func respondWithSuccess(w http.ResponseWriter, respModel interface{}) {
 	}
 }
 
-func respondWithSuccessJSONBytes(w http.ResponseWriter, respBytes []byte) {
+// RespondWithSuccessJSONBytes ...
+func RespondWithSuccessJSONBytes(w http.ResponseWriter, respBytes []byte) {
 	w.Header().Set("Content Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(respBytes); err != nil {
@@ -27,15 +29,18 @@ func respondWithSuccessJSONBytes(w http.ResponseWriter, respBytes []byte) {
 	}
 }
 
-func respondWithBadRequestError(w http.ResponseWriter, errMsg string) {
-	respondWithError(w, errMsg, http.StatusBadRequest)
+// RespondWithBadRequestError ...
+func RespondWithBadRequestError(w http.ResponseWriter, errMsg string) {
+	RespondWithError(w, errMsg, http.StatusBadRequest)
 }
 
-func respondWithNotFoundError(w http.ResponseWriter, errMsg string) {
-	respondWithError(w, errMsg, http.StatusNotFound)
+// RespondWithNotFoundError ...
+func RespondWithNotFoundError(w http.ResponseWriter, errMsg string) {
+	RespondWithError(w, errMsg, http.StatusNotFound)
 }
 
-func respondWithError(w http.ResponseWriter, errMsg string, httpErrCode int) {
+// RespondWithError ...
+func RespondWithError(w http.ResponseWriter, errMsg string, httpErrCode int) {
 	resp := StandardErrorRespModel{
 		ErrorMessage: errMsg,
 	}
