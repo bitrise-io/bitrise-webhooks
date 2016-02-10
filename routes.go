@@ -13,7 +13,7 @@ import (
 func setupRoutes() {
 	r := mux.NewRouter()
 	//
-	r.HandleFunc("/hook/{service-id}/{app-slug}/{api-token}", metrics.WrapHandlerFunc(hook.HTTPHandler)).
+	r.HandleFunc("/h/{service-id}/{app-slug}/{api-token}", metrics.WrapHandlerFunc(hook.HTTPHandler)).
 		Methods("POST")
 	//
 	r.HandleFunc("/", metrics.WrapHandlerFunc(root.HTTPHandler)).
