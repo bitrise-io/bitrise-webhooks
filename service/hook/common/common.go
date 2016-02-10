@@ -9,7 +9,7 @@ import (
 // TransformResultModel ...
 type TransformResultModel struct {
 	// TriggerAPIParams is the transformed Bitrise Trigger API params
-	TriggerAPIParams bitriseapi.TriggerAPIParamsModel
+	TriggerAPIParams []bitriseapi.TriggerAPIParamsModel
 	// ShouldSkip if true then no build should be started for this webhook
 	//  but we should respond with a succcess HTTP status code
 	ShouldSkip bool

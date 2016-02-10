@@ -203,10 +203,12 @@ func Test_HookProvider_Transform(t *testing.T) {
 		hookTransformResult := provider.Transform(&request)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
-		require.Equal(t, bitriseapi.TriggerAPIParamsModel{
-			CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-			CommitMessage: "re-structuring Hook Providers, with added tests",
-			Branch:        "master",
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				CommitMessage: "re-structuring Hook Providers, with added tests",
+				Branch:        "master",
+			},
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
@@ -222,11 +224,13 @@ func Test_HookProvider_Transform(t *testing.T) {
 		hookTransformResult := provider.Transform(&request)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
-		require.Equal(t, bitriseapi.TriggerAPIParamsModel{
-			CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-			CommitMessage: "PR test\n\nPR text body",
-			Branch:        "master",
-			PullRequestID: pointers.NewIntPtr(12),
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				CommitMessage: "PR test\n\nPR text body",
+				Branch:        "master",
+				PullRequestID: pointers.NewIntPtr(12),
+			},
 		}, hookTransformResult.TriggerAPIParams)
 	}
 }
@@ -279,10 +283,12 @@ func Test_transformCodePushEvent(t *testing.T) {
 		hookTransformResult := transformCodePushEvent(codePush)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
-		require.Equal(t, bitriseapi.TriggerAPIParamsModel{
-			CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-			CommitMessage: "re-structuring Hook Providers, with added tests",
-			Branch:        "master",
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				CommitMessage: "re-structuring Hook Providers, with added tests",
+				Branch:        "master",
+			},
 		}, hookTransformResult.TriggerAPIParams)
 	}
 }
@@ -351,11 +357,13 @@ func Test_transformPullRequestEvent(t *testing.T) {
 		hookTransformResult := transformPullRequestEvent(pullRequest)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.NoError(t, hookTransformResult.Error)
-		require.Equal(t, bitriseapi.TriggerAPIParamsModel{
-			CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-			CommitMessage: "PR test",
-			Branch:        "master",
-			PullRequestID: pointers.NewIntPtr(12),
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				CommitMessage: "PR test",
+				Branch:        "master",
+				PullRequestID: pointers.NewIntPtr(12),
+			},
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
@@ -377,11 +385,13 @@ func Test_transformPullRequestEvent(t *testing.T) {
 		hookTransformResult := transformPullRequestEvent(pullRequest)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
-		require.Equal(t, bitriseapi.TriggerAPIParamsModel{
-			CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-			CommitMessage: "PR test",
-			Branch:        "master",
-			PullRequestID: pointers.NewIntPtr(12),
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				CommitMessage: "PR test",
+				Branch:        "master",
+				PullRequestID: pointers.NewIntPtr(12),
+			},
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
@@ -404,11 +414,13 @@ func Test_transformPullRequestEvent(t *testing.T) {
 		hookTransformResult := transformPullRequestEvent(pullRequest)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
-		require.Equal(t, bitriseapi.TriggerAPIParamsModel{
-			CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-			CommitMessage: "PR test\n\nPR text body",
-			Branch:        "master",
-			PullRequestID: pointers.NewIntPtr(12),
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				CommitMessage: "PR test\n\nPR text body",
+				Branch:        "master",
+				PullRequestID: pointers.NewIntPtr(12),
+			},
 		}, hookTransformResult.TriggerAPIParams)
 	}
 }

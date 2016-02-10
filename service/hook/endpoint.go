@@ -1,9 +1,11 @@
 package hook
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	"github.com/bitrise-io/bitrise-webhooks/config"
@@ -24,6 +26,16 @@ func supportedProviders() map[string]hookCommon.Provider {
 // RespModel ...
 type RespModel struct {
 	Message string `json:"message"`
+}
+
+func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitriseapi.TriggerAPIParamsModel) ([]byte, error) {
+	isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
+
+	responseFromServerBytes, err := bitriseapi.TriggerBuild(triggerURL, apiToken, triggerAPIParams, isOnlyLog)
+	if err != nil {
+		return []byte{}, fmt.Errorf("Failed to Trigger the Build: %s", err)
+	}
+	return responseFromServerBytes, nil
 }
 
 // HTTPHandler ...
@@ -71,29 +83,51 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// do call
-	respondWithBytes := []byte{}
-	metrics.Trace("Hook: Trigger Build", func() {
-		url := config.SendRequestToURL
-		if url == nil {
-			u, err := bitriseapi.BuildTriggerURL("https://www.bitrise.io", appSlug)
-			if err != nil {
-				log.Printf(" [!] Exception: hookHandler: failed to create Build Trigger URL: %s", err)
-				service.RespondWithBadRequestError(w, fmt.Sprintf("Failed to create Build Trigger URL: %s", err))
-				return
-			}
-			url = u
-		}
-
-		isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
-
-		responseFromServerBytes, err := bitriseapi.TriggerBuild(url, apiToken, hookTransformResult.TriggerAPIParams, isOnlyLog)
+	// Let's Trigger a Build!
+	triggerURL := config.SendRequestToURL
+	if triggerURL == nil {
+		u, err := bitriseapi.BuildTriggerURL("https://www.bitrise.io", appSlug)
 		if err != nil {
-			service.RespondWithBadRequestError(w, fmt.Sprintf("Failed to Trigger the Build: %s", err))
+			log.Printf(" [!] Exception: hookHandler: failed to create Build Trigger URL: %s", err)
+			service.RespondWithBadRequestError(w, fmt.Sprintf("Failed to create Build Trigger URL: %s", err))
 			return
 		}
-		respondWithBytes = responseFromServerBytes
+		triggerURL = u
+	}
+
+	respondWithBytes := []byte{}
+	respondWithErrors := []error{}
+	metrics.Trace("Hook: Trigger Builds", func() {
+		if len(hookTransformResult.TriggerAPIParams) == 0 {
+			respondWithErrors = append(respondWithErrors, errors.New("After processing the webhook we failed to detect any event in it which could be turned into a build."))
+			return
+		} else if len(hookTransformResult.TriggerAPIParams) == 1 {
+			respBytes, err := triggerBuild(triggerURL, apiToken, hookTransformResult.TriggerAPIParams[0])
+			if err != nil {
+				respondWithErrors = append(respondWithErrors, err)
+				return
+			}
+			respondWithBytes = respBytes
+		} else {
+			for _, aBuildTriggerParam := range hookTransformResult.TriggerAPIParams {
+				if _, err := triggerBuild(triggerURL, apiToken, aBuildTriggerParam); err != nil {
+					respondWithErrors = append(respondWithErrors, err)
+				}
+			}
+		}
 	})
+
+	if len(respondWithErrors) > 0 {
+		errorMsg := "Multiple Errors during Triggering Builds: "
+		for idx, anError := range respondWithErrors {
+			if idx != 0 {
+				errorMsg += " | "
+			}
+			errorMsg += anError.Error()
+		}
+		service.RespondWithBadRequestError(w, errorMsg)
+		return
+	}
 
 	service.RespondWithSuccessJSONBytes(w, respondWithBytes)
 }

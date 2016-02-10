@@ -13,6 +13,9 @@ import (
 	"github.com/bitrise-io/go-utils/sliceutil"
 )
 
+// --------------------------
+// --- Webhook Data Model ---
+
 // CommitModel ...
 type CommitModel struct {
 	Distinct      bool   `json:"distinct"`
@@ -49,6 +52,9 @@ type PullRequestEventModel struct {
 	PullRequestInfo PullRequestInfoModel `json:"pull_request"`
 }
 
+// ---------------------------------------
+// --- Webhook Provider Implementation ---
+
 // HookProvider ...
 type HookProvider struct{}
 
@@ -77,10 +83,12 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 	branch := strings.TrimPrefix(codePushEvent.Ref, "refs/heads/")
 
 	return hookCommon.TransformResultModel{
-		TriggerAPIParams: bitriseapi.TriggerAPIParamsModel{
-			CommitHash:    headCommit.CommitHash,
-			CommitMessage: headCommit.CommitMessage,
-			Branch:        branch,
+		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+			{
+				CommitHash:    headCommit.CommitHash,
+				CommitMessage: headCommit.CommitMessage,
+				Branch:        branch,
+			},
 		},
 	}
 }
@@ -117,11 +125,13 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	}
 
 	return hookCommon.TransformResultModel{
-		TriggerAPIParams: bitriseapi.TriggerAPIParamsModel{
-			CommitHash:    pullRequest.PullRequestInfo.BranchInfo.CommitHash,
-			CommitMessage: commitMsg,
-			Branch:        pullRequest.PullRequestInfo.BranchInfo.Ref,
-			PullRequestID: &pullRequest.PullRequestID,
+		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+			{
+				CommitHash:    pullRequest.PullRequestInfo.BranchInfo.CommitHash,
+				CommitMessage: commitMsg,
+				Branch:        pullRequest.PullRequestInfo.BranchInfo.Ref,
+				PullRequestID: &pullRequest.PullRequestID,
+			},
 		},
 	}
 }
