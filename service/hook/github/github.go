@@ -130,8 +130,6 @@ func detectContentTypeAndEventID(header http.Header) (string, string, error) {
 	contentType, err := httputil.GetSingleValueFromHeader("Content-Type", header)
 	if err != nil {
 		return "", "", fmt.Errorf("Issue with Content-Type Header: %s", err)
-	} else if contentType != "application/json" && contentType != "application/x-www-form-urlencoded" {
-		return "", "", fmt.Errorf("Content-Type is not supported: %s", contentType)
 	}
 
 	ghEvent, err := httputil.GetSingleValueFromHeader("X-Github-Event", header)
@@ -148,6 +146,12 @@ func (hp HookProvider) Transform(r *http.Request) hookCommon.TransformResultMode
 	if err != nil {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Issue with Headers: %s", err),
+		}
+	}
+
+	if contentType != "application/json" && contentType != "application/x-www-form-urlencoded" {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Content-Type is not supported: %s", contentType),
 		}
 	}
 

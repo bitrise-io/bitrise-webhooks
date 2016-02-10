@@ -75,7 +75,7 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 		require.Equal(t, "ping", ghEvent)
 	}
 
-	t.Log("Unsupported GH event")
+	t.Log("Unsupported GH event - will be handled in Transform")
 	{
 		header := http.Header{
 			"X-Github-Event": {"label"},
@@ -124,6 +124,19 @@ func Test_HookProvider_Transform(t *testing.T) {
 		hookTransformResult := provider.Transform(&request)
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Ping event received")
+	}
+
+	t.Log("Unsuported Content-Type")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type":   {"not/supported"},
+				"X-Github-Event": {"ping"},
+			},
+		}
+		hookTransformResult := provider.Transform(&request)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Content-Type is not supported: not/supported")
 	}
 
 	t.Log("Unsupported event type - should error")
