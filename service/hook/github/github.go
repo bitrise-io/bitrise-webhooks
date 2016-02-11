@@ -210,7 +210,7 @@ func (hp HookProvider) Transform(r *http.Request) hookCommon.TransformResultMode
 		var pullRequestEvent PullRequestEventModel
 		if contentType == "application/json" {
 			if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
-				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: %s", err)}
+				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body as JSON: %s", err)}
 			}
 		} else if contentType == "application/x-www-form-urlencoded" {
 			payloadValue := r.PostFormValue("payload")
