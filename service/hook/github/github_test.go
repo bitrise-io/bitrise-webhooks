@@ -236,30 +236,6 @@ func Test_HookProvider_Transform(t *testing.T) {
 }
 
 func Test_transformCodePushEvent(t *testing.T) {
-	t.Log("This is a 'deleted' event")
-	{
-		codePush := CodePushEventModel{
-			HeadCommit: CommitModel{
-				Distinct: true,
-			},
-			Deleted: true,
-		}
-		hookTransformResult := transformCodePushEvent(codePush)
-		require.True(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "This is a 'Deleted' event, no build can be started")
-	}
-
-	t.Log("Not a head ref")
-	{
-		codePush := CodePushEventModel{
-			Ref:        "refs/pull/a",
-			HeadCommit: CommitModel{Distinct: true},
-		}
-		hookTransformResult := transformCodePushEvent(codePush)
-		require.True(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Ref (refs/pull/a) is not a head ref")
-	}
-
 	t.Log("Do Transform")
 	{
 		codePush := CodePushEventModel{
@@ -302,6 +278,54 @@ func Test_transformCodePushEvent(t *testing.T) {
 				Branch:        "master",
 			},
 		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Missing Commit Hash")
+	{
+		codePush := CodePushEventModel{
+			Ref: "refs/heads/master",
+			HeadCommit: CommitModel{
+				Distinct:      true,
+				CommitMessage: "re-structuring Hook Providers, with added tests",
+			},
+		}
+		hookTransformResult := transformCodePushEvent(codePush)
+		require.EqualError(t, hookTransformResult.Error, "Missing commit hash")
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("This is a 'deleted' event")
+	{
+		codePush := CodePushEventModel{
+			Deleted: true,
+			Ref:     "refs/heads/master",
+			HeadCommit: CommitModel{
+				Distinct:      true,
+				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				CommitMessage: "re-structuring Hook Providers, with added tests",
+			},
+		}
+		hookTransformResult := transformCodePushEvent(codePush)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "This is a 'Deleted' event, no build can be started")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Not a head ref")
+	{
+		codePush := CodePushEventModel{
+			Ref: "refs/not/head",
+			HeadCommit: CommitModel{
+				Distinct:      true,
+				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				CommitMessage: "re-structuring Hook Providers, with added tests",
+			},
+		}
+		hookTransformResult := transformCodePushEvent(codePush)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Ref (refs/not/head) is not a head ref")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 }
 

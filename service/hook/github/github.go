@@ -76,6 +76,12 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 	}
 	branch := strings.TrimPrefix(codePushEvent.Ref, "refs/heads/")
 
+	if len(headCommit.CommitHash) == 0 {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Missing commit hash"),
+		}
+	}
+
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
