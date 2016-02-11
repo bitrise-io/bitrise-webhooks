@@ -110,131 +110,6 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 	}
 }
 
-func Test_HookProvider_Transform(t *testing.T) {
-	provider := HookProvider{}
-
-	t.Log("Ping - should be skipped")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"Content-Type":   {"application/json"},
-				"X-Github-Event": {"ping"},
-			},
-		}
-		hookTransformResult := provider.Transform(&request)
-		require.True(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Ping event received")
-	}
-
-	t.Log("Unsuported Content-Type")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"Content-Type":   {"not/supported"},
-				"X-Github-Event": {"ping"},
-			},
-		}
-		hookTransformResult := provider.Transform(&request)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Content-Type is not supported: not/supported")
-	}
-
-	t.Log("Unsupported event type - should error")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"Content-Type":   {"application/json"},
-				"X-Github-Event": {"label"},
-			},
-		}
-		hookTransformResult := provider.Transform(&request)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Unsupported GitHub Webhook event: label")
-	}
-
-	t.Log("Code Push - should not be skipped")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"Content-Type":   {"application/json"},
-				"X-Github-Event": {"push"},
-			},
-		}
-		hookTransformResult := provider.Transform(&request)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
-	}
-
-	t.Log("Pull Request - should not be skipped")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"Content-Type":   {"application/json"},
-				"X-Github-Event": {"pull_request"},
-			},
-		}
-		hookTransformResult := provider.Transform(&request)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
-	}
-
-	t.Log("No Request Body")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"Content-Type":   {"application/json"},
-				"X-Github-Event": {"push"},
-			},
-		}
-		hookTransformResult := provider.Transform(&request)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
-	}
-
-	t.Log("Code Push - should be handled")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"X-Github-Event": {"push"},
-				"Content-Type":   {"application/json"},
-			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
-		}
-		hookTransformResult := provider.Transform(&request)
-		require.NoError(t, hookTransformResult.Error)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
-			{
-				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-				CommitMessage: "re-structuring Hook Providers, with added tests",
-				Branch:        "master",
-			},
-		}, hookTransformResult.TriggerAPIParams)
-	}
-
-	t.Log("Pull Request - should be handled")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"X-Github-Event": {"pull_request"},
-				"Content-Type":   {"application/json"},
-			},
-			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestData)),
-		}
-		hookTransformResult := provider.Transform(&request)
-		require.NoError(t, hookTransformResult.Error)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
-			{
-				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-				CommitMessage: "PR test\n\nPR text body",
-				Branch:        "master",
-				PullRequestID: pointers.NewIntPtr(12),
-			},
-		}, hookTransformResult.TriggerAPIParams)
-	}
-}
-
 func Test_transformCodePushEvent(t *testing.T) {
 	t.Log("Do Transform")
 	{
@@ -448,6 +323,131 @@ func Test_transformPullRequestEvent(t *testing.T) {
 			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				CommitMessage: "PR test\n\nPR text body",
+				Branch:        "master",
+				PullRequestID: pointers.NewIntPtr(12),
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+}
+
+func Test_HookProvider_Transform(t *testing.T) {
+	provider := HookProvider{}
+
+	t.Log("Ping - should be skipped")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type":   {"application/json"},
+				"X-Github-Event": {"ping"},
+			},
+		}
+		hookTransformResult := provider.Transform(&request)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Ping event received")
+	}
+
+	t.Log("Unsuported Content-Type")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type":   {"not/supported"},
+				"X-Github-Event": {"ping"},
+			},
+		}
+		hookTransformResult := provider.Transform(&request)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Content-Type is not supported: not/supported")
+	}
+
+	t.Log("Unsupported event type - should error")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type":   {"application/json"},
+				"X-Github-Event": {"label"},
+			},
+		}
+		hookTransformResult := provider.Transform(&request)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Unsupported GitHub Webhook event: label")
+	}
+
+	t.Log("Code Push - should not be skipped")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type":   {"application/json"},
+				"X-Github-Event": {"push"},
+			},
+		}
+		hookTransformResult := provider.Transform(&request)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
+	}
+
+	t.Log("Pull Request - should not be skipped")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type":   {"application/json"},
+				"X-Github-Event": {"pull_request"},
+			},
+		}
+		hookTransformResult := provider.Transform(&request)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
+	}
+
+	t.Log("No Request Body")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type":   {"application/json"},
+				"X-Github-Event": {"push"},
+			},
+		}
+		hookTransformResult := provider.Transform(&request)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
+	}
+
+	t.Log("Code Push - should be handled")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Github-Event": {"push"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
+		}
+		hookTransformResult := provider.Transform(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				CommitMessage: "re-structuring Hook Providers, with added tests",
+				Branch:        "master",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Pull Request - should be handled")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Github-Event": {"pull_request"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestData)),
+		}
+		hookTransformResult := provider.Transform(&request)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
