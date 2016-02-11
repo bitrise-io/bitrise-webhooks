@@ -67,12 +67,6 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 	}
 
 	headCommit := codePushEvent.HeadCommit
-	if !headCommit.Distinct {
-		return hookCommon.TransformResultModel{
-			Error:      errors.New("Head Commit is not Distinct"),
-			ShouldSkip: true,
-		}
-	}
 
 	if !strings.HasPrefix(codePushEvent.Ref, "refs/heads/") {
 		return hookCommon.TransformResultModel{

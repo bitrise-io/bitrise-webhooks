@@ -236,16 +236,6 @@ func Test_HookProvider_Transform(t *testing.T) {
 }
 
 func Test_transformCodePushEvent(t *testing.T) {
-	t.Log("Not Distinct Head Commit")
-	{
-		codePush := CodePushEventModel{
-			HeadCommit: CommitModel{Distinct: false},
-		}
-		hookTransformResult := transformCodePushEvent(codePush)
-		require.True(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Head Commit is not Distinct")
-	}
-
 	t.Log("This is a 'deleted' event")
 	{
 		codePush := CodePushEventModel{
@@ -276,6 +266,28 @@ func Test_transformCodePushEvent(t *testing.T) {
 			Ref: "refs/heads/master",
 			HeadCommit: CommitModel{
 				Distinct:      true,
+				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				CommitMessage: "re-structuring Hook Providers, with added tests",
+			},
+		}
+		hookTransformResult := transformCodePushEvent(codePush)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				CommitMessage: "re-structuring Hook Providers, with added tests",
+				Branch:        "master",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Not Distinct Head Commit - should trigger a build")
+	{
+		codePush := CodePushEventModel{
+			Ref: "refs/heads/master",
+			HeadCommit: CommitModel{
+				Distinct:      false,
 				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 				CommitMessage: "re-structuring Hook Providers, with added tests",
 			},
