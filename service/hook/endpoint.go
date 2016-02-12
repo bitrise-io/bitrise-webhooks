@@ -47,12 +47,19 @@ func respondWithErrors(w http.ResponseWriter, errs []error) {
 }
 
 func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitriseapi.TriggerAPIParamsModel) error {
+	log.Printf(" ===> trigger build: %s", triggerURL)
 	isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
+	if isOnlyLog {
+		log.Println(" (debug) isOnlyLog: true")
+	}
 
-	_, err := bitriseapi.TriggerBuild(triggerURL, apiToken, triggerAPIParams, isOnlyLog)
+	respBody, err := bitriseapi.TriggerBuild(triggerURL, apiToken, triggerAPIParams, isOnlyLog)
 	if err != nil {
+		log.Printf(" [!] Exception: failed to trigger build: %s", err)
 		return fmt.Errorf("Failed to Trigger the Build: %s", err)
 	}
+	log.Printf(" ===> trigger build - SUCCESS (%s)", triggerURL)
+	log.Printf("      (debug) response body: (%s)", respBody)
 	return nil
 }
 

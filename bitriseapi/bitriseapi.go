@@ -11,13 +11,18 @@ import (
 	"time"
 )
 
-// TriggerAPIParamsModel ...
-type TriggerAPIParamsModel struct {
+// BuildParamsModel ...
+type BuildParamsModel struct {
 	CommitHash    string `json:"commit_hash"`
 	CommitMessage string `json:"commit_message"`
 	Branch        string `json:"branch"`
 	Tag           string `json:"tag,omitempty"`
 	PullRequestID *int   `json:"pull_request_id,omitempty"`
+}
+
+// TriggerAPIParamsModel ...
+type TriggerAPIParamsModel struct {
+	BuildParams BuildParamsModel `json:"build_params"`
 }
 
 // BuildTriggerURL ...
@@ -78,9 +83,9 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 		return []byte{}, fmt.Errorf("TriggerBuild: request sent, but failed to read response body (http-code:%d): %s", resp.StatusCode, body)
 	}
 
-	if resp.StatusCode != 200 {
-		return []byte{}, fmt.Errorf("TriggerBuild: request sent, but received a non success response (http-code:%d): %s", resp.StatusCode, body)
+	if 200 <= resp.StatusCode && resp.StatusCode <= 202 {
+		return body, nil
 	}
 
-	return body, nil
+	return []byte{}, fmt.Errorf("TriggerBuild: request sent, but received a non success response (http-code:%d): %s", resp.StatusCode, body)
 }
