@@ -27,5 +27,5 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		EnvironmentMode: config.GetServerEnvMode(),
 	}
 
-	service.RespondWithSuccess(w, resp)
+	service.RespondWithSuccessOK(w, resp)
 }

@@ -98,7 +98,7 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		resp := SuccessRespModel{
 			Message: fmt.Sprintf("Acknowledged, but skipping. Reason: %s", hookTransformResult.Error),
 		}
-		service.RespondWithSuccess(w, resp)
+		service.RespondWithSuccess(w, http.StatusCreated, resp)
 		return
 	}
 	if hookTransformResult.Error != nil {
@@ -152,5 +152,5 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		successMsg = fmt.Sprintf("Successfully triggered %d builds.", buildTriggerCount)
 	}
-	service.RespondWithSuccess(w, SuccessRespModel{Message: successMsg})
+	service.RespondWithSuccess(w, http.StatusCreated, SuccessRespModel{Message: successMsg})
 }
