@@ -14,10 +14,15 @@ type StandardErrorRespModel struct {
 // -----------------
 // --- Successes ---
 
+// RespondWithSuccessOK ...
+func RespondWithSuccessOK(w http.ResponseWriter, respModel interface{}) {
+	RespondWithSuccess(w, http.StatusOK, respModel)
+}
+
 // RespondWithSuccess ...
-func RespondWithSuccess(w http.ResponseWriter, respModel interface{}) {
+func RespondWithSuccess(w http.ResponseWriter, httpStatusCode int, respModel interface{}) {
 	w.Header().Set("Content Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(httpStatusCode)
 	if err := json.NewEncoder(w).Encode(&respModel); err != nil {
 		log.Println("respondWithSuccess: Error: ", err)
 	}
