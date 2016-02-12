@@ -58,6 +58,7 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 		log.Printf(" [!] Exception: failed to trigger build: %s", err)
 		return fmt.Errorf("Failed to Trigger the Build: %s", err)
 	}
+	log.Printf(" ===> trigger build - SUCCESS (%s)", triggerURL)
 	return nil
 }
 
