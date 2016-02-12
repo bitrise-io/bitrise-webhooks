@@ -1,4 +1,4 @@
-package main
+package root
 
 import (
 	"fmt"
@@ -6,23 +6,26 @@ import (
 	"time"
 
 	"github.com/bitrise-io/bitrise-webhooks/config"
+	"github.com/bitrise-io/bitrise-webhooks/service"
+	"github.com/bitrise-io/bitrise-webhooks/version"
 )
 
-// RootRespModel ...
-type RootRespModel struct {
+// RespModel ...
+type RespModel struct {
 	Message         string `json:"message"`
 	Version         string `json:"version"`
 	Time            string `json:"time"`
 	EnvironmentMode string `json:"environment_mode"`
 }
 
-func rootHandler(w http.ResponseWriter, r *http.Request) {
-	resp := RootRespModel{
+// HTTPHandler ...
+func HTTPHandler(w http.ResponseWriter, r *http.Request) {
+	resp := RespModel{
 		Message:         "Welcome to bitrise-webhooks!",
-		Version:         VERSION,
+		Version:         version.VERSION,
 		Time:            fmt.Sprintf("%s", time.Now()),
 		EnvironmentMode: config.GetServerEnvMode(),
 	}
 
-	respondWithSuccess(w, resp)
+	service.RespondWithSuccess(w, resp)
 }

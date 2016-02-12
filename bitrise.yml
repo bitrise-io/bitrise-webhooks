@@ -111,7 +111,7 @@ workflows:
             echo
 
             set -x
-            version_file_path="./version.go"
+            version_file_path="./version/version.go"
             release_start_branch='master'
             release_destination_branch='prod'
             current_branch="$(git symbolic-ref --short HEAD)"
