@@ -85,9 +85,11 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
-				CommitHash:    headCommit.CommitHash,
-				CommitMessage: headCommit.CommitMessage,
-				Branch:        branch,
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    headCommit.CommitHash,
+					CommitMessage: headCommit.CommitMessage,
+					Branch:        branch,
+				},
 			},
 		},
 	}
@@ -127,10 +129,12 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
-				CommitHash:    pullRequest.PullRequestInfo.BranchInfo.CommitHash,
-				CommitMessage: commitMsg,
-				Branch:        pullRequest.PullRequestInfo.BranchInfo.Ref,
-				PullRequestID: &pullRequest.PullRequestID,
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    pullRequest.PullRequestInfo.BranchInfo.CommitHash,
+					CommitMessage: commitMsg,
+					Branch:        pullRequest.PullRequestInfo.BranchInfo.Ref,
+					PullRequestID: &pullRequest.PullRequestID,
+				},
 			},
 		},
 	}

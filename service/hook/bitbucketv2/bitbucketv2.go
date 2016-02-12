@@ -88,9 +88,11 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 		}
 
 		aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
-			CommitHash:    aNewItm.Target.CommitHash,
-			CommitMessage: aNewItm.Target.CommitMessage,
-			Branch:        aNewItm.Name,
+			BuildParams: bitriseapi.BuildParamsModel{
+				CommitHash:    aNewItm.Target.CommitHash,
+				CommitMessage: aNewItm.Target.CommitMessage,
+				Branch:        aNewItm.Name,
+			},
 		}
 		triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 	}

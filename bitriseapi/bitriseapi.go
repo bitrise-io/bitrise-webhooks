@@ -11,13 +11,18 @@ import (
 	"time"
 )
 
-// TriggerAPIParamsModel ...
-type TriggerAPIParamsModel struct {
+// BuildParamsModel ...
+type BuildParamsModel struct {
 	CommitHash    string `json:"commit_hash"`
 	CommitMessage string `json:"commit_message"`
 	Branch        string `json:"branch"`
 	Tag           string `json:"tag,omitempty"`
 	PullRequestID *int   `json:"pull_request_id,omitempty"`
+}
+
+// TriggerAPIParamsModel ...
+type TriggerAPIParamsModel struct {
+	BuildParams BuildParamsModel `json:"build_params"`
 }
 
 // BuildTriggerURL ...
