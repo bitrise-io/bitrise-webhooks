@@ -53,13 +53,13 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 		log.Println(" (debug) isOnlyLog: true")
 	}
 
-	respBody, err := bitriseapi.TriggerBuild(triggerURL, apiToken, triggerAPIParams, isOnlyLog)
+	responseModel, err := bitriseapi.TriggerBuild(triggerURL, apiToken, triggerAPIParams, isOnlyLog)
 	if err != nil {
 		log.Printf(" [!] Exception: failed to trigger build: %s", err)
 		return fmt.Errorf("Failed to Trigger the Build: %s", err)
 	}
 	log.Printf(" ===> trigger build - SUCCESS (%s)", triggerURL)
-	log.Printf("      (debug) response body: (%s)", respBody)
+	log.Printf("      (debug) response: (%#v)", responseModel)
 	return nil
 }
 
