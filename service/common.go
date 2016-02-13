@@ -24,16 +24,7 @@ func RespondWithSuccess(w http.ResponseWriter, httpStatusCode int, respModel int
 	w.Header().Set("Content Type", "application/json")
 	w.WriteHeader(httpStatusCode)
 	if err := json.NewEncoder(w).Encode(&respModel); err != nil {
-		log.Println("respondWithSuccess: Error: ", err)
-	}
-}
-
-// RespondWithSuccessJSONBytes ...
-func RespondWithSuccessJSONBytes(w http.ResponseWriter, respBytes []byte) {
-	w.Header().Set("Content Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(respBytes); err != nil {
-		log.Println("respondWithSuccessJSONBytes: Error: ", err)
+		log.Println(" [!] Exception: respondWithSuccess: Error: ", err)
 	}
 }
 
