@@ -129,7 +129,8 @@ workflows:
             git commit -m "v${bumped_version}"
 
             git checkout ${release_destination_branch}
-            git merge ${release_start_branch} --no-ff -m "Merge ${release_start_branch} into ${release_destination_branch}, release: v${bumped_version}"
+            # git merge ${release_start_branch} --no-ff -m "Merge ${release_start_branch} into ${release_destination_branch}, release: v${bumped_version}"
+            git merge ${release_start_branch} -m "Merge ${release_start_branch} into ${release_destination_branch}, release: v${bumped_version}"
             git tag "${bumped_version}"
 
             git checkout ${release_start_branch}
