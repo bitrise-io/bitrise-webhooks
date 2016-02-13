@@ -130,6 +130,14 @@ func (hp HookProvider) Transform(r *http.Request) hookCommon.TransformResultMode
 			Error: fmt.Errorf("X-Event-Key is not supported: %s", eventKey),
 		}
 	}
+	// Check: is this a re-try hook?
+	attemptNum, err := httputil.GetSingleValueFromHeader("X-Attempt-Number", r.Header)
+	if err == nil && attemptNum != "" && attemptNum != "1" {
+		return hookCommon.TransformResultModel{
+			ShouldSkip: true,
+			Error:      fmt.Errorf("No retry is supported (X-Attempt-Number: %s)", attemptNum),
+		}
+	}
 
 	if r.Body == nil {
 		return hookCommon.TransformResultModel{

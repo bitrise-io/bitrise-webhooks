@@ -330,6 +330,22 @@ func Test_transformCodePushEvent(t *testing.T) {
 func Test_HookProvider_Transform(t *testing.T) {
 	provider := HookProvider{}
 
+	t.Log("It's a re-try (X-Attempt-Number >= 2) - skip")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":      {"repo:push"},
+				"Content-Type":     {"application/json"},
+				"User-Agent":       {"Bitbucket-Webhooks/2.0"},
+				"X-Attempt-Number": {"2"},
+			},
+		}
+		hookTransformResult := provider.Transform(&request)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "No retry is supported (X-Attempt-Number: 2)")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+	}
+
 	t.Log("Unsupported Event Type")
 	{
 		request := http.Request{
@@ -415,5 +431,54 @@ func Test_HookProvider_Transform(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("X-Attempt-Number=1 - OK")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":      {"repo:push"},
+				"Content-Type":     {"application/json"},
+				"User-Agent":       {"Bitbucket-Webhooks/2.0"},
+				"X-Attempt-Number": {"1"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
+		}
+		hookTransformResult := provider.Transform(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					CommitMessage: "auto-test",
+					Branch:        "master",
+				},
+			},
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    "19934139a2cf799bbd0f5061ab02e4760902e93f",
+					CommitMessage: "auto-test 2",
+					Branch:        "test",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("X-Attempt-Number=2 - SKIP")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":      {"repo:push"},
+				"Content-Type":     {"application/json"},
+				"User-Agent":       {"Bitbucket-Webhooks/2.0"},
+				"X-Attempt-Number": {"2"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
+		}
+		hookTransformResult := provider.Transform(&request)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "No retry is supported (X-Attempt-Number: 2)")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 }
