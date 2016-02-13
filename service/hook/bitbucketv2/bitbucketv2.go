@@ -48,23 +48,18 @@ type CodePushEventModel struct {
 // HookProvider ...
 type HookProvider struct{}
 
-func detectContentTypeUserAgentAndEventKey(header http.Header) (string, string, string, error) {
+func detectContentTypeAndEventKey(header http.Header) (string, string, error) {
 	contentType, err := httputil.GetSingleValueFromHeader("Content-Type", header)
 	if err != nil {
-		return "", "", "", fmt.Errorf("Issue with Content-Type Header: %s", err)
-	}
-
-	userAgent, err := httputil.GetSingleValueFromHeader("User-Agent", header)
-	if err != nil {
-		return "", "", "", fmt.Errorf("Issue with User-Agent Header: %s", err)
+		return "", "", fmt.Errorf("Issue with Content-Type Header: %s", err)
 	}
 
 	eventKey, err := httputil.GetSingleValueFromHeader("X-Event-Key", header)
 	if err != nil {
-		return "", "", "", fmt.Errorf("Issue with X-Event-Key Header: %s", err)
+		return "", "", fmt.Errorf("Issue with X-Event-Key Header: %s", err)
 	}
 
-	return contentType, userAgent, eventKey, nil
+	return contentType, eventKey, nil
 }
 
 func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
@@ -109,7 +104,7 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 
 // Transform ...
 func (hp HookProvider) Transform(r *http.Request) hookCommon.TransformResultModel {
-	contentType, userAgent, eventKey, err := detectContentTypeUserAgentAndEventKey(r.Header)
+	contentType, eventKey, err := detectContentTypeAndEventKey(r.Header)
 	if err != nil {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Issue with Headers: %s", err),
@@ -118,11 +113,6 @@ func (hp HookProvider) Transform(r *http.Request) hookCommon.TransformResultMode
 	if contentType != "application/json" {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Content-Type is not supported: %s", contentType),
-		}
-	}
-	if userAgent != "Bitbucket-Webhooks/2.0" {
-		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("User-Agent is not supported: %s", userAgent),
 		}
 	}
 	if eventKey != "repo:push" {
