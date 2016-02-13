@@ -48,18 +48,23 @@ type CodePushEventModel struct {
 // HookProvider ...
 type HookProvider struct{}
 
-func detectContentTypeAndEventKey(header http.Header) (string, string, error) {
+func detectContentTypeAttemptNumberAndEventKey(header http.Header) (string, string, string, error) {
 	contentType, err := httputil.GetSingleValueFromHeader("Content-Type", header)
 	if err != nil {
-		return "", "", fmt.Errorf("Issue with Content-Type Header: %s", err)
+		return "", "", "", fmt.Errorf("Issue with Content-Type Header: %s", err)
 	}
 
 	eventKey, err := httputil.GetSingleValueFromHeader("X-Event-Key", header)
 	if err != nil {
-		return "", "", fmt.Errorf("Issue with X-Event-Key Header: %s", err)
+		return "", "", "", fmt.Errorf("Issue with X-Event-Key Header: %s", err)
 	}
 
-	return contentType, eventKey, nil
+	attemptNum, err := httputil.GetSingleValueFromHeader("X-Attempt-Number", header)
+	if err != nil {
+		return "", "", "", fmt.Errorf("Issue with X-Attempt-Number Header: %s", err)
+	}
+
+	return contentType, attemptNum, eventKey, nil
 }
 
 func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
@@ -104,7 +109,7 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 
 // Transform ...
 func (hp HookProvider) Transform(r *http.Request) hookCommon.TransformResultModel {
-	contentType, eventKey, err := detectContentTypeAndEventKey(r.Header)
+	contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(r.Header)
 	if err != nil {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Issue with Headers: %s", err),
@@ -121,8 +126,7 @@ func (hp HookProvider) Transform(r *http.Request) hookCommon.TransformResultMode
 		}
 	}
 	// Check: is this a re-try hook?
-	attemptNum, err := httputil.GetSingleValueFromHeader("X-Attempt-Number", r.Header)
-	if err == nil && attemptNum != "" && attemptNum != "1" {
+	if attemptNum != "1" {
 		return hookCommon.TransformResultModel{
 			ShouldSkip: true,
 			Error:      fmt.Errorf("No retry is supported (X-Attempt-Number: %s)", attemptNum),

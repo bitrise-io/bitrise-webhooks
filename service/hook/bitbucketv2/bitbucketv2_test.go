@@ -45,51 +45,68 @@ func Test_detectContentTypeUserAgentAndEventKey(t *testing.T) {
 	t.Log("Push event - should handle")
 	{
 		header := http.Header{
-			"X-Event-Key":  {"repo:push"},
-			"Content-Type": {"application/json"},
-			"User-Agent":   {"Bitbucket-Webhooks/2.0"},
+			"X-Event-Key":      {"repo:push"},
+			"Content-Type":     {"application/json"},
+			"X-Attempt-Number": {"1"},
 		}
-		contentType, eventKey, err := detectContentTypeAndEventKey(header)
+		contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(header)
 		require.NoError(t, err)
 		require.Equal(t, "application/json", contentType)
 		require.Equal(t, "repo:push", eventKey)
+		require.Equal(t, "1", attemptNum)
 	}
 
 	t.Log("Unsupported event - will be handled in Transform")
 	{
 		header := http.Header{
-			"X-Event-Key":  {"issue:create"},
-			"Content-Type": {"application/json"},
-			"User-Agent":   {"Bitbucket-Webhooks/2.0"},
+			"X-Event-Key":      {"issue:create"},
+			"Content-Type":     {"application/json"},
+			"X-Attempt-Number": {"2"},
 		}
-		contentType, eventKey, err := detectContentTypeAndEventKey(header)
+		contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(header)
 		require.NoError(t, err)
 		require.Equal(t, "application/json", contentType)
 		require.Equal(t, "issue:create", eventKey)
+		require.Equal(t, "2", attemptNum)
 	}
 
 	t.Log("Missing X-Event-Key header")
 	{
 		header := http.Header{
-			"Content-Type": {"application/json"},
-			"User-Agent":   {"Bitbucket-Webhooks/2.0"},
+			"Content-Type":     {"application/json"},
+			"X-Attempt-Number": {"1"},
 		}
-		contentType, eventKey, err := detectContentTypeAndEventKey(header)
+		contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(header)
 		require.EqualError(t, err, "Issue with X-Event-Key Header: No value found in HEADER for the key: X-Event-Key")
 		require.Equal(t, "", contentType)
 		require.Equal(t, "", eventKey)
+		require.Equal(t, "", attemptNum)
 	}
 
 	t.Log("Missing Content-Type header")
 	{
 		header := http.Header{
-			"X-Event-Key": {"repo:push"},
-			"User-Agent":  {"Bitbucket-Webhooks/2.0"},
+			"X-Event-Key":      {"repo:push"},
+			"X-Attempt-Number": {"1"},
 		}
-		contentType, eventKey, err := detectContentTypeAndEventKey(header)
+		contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(header)
 		require.EqualError(t, err, "Issue with Content-Type Header: No value found in HEADER for the key: Content-Type")
 		require.Equal(t, "", contentType)
 		require.Equal(t, "", eventKey)
+		require.Equal(t, "", attemptNum)
+	}
+
+	t.Log("Missing X-Attempt-Number header")
+	{
+		header := http.Header{
+			"X-Event-Key":  {"repo:push"},
+			"Content-Type": {"application/json"},
+		}
+		contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(header)
+		require.EqualError(t, err, "Issue with X-Attempt-Number Header: No value found in HEADER for the key: X-Attempt-Number")
+		require.Equal(t, "", contentType)
+		require.Equal(t, "", eventKey)
+		require.Equal(t, "", attemptNum)
 	}
 }
 
@@ -332,9 +349,9 @@ func Test_HookProvider_Transform(t *testing.T) {
 	{
 		request := http.Request{
 			Header: http.Header{
-				"X-Event-Key":  {"not:supported"},
-				"Content-Type": {"application/json"},
-				"User-Agent":   {"Bitbucket-Webhooks/2.0"},
+				"X-Event-Key":      {"not:supported"},
+				"Content-Type":     {"application/json"},
+				"X-Attempt-Number": {"1"},
 			},
 		}
 		hookTransformResult := provider.Transform(&request)
@@ -346,9 +363,9 @@ func Test_HookProvider_Transform(t *testing.T) {
 	{
 		request := http.Request{
 			Header: http.Header{
-				"X-Event-Key":  {"repo:push"},
-				"Content-Type": {"not/supported"},
-				"User-Agent":   {"Bitbucket-Webhooks/2.0"},
+				"X-Event-Key":      {"repo:push"},
+				"Content-Type":     {"not/supported"},
+				"X-Attempt-Number": {"1"},
 			},
 		}
 		hookTransformResult := provider.Transform(&request)
@@ -360,9 +377,9 @@ func Test_HookProvider_Transform(t *testing.T) {
 	{
 		request := http.Request{
 			Header: http.Header{
-				"X-Event-Key":  {"repo:push"},
-				"Content-Type": {"application/json"},
-				"User-Agent":   {"Bitbucket-Webhooks/2.0"},
+				"X-Event-Key":      {"repo:push"},
+				"Content-Type":     {"application/json"},
+				"X-Attempt-Number": {"1"},
 			},
 		}
 		hookTransformResult := provider.Transform(&request)
@@ -374,9 +391,9 @@ func Test_HookProvider_Transform(t *testing.T) {
 	{
 		request := http.Request{
 			Header: http.Header{
-				"X-Event-Key":  {"repo:push"},
-				"Content-Type": {"application/json"},
-				"User-Agent":   {"Bitbucket-Webhooks/2.0"},
+				"X-Event-Key":      {"repo:push"},
+				"Content-Type":     {"application/json"},
+				"X-Attempt-Number": {"1"},
 			},
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
 		}
