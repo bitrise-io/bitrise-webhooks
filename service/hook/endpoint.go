@@ -13,6 +13,7 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/bitbucketv2"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/github"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/slack"
 	"github.com/gorilla/mux"
 )
 
@@ -20,6 +21,7 @@ func supportedProviders() map[string]hookCommon.Provider {
 	return map[string]hookCommon.Provider{
 		"github":       github.HookProvider{},
 		"bitbucket-v2": bitbucketv2.HookProvider{},
+		"slack":        slack.HookProvider{},
 	}
 }
 
