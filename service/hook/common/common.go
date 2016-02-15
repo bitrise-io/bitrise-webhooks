@@ -41,16 +41,29 @@ type TransformResponseModel struct {
 
 // TransformResponseInputModel ...
 type TransformResponseInputModel struct {
-	Errors              []string
-	TriggerAPIResponses []bitriseapi.TriggerAPIResponseModel
+	// Errors include the errors if the build could not trigger
+	Errors []string
+	// SuccessTriggerResponses include the successful trigger call responses
+	SuccessTriggerResponses []bitriseapi.TriggerAPIResponseModel
+	// FailedTriggerResponses include the trigger calls which were performed,
+	//  but the response had a non success HTTP status code
+	FailedTriggerResponses []bitriseapi.TriggerAPIResponseModel
 }
 
 // ResponseTransformer ...
 type ResponseTransformer interface {
-	// TransformResponse ...
+	// TransformResponse is called when the hook was successfully
+	//  transformed into Bitrise API call(s); both if the actual
+	//  Build Trigger was successful or failed.
 	TransformResponse(input TransformResponseInputModel) TransformResponseModel
-	// TransformErrorMessageResponse ...
-	TransformErrorMessagesResponse(errMsgs []string) TransformResponseModel
-	// TransformSuccessMessageResponse ...
+	// TransformErrorMessageResponse is called if an error prevents
+	//  any Trigger call (missing parameter, un-transformable hook, ...)
+	// If a Build Trigger can be called then `TransformResponse` will be
+	//  called, even if the call fails.
+	TransformErrorMessageResponse(errMsg string) TransformResponseModel
+	// TransformSuccessMessageResponse is called if no Bitrise Trigger API
+	//  call(s) can be initiated, but the response is still considered as
+	//  success (e.g. if the hook should be skipped, with a success response,
+	//   which is the case for GitHub's "ping" hook).
 	TransformSuccessMessageResponse(msg string) TransformResponseModel
 }

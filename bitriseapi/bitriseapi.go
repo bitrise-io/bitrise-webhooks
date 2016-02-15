@@ -53,10 +53,10 @@ func BuildTriggerURL(apiRootURL string, appSlug string) (*url.URL, error) {
 //  not a HTTP success response.
 // If the response is an HTTP success response then the whole response body
 //  will be returned, and error will be nil.
-func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) (TriggerAPIResponseModel, error) {
+func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) (TriggerAPIResponseModel, bool, error) {
 	jsonStr, err := json.Marshal(params)
 	if err != nil {
-		return TriggerAPIResponseModel{}, fmt.Errorf("TriggerBuild: failed to json marshal: %s", err)
+		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: failed to json marshal: %s", err)
 	}
 
 	log.Printf("===> Triggering Build: (url:%s)", url)
@@ -66,12 +66,12 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 		return TriggerAPIResponseModel{
 			Status:  "ok",
 			Message: "LOG ONLY MODE",
-		}, nil
+		}, true, nil
 	}
 
 	req, err := http.NewRequest("POST", url.String(), bytes.NewBuffer(jsonStr))
 	if err != nil {
-		return TriggerAPIResponseModel{}, fmt.Errorf("TriggerBuild: failed to create request: %s", err)
+		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: failed to create request: %s", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Api-Token", apiToken)
@@ -82,7 +82,7 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return TriggerAPIResponseModel{}, fmt.Errorf("TriggerBuild: failed to send request: %s", err)
+		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: failed to send request: %s", err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -92,17 +92,17 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return TriggerAPIResponseModel{}, fmt.Errorf("TriggerBuild: request sent, but failed to read response body (http-code:%d): %s", resp.StatusCode, body)
+		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: request sent, but failed to read response body (http-code:%d): %s", resp.StatusCode, body)
 	}
 
 	var respModel TriggerAPIResponseModel
 	if err := json.Unmarshal(body, &respModel); err != nil {
-		return TriggerAPIResponseModel{}, fmt.Errorf("TriggerBuild: request sent, but failed to parse response (http-code:%d): %s", resp.StatusCode, body)
+		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: request sent, but failed to parse response (http-code:%d): %s", resp.StatusCode, body)
 	}
 
 	if 200 <= resp.StatusCode && resp.StatusCode <= 202 {
-		return respModel, nil
+		return respModel, true, nil
 	}
 
-	return respModel, nil
+	return respModel, false, nil
 }

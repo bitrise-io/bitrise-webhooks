@@ -1,8 +1,7 @@
 package hook
 
 import (
-	"fmt"
-
+	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 )
 
@@ -25,39 +24,34 @@ type SuccessRespModel struct {
 	Message string `json:"message"`
 }
 
+// TransformResponseModel ...
+type TransformResponseModel struct {
+	Errors                  []string                             `json:"errors,omitempty"`
+	SuccessTriggerResponses []bitriseapi.TriggerAPIResponseModel `json:"success_responses"`
+	FailedTriggerResponses  []bitriseapi.TriggerAPIResponseModel `json:"failed_responses"`
+}
+
 // TransformResponse ...
 func (hp DefaultResponseProvider) TransformResponse(input hookCommon.TransformResponseInputModel) hookCommon.TransformResponseModel {
-	if len(input.Errors) > 0 {
-		return hookCommon.TransformResponseModel{
-			Data:           ErrorsRespModel{Errors: input.Errors},
-			HTTPStatusCode: 400,
-		}
+	httpStatusCode := 201
+	if len(input.Errors) > 0 || len(input.FailedTriggerResponses) > 0 {
+		httpStatusCode = 400
 	}
 
-	buildTriggerCount := len(input.TriggerAPIResponses)
-	successMsg := ""
-	if buildTriggerCount == 1 {
-		successMsg = "Successfully triggered 1 build."
-	} else {
-		successMsg = fmt.Sprintf("Successfully triggered %d builds.", buildTriggerCount)
-	}
 	return hookCommon.TransformResponseModel{
-		Data:           SuccessRespModel{Message: successMsg},
-		HTTPStatusCode: 201,
+		Data: TransformResponseModel{
+			Errors:                  input.Errors,
+			SuccessTriggerResponses: input.SuccessTriggerResponses,
+			FailedTriggerResponses:  input.FailedTriggerResponses,
+		},
+		HTTPStatusCode: httpStatusCode,
 	}
 }
 
-// TransformErrorMessagesResponse ...
-func (hp DefaultResponseProvider) TransformErrorMessagesResponse(errMsgs []string) hookCommon.TransformResponseModel {
-	if len(errMsgs) == 1 {
-		return hookCommon.TransformResponseModel{
-			Data:           SingleErrorRespModel{Error: errMsgs[0]},
-			HTTPStatusCode: 400,
-		}
-	}
-
+// TransformErrorMessageResponse ...
+func (hp DefaultResponseProvider) TransformErrorMessageResponse(errMsg string) hookCommon.TransformResponseModel {
 	return hookCommon.TransformResponseModel{
-		Data:           ErrorsRespModel{Errors: errMsgs},
+		Data:           SingleErrorRespModel{Error: errMsg},
 		HTTPStatusCode: 400,
 	}
 }
