@@ -41,7 +41,7 @@ const (
 }`
 )
 
-func Test_detectContentTypeUserAgentAndEventKey(t *testing.T) {
+func Test_detectContentTypeAttemptNumberAndEventKey(t *testing.T) {
 	t.Log("Push event - should handle")
 	{
 		header := http.Header{
