@@ -17,6 +17,7 @@ For more information check the *How to add support for a new Provider* section.
 * Bitbucket V2 (aka "Webhooks" on the Bitbucket web UI)
   * handled on the path: `/h/bitbucket-v2/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * Bitbucket V1 (aka "Services" on the Bitbucket web UI) - **WIP**
+* Slack - **WIP**
 
 
 ## How to compile & run the server
@@ -211,4 +212,3 @@ response provider will be used.
 
 * Provider Support: Visual Studio Online
 * Provider Support: GitLab
-* Provider Support: Slack
