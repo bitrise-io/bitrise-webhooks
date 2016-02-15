@@ -162,16 +162,49 @@ and you can create a Pull Request, to have it merged with the official
 [bitrise.io](https://www.bitrise.io) webhook processor.
 
 
+#### Optional: define response Transform functions
+
+Once you have a working Provider you can optionally define response
+transformers too. With this you can define the exact response JSON data,
+and the HTTP status code, both for success and for error responses.
+
+If you don't define a response Transformer the default response provider
+will be used (`service/hook/default_reponse_provider.go`).
+
+To define your own Response Provider/Transform functions you just have to
+implement the functions of `ResponseTransformer` (`service/hook/common/common.go`).
+
+If your Provider implements these functions it'll be used for generating
+the response. You have to implement every function defined in the
+interface, or your Provider won't be considered as an implementation of the interface
+and the default response provider will be used instead.
+
+
 ## Response
 
-### Errors
+Response is always in JSON format.
 
-The server returns a single `{error: "..."}` (JSON) everywhere, **except** when the error is related to build trigger.
-This is because a single webhook might trigger multiple builds.
+**If provider declares the response transformers** it'll be used, and the
+provider is responsible for generating the response JSON.
 
-In case everything else was OK (every validation,
-transformation of the data to Bitrise Build Trigger API parameters, etc.) but the build trigger call(s) fail it'll return an `{errors: ["", "", ...]}` (JSON array of strings) response instead,
-listing every trigger error.
+If it doesn't provide the response transformer functions then the default
+response provider will be used.
+
+**The default response provider** generates the following responses:
+
+* If an error prevents any build calls then a single `{"error": "..."}` response
+  will be generated (with HTTP code `400`).
+* If a single success message is generated (e.g. if the hook is skipped and it's
+  declared as a success, instead of an error) then a `{"message": "..."}` response
+  will be generated (with HTTP status code `200`).
+* If at least one Bitrise Trigger call was initiated:
+  * All the received responses will be included as a `"success_responses": []`
+    and `"failed_responses": []` JSON arrays
+  * And all the errors (where the response was not available / call timed out, etc.)
+    as a `"errors": []` JSON array (if any)
+  * If at least one call fails or the response is an error response
+    the HTTP status code will be `400`
+  * If all trigger calls succeed the status code will be `201`
 
 
 ## TODO
