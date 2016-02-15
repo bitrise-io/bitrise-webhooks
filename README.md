@@ -193,7 +193,7 @@ response provider will be used.
 **The default response provider** generates the following responses:
 
 * If an error prevents any build calls then a single `{"error": "..."}` response
-  will be generated (with HTTP code `403`).
+  will be generated (with HTTP code `400`).
 * If a single success message is generated (e.g. if the hook is skipped and it's
   declared as a success, instead of an error) then a `{"message": "..."}` response
   will be generated (with HTTP status code `200`).
@@ -203,7 +203,7 @@ response provider will be used.
   * And all the errors (where the response was not available / call timed out, etc.)
     as a `"errors": []` JSON array (if any)
   * If at least one call fails or the response is an error response
-    the HTTP status code will be `403`
+    the HTTP status code will be `400`
   * If all trigger calls succeed the status code will be `201`
 
 
