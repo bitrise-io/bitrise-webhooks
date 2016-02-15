@@ -154,7 +154,7 @@ func detectContentTypeAndEventID(header http.Header) (string, string, error) {
 	return contentType, ghEvent, nil
 }
 
-// Transform ...
+// TransformRequest ...
 func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformResultModel {
 	contentType, ghEvent, err := detectContentTypeAndEventID(r.Header)
 	if err != nil {
