@@ -340,8 +340,8 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			},
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "No retry is supported (X-Attempt-Number: 2)")
+		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 
@@ -460,8 +460,8 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "No retry is supported (X-Attempt-Number: 2)")
+		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 }

@@ -128,8 +128,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	// Check: is this a re-try hook?
 	if attemptNum != "1" {
 		return hookCommon.TransformResultModel{
-			ShouldSkip: true,
-			Error:      fmt.Errorf("No retry is supported (X-Attempt-Number: %s)", attemptNum),
+			Error: fmt.Errorf("No retry is supported (X-Attempt-Number: %s)", attemptNum),
 		}
 	}
 
