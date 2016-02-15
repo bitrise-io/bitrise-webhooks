@@ -35,7 +35,7 @@ type TransformResponseModel struct {
 func (hp DefaultResponseProvider) TransformResponse(input hookCommon.TransformResponseInputModel) hookCommon.TransformResponseModel {
 	httpStatusCode := 201
 	if len(input.Errors) > 0 || len(input.FailedTriggerResponses) > 0 {
-		httpStatusCode = 400
+		httpStatusCode = 403
 	}
 
 	return hookCommon.TransformResponseModel{
@@ -52,7 +52,7 @@ func (hp DefaultResponseProvider) TransformResponse(input hookCommon.TransformRe
 func (hp DefaultResponseProvider) TransformErrorMessageResponse(errMsg string) hookCommon.TransformResponseModel {
 	return hookCommon.TransformResponseModel{
 		Data:           SingleErrorRespModel{Error: errMsg},
-		HTTPStatusCode: 400,
+		HTTPStatusCode: 403,
 	}
 }
 

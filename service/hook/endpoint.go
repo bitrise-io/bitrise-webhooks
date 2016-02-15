@@ -36,7 +36,7 @@ func respondWithErrorString(w http.ResponseWriter, provider *hookCommon.Provider
 	}
 	//
 	respInfo := responseProvider.TransformErrorMessageResponse(errStr)
-	httpStatusCode := 400 // default
+	httpStatusCode := 403 // default
 	if respInfo.HTTPStatusCode != 0 {
 		httpStatusCode = respInfo.HTTPStatusCode
 	}
