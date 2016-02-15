@@ -108,7 +108,7 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 }
 
 // Transform ...
-func (hp HookProvider) Transform(r *http.Request) hookCommon.TransformResultModel {
+func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformResultModel {
 	contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(r.Header)
 	if err != nil {
 		return hookCommon.TransformResultModel{

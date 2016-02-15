@@ -133,7 +133,7 @@ provider implementation.
 * Split the logic into functions; usually this split should be fine (at least for starting):
   * Validate the required headers (content type, event ID if supported, etc.)
   * Declare your **data model(s)** for the Webhook data
-  * Create a test for the `Transform` method, with checks for the required inputs (headers, event type, etc.).
+  * Create a test for the `TransformRequest` method, with checks for the required inputs (headers, event type, etc.).
     * You can test it with a sample webhook request string right away, but it's probably easier to write the
       transform utility function(s) first
   * Create your transform utility function(s):
@@ -145,7 +145,7 @@ provider implementation.
       without an actual test implementation.
     * Then start to write the test implementations, one by one; write the test first, then
       make the code pass, then go to the next test implementation
-  * Once your transform functions are well tested you should get back to the `Transform` function,
+  * Once your transform functions are well tested you should get back to the `TransformRequest` function,
     test & implement that too
     * You should include a sample webhook data & test, as you can see it in the `github` and `bitbucketv2` services.
 * Once the implementation is ready you can register a path/route for the service/provider:
