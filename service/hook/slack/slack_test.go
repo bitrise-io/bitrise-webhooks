@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
+	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -143,5 +144,117 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		hookTransformResult := provider.TransformRequest(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Failed to parse the request/message: Missing required parameter: 'text'")
+	}
+}
+
+func Test_HookProvider_TransformResponse(t *testing.T) {
+	provider := HookProvider{}
+
+	t.Log("Single success")
+	{
+		baseRespModel := hookCommon.TransformResponseInputModel{
+			SuccessTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
+				{
+					Status:    "ok",
+					Message:   "triggered build",
+					Service:   "bitrise",
+					AppSlug:   "app-slug",
+					BuildSlug: "build-slug",
+				},
+			},
+		}
+
+		resp := provider.TransformResponse(baseRespModel)
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: OutgoingWebhookRespModel{
+				Text: `Results:
+Successful Triggers: [{ok triggered build bitrise app-slug build-slug}]`,
+			},
+			HTTPStatusCode: 200,
+		}, resp)
+	}
+
+	t.Log("Single failed trigger")
+	{
+		baseRespModel := hookCommon.TransformResponseInputModel{
+			FailedTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
+				{
+					Status:    "error",
+					Message:   "some error happened",
+					Service:   "bitrise",
+					AppSlug:   "app-slug",
+					BuildSlug: "build-slug",
+				},
+			},
+		}
+
+		resp := provider.TransformResponse(baseRespModel)
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: OutgoingWebhookRespModel{
+				Text: `Results:
+[!] Failed Triggers: [{error some error happened bitrise app-slug build-slug}]`,
+			},
+			HTTPStatusCode: 200,
+		}, resp)
+	}
+
+	t.Log("Single error")
+	{
+		baseRespModel := hookCommon.TransformResponseInputModel{
+			Errors: []string{"a single error"},
+		}
+
+		resp := provider.TransformResponse(baseRespModel)
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: OutgoingWebhookRespModel{
+				Text: `Results:
+[!] Errors: [a single error]`,
+			},
+			HTTPStatusCode: 200,
+		}, resp)
+	}
+
+	t.Log("Multiple errors")
+	{
+		baseRespModel := hookCommon.TransformResponseInputModel{
+			Errors: []string{"first error", "Second Error"},
+		}
+
+		resp := provider.TransformResponse(baseRespModel)
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: OutgoingWebhookRespModel{
+				Text: `Results:
+[!] Errors: [first error Second Error]`,
+			},
+			HTTPStatusCode: 200,
+		}, resp)
+	}
+}
+
+func Test_HookProvider_TransformErrorMessageResponse(t *testing.T) {
+	provider := HookProvider{}
+
+	{
+		resp := provider.TransformErrorMessageResponse("my Err msg")
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: OutgoingWebhookRespModel{
+				Text: "[!] Error: my Err msg",
+			},
+			HTTPStatusCode: 200,
+		}, resp)
+	}
+}
+
+func Test_HookProvider_TransformSuccessMessageResponse(t *testing.T) {
+	provider := HookProvider{}
+
+	{
+		resp := provider.TransformSuccessMessageResponse("my Success msg")
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: OutgoingWebhookRespModel{
+				Text: "my Success msg",
+			},
+			HTTPStatusCode: 200,
+		}, resp)
 	}
 }
