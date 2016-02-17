@@ -210,5 +210,6 @@ response provider will be used.
 
 ## TODO
 
+* Re-try handling
 * Provider Support: Visual Studio Online
 * Provider Support: GitLab
