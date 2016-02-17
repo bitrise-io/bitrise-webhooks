@@ -8,10 +8,13 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
-	"github.com/bitrise-io/bitrise-webhooks/providers"
+	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/bitrise-io/go-utils/httputil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 )
+
+// --------------------------
+// --- Webhook Data Model ---
 
 // CommitModel ...
 type CommitModel struct {
@@ -49,88 +52,70 @@ type PullRequestEventModel struct {
 	PullRequestInfo PullRequestInfoModel `json:"pull_request"`
 }
 
+// ---------------------------------------
+// --- Webhook Provider Implementation ---
+
 // HookProvider ...
 type HookProvider struct{}
 
-// HookCheck ...
-func (hp HookProvider) HookCheck(header http.Header) providers.HookCheckModel {
-	if contentType, err := httputil.GetSingleValueFromHeader("Content-Type", header); err != nil {
-		return providers.HookCheckModel{IsSupportedByProvider: false}
-	} else if contentType != "application/json" && contentType != "application/x-www-form-urlencoded" {
-		return providers.HookCheckModel{IsSupportedByProvider: false}
-	}
-
-	ghEvent, err := httputil.GetSingleValueFromHeader("X-Github-Event", header)
-	if err != nil {
-		return providers.HookCheckModel{IsSupportedByProvider: false}
-	}
-
-	if ghEvent == "push" || ghEvent == "pull_request" {
-		// We'll process this
-		return providers.HookCheckModel{IsSupportedByProvider: true}
-	}
-
-	// GitHub webhook, but not supported event type - skip it
-	return providers.HookCheckModel{
-		IsSupportedByProvider: true,
-		CantTransformReason:   fmt.Errorf("Unsupported GitHub hook event type: %s", ghEvent),
-	}
-}
-
-func transformCodePushEvent(codePushEvent CodePushEventModel) providers.HookTransformResultModel {
+func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
 	if codePushEvent.Deleted {
-		return providers.HookTransformResultModel{
+		return hookCommon.TransformResultModel{
 			Error:      errors.New("This is a 'Deleted' event, no build can be started"),
 			ShouldSkip: true,
 		}
 	}
 
 	headCommit := codePushEvent.HeadCommit
-	if !headCommit.Distinct {
-		return providers.HookTransformResultModel{
-			Error:      errors.New("Head Commit is not Distinct"),
-			ShouldSkip: true,
-		}
-	}
 
 	if !strings.HasPrefix(codePushEvent.Ref, "refs/heads/") {
-		return providers.HookTransformResultModel{
+		return hookCommon.TransformResultModel{
 			Error:      fmt.Errorf("Ref (%s) is not a head ref", codePushEvent.Ref),
 			ShouldSkip: true,
 		}
 	}
 	branch := strings.TrimPrefix(codePushEvent.Ref, "refs/heads/")
 
-	return providers.HookTransformResultModel{
-		TriggerAPIParams: bitriseapi.TriggerAPIParamsModel{
-			CommitHash:    headCommit.CommitHash,
-			CommitMessage: headCommit.CommitMessage,
-			Branch:        branch,
+	if len(headCommit.CommitHash) == 0 {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Missing commit hash"),
+		}
+	}
+
+	return hookCommon.TransformResultModel{
+		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    headCommit.CommitHash,
+					CommitMessage: headCommit.CommitMessage,
+					Branch:        branch,
+				},
+			},
 		},
 	}
 }
 
-func transformPullRequestEvent(pullRequest PullRequestEventModel) providers.HookTransformResultModel {
+func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.TransformResultModel {
 	if pullRequest.Action == "" {
-		return providers.HookTransformResultModel{
+		return hookCommon.TransformResultModel{
 			Error:      errors.New("No Pull Request action specified"),
 			ShouldSkip: true,
 		}
 	}
 	if !sliceutil.IsStringInSlice(pullRequest.Action, []string{"opened", "reopened", "synchronize"}) {
-		return providers.HookTransformResultModel{
+		return hookCommon.TransformResultModel{
 			Error:      fmt.Errorf("Pull Request action doesn't require a build: %s", pullRequest.Action),
 			ShouldSkip: true,
 		}
 	}
 	if pullRequest.PullRequestInfo.Merged {
-		return providers.HookTransformResultModel{
+		return hookCommon.TransformResultModel{
 			Error:      errors.New("Pull Request already merged"),
 			ShouldSkip: true,
 		}
 	}
 	if pullRequest.PullRequestInfo.Mergeable != nil && *pullRequest.PullRequestInfo.Mergeable == false {
-		return providers.HookTransformResultModel{
+		return hookCommon.TransformResultModel{
 			Error:      errors.New("Pull Request is not mergeable"),
 			ShouldSkip: true,
 		}
@@ -141,35 +126,65 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) providers.Hook
 		commitMsg = fmt.Sprintf("%s\n\n%s", commitMsg, pullRequest.PullRequestInfo.Body)
 	}
 
-	return providers.HookTransformResultModel{
-		TriggerAPIParams: bitriseapi.TriggerAPIParamsModel{
-			CommitHash:    pullRequest.PullRequestInfo.BranchInfo.CommitHash,
-			CommitMessage: commitMsg,
-			Branch:        pullRequest.PullRequestInfo.BranchInfo.Ref,
-			PullRequestID: &pullRequest.PullRequestID,
+	return hookCommon.TransformResultModel{
+		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    pullRequest.PullRequestInfo.BranchInfo.CommitHash,
+					CommitMessage: commitMsg,
+					Branch:        pullRequest.PullRequestInfo.BranchInfo.Ref,
+					PullRequestID: &pullRequest.PullRequestID,
+				},
+			},
 		},
 	}
 }
 
-// Transform ...
-func (hp HookProvider) Transform(r *http.Request) providers.HookTransformResultModel {
+func detectContentTypeAndEventID(header http.Header) (string, string, error) {
+	contentType, err := httputil.GetSingleValueFromHeader("Content-Type", header)
+	if err != nil {
+		return "", "", fmt.Errorf("Issue with Content-Type Header: %s", err)
+	}
+
+	ghEvent, err := httputil.GetSingleValueFromHeader("X-Github-Event", header)
+	if err != nil {
+		return "", "", fmt.Errorf("Issue with X-Github-Event Header: %s", err)
+	}
+
+	return contentType, ghEvent, nil
+}
+
+// TransformRequest ...
+func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformResultModel {
+	contentType, ghEvent, err := detectContentTypeAndEventID(r.Header)
+	if err != nil {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Issue with Headers: %s", err),
+		}
+	}
+
+	if contentType != "application/json" && contentType != "application/x-www-form-urlencoded" {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Content-Type is not supported: %s", contentType),
+		}
+	}
+
+	if ghEvent == "ping" {
+		return hookCommon.TransformResultModel{
+			Error:      fmt.Errorf("Ping event received"),
+			ShouldSkip: true,
+		}
+	}
+	if ghEvent != "push" && ghEvent != "pull_request" {
+		// Unsupported GitHub Event
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Unsupported GitHub Webhook event: %s", ghEvent),
+		}
+	}
+
 	if r.Body == nil {
-		return providers.HookTransformResultModel{
+		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Failed to read content of request body: no or empty request body"),
-		}
-	}
-
-	contentType, err := httputil.GetSingleValueFromHeader("Content-Type", r.Header)
-	if err != nil {
-		return providers.HookTransformResultModel{
-			Error: fmt.Errorf("Failed to get Content-Type from Header"),
-		}
-	}
-
-	ghEvent, err := httputil.GetSingleValueFromHeader("X-Github-Event", r.Header)
-	if err != nil {
-		return providers.HookTransformResultModel{
-			Error: fmt.Errorf("Failed to get Github-Event from Header"),
 		}
 	}
 
@@ -178,18 +193,18 @@ func (hp HookProvider) Transform(r *http.Request) providers.HookTransformResultM
 		var codePushEvent CodePushEventModel
 		if contentType == "application/json" {
 			if err := json.NewDecoder(r.Body).Decode(&codePushEvent); err != nil {
-				return providers.HookTransformResultModel{Error: fmt.Errorf("Failed to parse request body: %s", err)}
+				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: %s", err)}
 			}
 		} else if contentType == "application/x-www-form-urlencoded" {
 			payloadValue := r.PostFormValue("payload")
 			if payloadValue == "" {
-				return providers.HookTransformResultModel{Error: fmt.Errorf("Failed to parse request body: empty payload")}
+				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: empty payload")}
 			}
 			if err := json.NewDecoder(strings.NewReader(payloadValue)).Decode(&codePushEvent); err != nil {
-				return providers.HookTransformResultModel{Error: fmt.Errorf("Failed to parse payload: %s", err)}
+				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse payload: %s", err)}
 			}
 		} else {
-			return providers.HookTransformResultModel{
+			return hookCommon.TransformResultModel{
 				Error: fmt.Errorf("Unsupported Content-Type: %s", contentType),
 			}
 		}
@@ -199,25 +214,25 @@ func (hp HookProvider) Transform(r *http.Request) providers.HookTransformResultM
 		var pullRequestEvent PullRequestEventModel
 		if contentType == "application/json" {
 			if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
-				return providers.HookTransformResultModel{Error: fmt.Errorf("Failed to parse request body: %s", err)}
+				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body as JSON: %s", err)}
 			}
 		} else if contentType == "application/x-www-form-urlencoded" {
 			payloadValue := r.PostFormValue("payload")
 			if payloadValue == "" {
-				return providers.HookTransformResultModel{Error: fmt.Errorf("Failed to parse request body: empty payload")}
+				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: empty payload")}
 			}
 			if err := json.NewDecoder(strings.NewReader(payloadValue)).Decode(&pullRequestEvent); err != nil {
-				return providers.HookTransformResultModel{Error: fmt.Errorf("Failed to parse payload: %s", err)}
+				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse payload: %s", err)}
 			}
 		} else {
-			return providers.HookTransformResultModel{
+			return hookCommon.TransformResultModel{
 				Error: fmt.Errorf("Unsupported Content-Type: %s", contentType),
 			}
 		}
 		return transformPullRequestEvent(pullRequestEvent)
 	}
 
-	return providers.HookTransformResultModel{
+	return hookCommon.TransformResultModel{
 		Error: fmt.Errorf("Unsupported GitHub event type: %s", ghEvent),
 	}
 }
