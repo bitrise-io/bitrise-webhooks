@@ -168,7 +168,8 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: OutgoingWebhookRespModel{
 				Text: `Results:
-Successful Triggers: [{ok triggered build bitrise app-slug build-slug}]`,
+*Success!* Details:
+* {Status:ok Message:triggered build Service:bitrise AppSlug:app-slug BuildSlug:build-slug}`,
 			},
 			HTTPStatusCode: 200,
 		}, resp)
@@ -192,7 +193,8 @@ Successful Triggers: [{ok triggered build bitrise app-slug build-slug}]`,
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: OutgoingWebhookRespModel{
 				Text: `Results:
-[!] Failed Triggers: [{error some error happened bitrise app-slug build-slug}]`,
+*[!] Failed Triggers*:
+* {Status:error Message:some error happened Service:bitrise AppSlug:app-slug BuildSlug:build-slug}`,
 			},
 			HTTPStatusCode: 200,
 		}, resp)
@@ -208,7 +210,8 @@ Successful Triggers: [{ok triggered build bitrise app-slug build-slug}]`,
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: OutgoingWebhookRespModel{
 				Text: `Results:
-[!] Errors: [a single error]`,
+*[!] Errors*:
+* a single error`,
 			},
 			HTTPStatusCode: 200,
 		}, resp)
@@ -224,7 +227,9 @@ Successful Triggers: [{ok triggered build bitrise app-slug build-slug}]`,
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: OutgoingWebhookRespModel{
 				Text: `Results:
-[!] Errors: [first error Second Error]`,
+*[!] Errors*:
+* first error
+* Second Error`,
 			},
 			HTTPStatusCode: 200,
 		}, resp)
@@ -238,7 +243,7 @@ func Test_HookProvider_TransformErrorMessageResponse(t *testing.T) {
 		resp := provider.TransformErrorMessageResponse("my Err msg")
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: OutgoingWebhookRespModel{
-				Text: "[!] Error: my Err msg",
+				Text: "*[!] Error*: my Err msg",
 			},
 			HTTPStatusCode: 200,
 		}, resp)

@@ -108,14 +108,30 @@ type OutgoingWebhookRespModel struct {
 // TransformResponse ...
 func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInputModel) hookCommon.TransformResponseModel {
 	responseText := "Results:"
+	isError := false
 	if len(input.Errors) > 0 {
-		responseText += fmt.Sprintf("\n[!] Errors: %s", input.Errors)
+		isError = true
+		responseText += "\n*[!] Errors*:"
+		for _, anErr := range input.Errors {
+			responseText += fmt.Sprintf("\n* %s", anErr)
+		}
 	}
 	if len(input.FailedTriggerResponses) > 0 {
-		responseText += fmt.Sprintf("\n[!] Failed Triggers: %s", input.FailedTriggerResponses)
+		isError = true
+		responseText += "\n*[!] Failed Triggers*:"
+		for _, aFailedTrigResp := range input.FailedTriggerResponses {
+			responseText += fmt.Sprintf("\n* %+v", aFailedTrigResp)
+		}
 	}
 	if len(input.SuccessTriggerResponses) > 0 {
-		responseText += fmt.Sprintf("\nSuccessful Triggers: %s", input.SuccessTriggerResponses)
+		if isError {
+			responseText += "\n*Successful Triggers*:"
+		} else {
+			responseText += "\n*Success!* Details:"
+		}
+		for _, aSuccessTrigResp := range input.SuccessTriggerResponses {
+			responseText += fmt.Sprintf("\n* %+v", aSuccessTrigResp)
+		}
 	}
 
 	return hookCommon.TransformResponseModel{
@@ -130,7 +146,7 @@ func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInput
 func (hp HookProvider) TransformErrorMessageResponse(errMsg string) hookCommon.TransformResponseModel {
 	return hookCommon.TransformResponseModel{
 		Data: OutgoingWebhookRespModel{
-			Text: fmt.Sprintf("[!] Error: %s", errMsg),
+			Text: fmt.Sprintf("*[!] Error*: %s", errMsg),
 		},
 		HTTPStatusCode: 200,
 	}
