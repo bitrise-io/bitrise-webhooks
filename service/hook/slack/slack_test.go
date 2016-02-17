@@ -75,7 +75,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 	{
 		webhookMsg := MessageModel{
 			TriggerText: "bitrise:",
-			Text:        "bitrise: branch=master",
+			Text:        "bitrise: branch:master",
 		}
 
 		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
@@ -88,6 +88,19 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Missing branch parameter")
+	{
+		webhookMsg := MessageModel{
+			TriggerText: "bitrise:",
+			Text:        "bitrise: no branch",
+		}
+
+		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		require.EqualError(t, hookTransformResult.Error, "Missing branch parameter!")
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 }
 
@@ -103,7 +116,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		}
 		form := url.Values{}
 		form.Add("trigger_word", "bitrise:")
-		form.Add("text", "bitrise: branch=master")
+		form.Add("text", "bitrise: branch:master")
 		request.PostForm = form
 
 		hookTransformResult := provider.TransformRequest(&request)

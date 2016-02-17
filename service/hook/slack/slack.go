@@ -56,8 +56,14 @@ func transformOutgoingWebhookMessage(webhookMsg MessageModel) hookCommon.Transfo
 	branch := ""
 	for _, aItm := range splits {
 		cleanedUpItm := strings.TrimSpace(aItm)
-		if strings.HasPrefix(cleanedUpItm, "branch=") {
-			branch = strings.TrimPrefix(cleanedUpItm, "branch=")
+		if strings.HasPrefix(cleanedUpItm, "branch:") {
+			branch = strings.TrimPrefix(cleanedUpItm, "branch:")
+		}
+	}
+
+	if branch == "" {
+		return hookCommon.TransformResultModel{
+			Error: errors.New("Missing branch parameter!"),
 		}
 	}
 
