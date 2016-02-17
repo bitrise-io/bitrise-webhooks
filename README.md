@@ -212,4 +212,5 @@ response provider will be used.
 
 ## TODO
 
+* Re-try handling
 * Provider Support: GitLab

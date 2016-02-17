@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/bitrise-io/go-utils/httputil"
 )
@@ -14,7 +16,7 @@ import (
 
 // MessageModel ...
 type MessageModel struct {
-	TriggerWord string // trigger_word
+	TriggerText string // trigger_word
 	Text        string // text
 }
 
@@ -35,8 +37,8 @@ func detectContentType(header http.Header) (string, error) {
 
 func createMessageModelFromFormRequest(r *http.Request) (MessageModel, error) {
 	msgModel := MessageModel{}
-	msgModel.TriggerWord = r.FormValue("trigger_word")
-	if len(msgModel.TriggerWord) == 0 {
+	msgModel.TriggerText = r.FormValue("trigger_word")
+	if len(msgModel.TriggerText) == 0 {
 		return MessageModel{}, errors.New("Missing required parameter: 'trigger_word'")
 	}
 	msgModel.Text = r.FormValue("text")
@@ -44,6 +46,36 @@ func createMessageModelFromFormRequest(r *http.Request) (MessageModel, error) {
 		return MessageModel{}, errors.New("Missing required parameter: 'text'")
 	}
 	return msgModel, nil
+}
+
+func transformOutgoingWebhookMessage(webhookMsg MessageModel) hookCommon.TransformResultModel {
+	cleanedUpText := strings.TrimSpace(
+		strings.TrimPrefix(webhookMsg.Text, webhookMsg.TriggerText))
+
+	splits := strings.Split(cleanedUpText, "|")
+	branch := ""
+	for _, aItm := range splits {
+		cleanedUpItm := strings.TrimSpace(aItm)
+		if strings.HasPrefix(cleanedUpItm, "branch:") {
+			branch = strings.TrimPrefix(cleanedUpItm, "branch:")
+		}
+	}
+
+	if branch == "" {
+		return hookCommon.TransformResultModel{
+			Error: errors.New("Missing branch parameter!"),
+		}
+	}
+
+	return hookCommon.TransformResultModel{
+		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch: branch,
+				},
+			},
+		},
+	}
 }
 
 // TransformRequest ...
@@ -60,5 +92,78 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 	}
 
-	return hookCommon.TransformResultModel{}
+	msgModel, err := createMessageModelFromFormRequest(r)
+	if err != nil {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Failed to parse the request/message: %s", err),
+		}
+	}
+
+	return transformOutgoingWebhookMessage(msgModel)
+}
+
+// ----------------------------
+// --- Response transformer ---
+
+// OutgoingWebhookRespModel ...
+type OutgoingWebhookRespModel struct {
+	Text     string `json:"text"`
+	Username string `json:"username,omitempty"`
+}
+
+// TransformResponse ...
+func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInputModel) hookCommon.TransformResponseModel {
+	responseText := "Results:"
+	isError := false
+	if len(input.Errors) > 0 {
+		isError = true
+		responseText += "\n*[!] Errors*:"
+		for _, anErr := range input.Errors {
+			responseText += fmt.Sprintf("\n* %s", anErr)
+		}
+	}
+	if len(input.FailedTriggerResponses) > 0 {
+		isError = true
+		responseText += "\n*[!] Failed Triggers*:"
+		for _, aFailedTrigResp := range input.FailedTriggerResponses {
+			responseText += fmt.Sprintf("\n* %+v", aFailedTrigResp)
+		}
+	}
+	if len(input.SuccessTriggerResponses) > 0 {
+		if isError {
+			responseText += "\n*Successful Triggers*:"
+		} else {
+			responseText += "\n*Success!* Details:"
+		}
+		for _, aSuccessTrigResp := range input.SuccessTriggerResponses {
+			responseText += fmt.Sprintf("\n* %+v", aSuccessTrigResp)
+		}
+	}
+
+	return hookCommon.TransformResponseModel{
+		Data: OutgoingWebhookRespModel{
+			Text: responseText,
+		},
+		HTTPStatusCode: 200,
+	}
+}
+
+// TransformErrorMessageResponse ...
+func (hp HookProvider) TransformErrorMessageResponse(errMsg string) hookCommon.TransformResponseModel {
+	return hookCommon.TransformResponseModel{
+		Data: OutgoingWebhookRespModel{
+			Text: fmt.Sprintf("*[!] Error*: %s", errMsg),
+		},
+		HTTPStatusCode: 200,
+	}
+}
+
+// TransformSuccessMessageResponse ...
+func (hp HookProvider) TransformSuccessMessageResponse(msg string) hookCommon.TransformResponseModel {
+	return hookCommon.TransformResponseModel{
+		Data: OutgoingWebhookRespModel{
+			Text: msg,
+		},
+		HTTPStatusCode: 200,
+	}
 }
