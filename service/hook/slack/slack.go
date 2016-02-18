@@ -80,10 +80,11 @@ func transformOutgoingWebhookMessage(webhookMsg MessageModel) hookCommon.Transfo
 	message := collectedParams["message"]
 	commitHash := collectedParams["commit"]
 	tag := collectedParams["tag"]
+	workflowID := collectedParams["workflow"]
 
-	if branch == "" {
+	if branch == "" && workflowID == "" {
 		return hookCommon.TransformResultModel{
-			Error: errors.New("Missing branch parameter!"),
+			Error: errors.New("Missing 'branch' and 'workflow' parameters - at least one of these is required"),
 		}
 	}
 
@@ -95,6 +96,7 @@ func transformOutgoingWebhookMessage(webhookMsg MessageModel) hookCommon.Transfo
 					CommitMessage: message,
 					CommitHash:    commitHash,
 					Tag:           tag,
+					WorkflowID:    workflowID,
 				},
 			},
 		},

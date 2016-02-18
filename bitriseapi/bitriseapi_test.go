@@ -27,7 +27,7 @@ func Test_TriggerAPIParamsModel_Validate(t *testing.T) {
 	{
 		triggerParams := TriggerAPIParamsModel{}
 		err := triggerParams.Validate()
-		require.EqualError(t, err, "Missing Branch parameter")
+		require.EqualError(t, err, "Missing Branch and WorkflowID parameters - at least one of these is required")
 	}
 
 	t.Log("Minimal valid, with branch")
@@ -35,6 +35,18 @@ func Test_TriggerAPIParamsModel_Validate(t *testing.T) {
 		triggerParams := TriggerAPIParamsModel{
 			BuildParams: BuildParamsModel{
 				Branch: "develop",
+			},
+		}
+
+		err := triggerParams.Validate()
+		require.NoError(t, err)
+	}
+
+	t.Log("Minimal valid, with workflow")
+	{
+		triggerParams := TriggerAPIParamsModel{
+			BuildParams: BuildParamsModel{
+				WorkflowID: "my-wf",
 			},
 		}
 
@@ -53,7 +65,7 @@ func TestTriggerBuild(t *testing.T) {
 
 		apiResponse, isSuccess, err := TriggerBuild(url, "api-token", triggerParams, true)
 		require.Equal(t, false, isSuccess)
-		require.EqualError(t, err, "TriggerBuild: build trigger parameter invalid: Missing Branch parameter")
+		require.EqualError(t, err, "TriggerBuild: build trigger parameter invalid: Missing Branch and WorkflowID parameters - at least one of these is required")
 		require.Equal(t, TriggerAPIResponseModel{}, apiResponse)
 	}
 

@@ -19,6 +19,7 @@ type BuildParamsModel struct {
 	Branch        string `json:"branch,omitempty"`
 	Tag           string `json:"tag,omitempty"`
 	PullRequestID *int   `json:"pull_request_id,omitempty"`
+	WorkflowID    string `json:"workflow_id,omitempty"`
 }
 
 // TriggerAPIParamsModel ...
@@ -37,8 +38,8 @@ type TriggerAPIResponseModel struct {
 
 // Validate ...
 func (triggerParams TriggerAPIParamsModel) Validate() error {
-	if triggerParams.BuildParams.Branch == "" {
-		return errors.New("Missing Branch parameter")
+	if triggerParams.BuildParams.Branch == "" && triggerParams.BuildParams.WorkflowID == "" {
+		return errors.New("Missing Branch and WorkflowID parameters - at least one of these is required")
 	}
 	return nil
 }

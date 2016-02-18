@@ -250,11 +250,30 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
+	t.Log("Workflow parameter")
+	{
+		webhookMsg := MessageModel{
+			TriggerText: "bitrise -",
+			Text:        "bitrise - workflow: my-wf1",
+		}
+
+		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					WorkflowID: "my-wf1",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
 	t.Log("All parameters")
 	{
 		webhookMsg := MessageModel{
 			TriggerText: "bitrise -",
-			Text:        "bitrise - branch : develop | tag: v1.1|  message : this is:my message  | commit: cmtHash321",
+			Text:        "bitrise - branch : develop | tag: v1.1|  message : this is:my message  | commit: cmtHash321 | workflow: primary-wf",
 		}
 
 		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
@@ -267,6 +286,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 					Tag:           "v1.1",
 					CommitHash:    "cmtHash321",
 					CommitMessage: "this is:my message",
+					WorkflowID:    "primary-wf",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -275,12 +295,12 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 	t.Log("Missing branch parameter")
 	{
 		webhookMsg := MessageModel{
-			TriggerText: "bitrise:",
-			Text:        "bitrise: no branch",
+			TriggerText: "bitrise -",
+			Text:        "bitrise - message: only message",
 		}
 
 		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
-		require.EqualError(t, hookTransformResult.Error, "Missing branch parameter!")
+		require.EqualError(t, hookTransformResult.Error, "Missing 'branch' and 'workflow' parameters - at least one of these is required")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
