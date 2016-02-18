@@ -11,15 +11,6 @@ import (
 	"github.com/bitrise-io/go-utils/httputil"
 )
 
-// --------------------------
-// --- Webhook Data Model ---
-
-// MessageModel ...
-type MessageModel struct {
-	TriggerText string // trigger_word
-	Text        string // text
-}
-
 // ---------------------------------------
 // --- Webhook Provider Implementation ---
 
@@ -35,17 +26,28 @@ func detectContentType(header http.Header) (string, error) {
 	return contentType, nil
 }
 
-func createMessageModelFromFormRequest(r *http.Request) (MessageModel, error) {
-	msgModel := MessageModel{}
-	msgModel.TriggerText = r.FormValue("trigger_word")
-	if len(msgModel.TriggerText) == 0 {
-		return MessageModel{}, errors.New("Missing required parameter: 'trigger_word'")
+func getInputTextFromFormRequest(r *http.Request) (string, error) {
+	triggerWord := r.FormValue("trigger_word")
+	if len(triggerWord) > 0 {
+		text := r.FormValue("text")
+		if len(text) == 0 {
+			return "", errors.New("'trigger_word' parameter found, but 'text' parameter is missing or empty")
+		}
+		text = strings.TrimSpace(strings.TrimPrefix(text, triggerWord))
+		return text, nil
 	}
-	msgModel.Text = r.FormValue("text")
-	if len(msgModel.Text) == 0 {
-		return MessageModel{}, errors.New("Missing required parameter: 'text'")
+
+	command := r.FormValue("command")
+	if len(command) <= 0 {
+		return "", errors.New("Missing required parameter: either 'command' or 'trigger_word' should be specified")
 	}
-	return msgModel, nil
+	text := r.FormValue("text")
+	if len(text) == 0 {
+		return "", errors.New("'command' parameter found, but 'text' parameter is missing or empty")
+	}
+	text = strings.TrimSpace(text)
+
+	return text, nil
 }
 
 func collectParamsFromPipeSeparatedText(text string) map[string]string {
@@ -80,16 +82,17 @@ func chooseFirstNonEmptyString(strs ...string) string {
 	return ""
 }
 
-func transformOutgoingWebhookMessage(webhookMsg MessageModel) hookCommon.TransformResultModel {
-	cleanedUpText := strings.TrimSpace(
-		strings.TrimPrefix(webhookMsg.Text, webhookMsg.TriggerText))
+func transformOutgoingWebhookMessage(slackText string) hookCommon.TransformResultModel {
+	cleanedUpText := strings.TrimSpace(slackText)
 
 	collectedParams := collectParamsFromPipeSeparatedText(cleanedUpText)
+	//
 	branch := chooseFirstNonEmptyString(collectedParams["branch"], collectedParams["b"])
+	workflowID := chooseFirstNonEmptyString(collectedParams["workflow"], collectedParams["w"])
+	//
 	message := chooseFirstNonEmptyString(collectedParams["message"], collectedParams["m"])
 	commitHash := chooseFirstNonEmptyString(collectedParams["commit"], collectedParams["c"])
 	tag := chooseFirstNonEmptyString(collectedParams["tag"], collectedParams["t"])
-	workflowID := chooseFirstNonEmptyString(collectedParams["workflow"], collectedParams["w"])
 
 	if branch == "" && workflowID == "" {
 		return hookCommon.TransformResultModel{
@@ -126,14 +129,14 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 	}
 
-	msgModel, err := createMessageModelFromFormRequest(r)
+	slackText, err := getInputTextFromFormRequest(r)
 	if err != nil {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Failed to parse the request/message: %s", err),
 		}
 	}
 
-	return transformOutgoingWebhookMessage(msgModel)
+	return transformOutgoingWebhookMessage(slackText)
 }
 
 // ----------------------------

@@ -17,7 +17,31 @@ For more information check the *How to add support for a new Provider* section.
 * Bitbucket V2 (aka "Webhooks" on the Bitbucket web UI)
   * handled on the path: `/h/bitbucket-v2/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * Bitbucket V1 (aka "Services" on the Bitbucket web UI) - **WIP**
-* Slack - **WIP**
+* Slack (both outgoing webhooks & slash commands)
+  * handled on the path: `/h/slack/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
+
+### Setup & usage: Slack
+
+#### Usage - the message format
+
+Your message have to be in the format: `key:value|key:value|...`,
+where the supported `keys` are:
+
+At least one of these two parameters are required:
+
+* `b` or `branch` - example: `branch: master`
+* `w` or `workflow` - example: `workflow: primary`
+
+Other, optional parameters:
+
+* `t` or `tag` - example: `branch: master|tag: v1.0`
+* `c` or `commit` - example: `workflow: primary|commit: eee55509f16e7715bdb43308bb55e8736da4e21e`
+* `m` or `message` - example: `branch: master|message: ship it!!`
+
+**NOTE**: at least either `branch` or `workflow` have to be specified, and of course
+you can specify both if you want to. You're free to specify any number of optional parameters.
+
+An example with all parameters included: `workflow: primary|b: master|tag: v1.0|commit:eee55509f16e7715bdb43308bb55e8736da4e21e|m: start my build!`
 
 
 ## How to compile & run the server

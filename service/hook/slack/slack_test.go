@@ -29,21 +29,18 @@ func Test_detectContentType(t *testing.T) {
 	}
 }
 
-func Test_createMessageModelFromFormRequest(t *testing.T) {
+func Test_getInputTextFromFormRequest(t *testing.T) {
 	t.Log("Proper Form content")
 	{
 		request := http.Request{}
 		form := url.Values{}
 		form.Add("trigger_word", "the trigger word")
-		form.Add("text", "the text")
+		form.Add("text", "the trigger word        the text")
 		request.PostForm = form
 
-		messageModel, err := createMessageModelFromFormRequest(&request)
+		text, err := getInputTextFromFormRequest(&request)
 		require.NoError(t, err)
-		require.Equal(t, MessageModel{
-			TriggerText: "the trigger word",
-			Text:        "the text",
-		}, messageModel)
+		require.Equal(t, "the text", text)
 	}
 
 	t.Log("Missing trigger_word")
@@ -53,20 +50,33 @@ func Test_createMessageModelFromFormRequest(t *testing.T) {
 		form.Add("text", "the text")
 		request.PostForm = form
 
-		messageModel, err := createMessageModelFromFormRequest(&request)
-		require.EqualError(t, err, "Missing required parameter: 'trigger_word'")
-		require.Equal(t, MessageModel{}, messageModel)
+		text, err := getInputTextFromFormRequest(&request)
+		require.EqualError(t, err, "Missing required parameter: either 'command' or 'trigger_word' should be specified")
+		require.Equal(t, "", text)
 	}
-	t.Log("Missing text")
+
+	t.Log("Missing text - trigger_word")
 	{
 		request := http.Request{}
 		form := url.Values{}
 		form.Add("trigger_word", "the trigger word")
 		request.PostForm = form
 
-		messageModel, err := createMessageModelFromFormRequest(&request)
-		require.EqualError(t, err, "Missing required parameter: 'text'")
-		require.Equal(t, MessageModel{}, messageModel)
+		text, err := getInputTextFromFormRequest(&request)
+		require.EqualError(t, err, "'trigger_word' parameter found, but 'text' parameter is missing or empty")
+		require.Equal(t, "", text)
+	}
+
+	t.Log("Missing text - command")
+	{
+		request := http.Request{}
+		form := url.Values{}
+		form.Add("command", "the-command")
+		request.PostForm = form
+
+		text, err := getInputTextFromFormRequest(&request)
+		require.EqualError(t, err, "'command' parameter found, but 'text' parameter is missing or empty")
+		require.Equal(t, "", text)
 	}
 }
 
@@ -146,12 +156,9 @@ func Test_collectParamsFromPipeSeparatedText(t *testing.T) {
 func Test_transformOutgoingWebhookMessage(t *testing.T) {
 	t.Log("Should be OK")
 	{
-		webhookMsg := MessageModel{
-			TriggerText: "bitrise:",
-			Text:        "bitrise: branch:master",
-		}
+		slackText := "branch:master"
 
-		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		hookTransformResult := transformOutgoingWebhookMessage(slackText)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -165,12 +172,9 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 
 	t.Log("Should be OK - space between param key&value")
 	{
-		webhookMsg := MessageModel{
-			TriggerText: "bitrise -",
-			Text:        "bitrise - branch: master",
-		}
+		slackText := " branch: master"
 
-		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		hookTransformResult := transformOutgoingWebhookMessage(slackText)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -184,12 +188,9 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 
 	t.Log("Empty parameter component")
 	{
-		webhookMsg := MessageModel{
-			TriggerText: "bitrise -",
-			Text:        "bitrise - branch: master | ",
-		}
+		slackText := "branch: master | "
 
-		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		hookTransformResult := transformOutgoingWebhookMessage(slackText)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -203,12 +204,9 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 
 	t.Log("Message parameter")
 	{
-		webhookMsg := MessageModel{
-			TriggerText: "bitrise -",
-			Text:        "bitrise - branch: master | message: this is the Commit Message param",
-		}
+		slackText := "branch: master | message: this is the Commit Message param"
 
-		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		hookTransformResult := transformOutgoingWebhookMessage(slackText)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -223,12 +221,9 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 
 	t.Log("Commit parameter")
 	{
-		webhookMsg := MessageModel{
-			TriggerText: "bitrise -",
-			Text:        "bitrise - branch: master | commit: cmtHash123",
-		}
+		slackText := "branch: master | commit: cmtHash123"
 
-		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		hookTransformResult := transformOutgoingWebhookMessage(slackText)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -243,12 +238,9 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 
 	t.Log("Tag parameter")
 	{
-		webhookMsg := MessageModel{
-			TriggerText: "bitrise -",
-			Text:        "bitrise - tag: v1.0|branch : develop",
-		}
+		slackText := "tag: v1.0|branch : develop"
 
-		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		hookTransformResult := transformOutgoingWebhookMessage(slackText)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -263,12 +255,9 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 
 	t.Log("Workflow parameter")
 	{
-		webhookMsg := MessageModel{
-			TriggerText: "bitrise -",
-			Text:        "bitrise - workflow: my-wf1",
-		}
+		slackText := "workflow: my-wf1"
 
-		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		hookTransformResult := transformOutgoingWebhookMessage(slackText)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -282,12 +271,9 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 
 	t.Log("All parameters - long form")
 	{
-		webhookMsg := MessageModel{
-			TriggerText: "bitrise -",
-			Text:        "bitrise - branch : develop | tag: v1.1|  message : this is:my message  | commit: cmtHash321 | workflow: primary-wf",
-		}
+		slackText := "branch : develop | tag: v1.1|  message : this is:my message  | commit: cmtHash321 | workflow: primary-wf"
 
-		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		hookTransformResult := transformOutgoingWebhookMessage(slackText)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -305,12 +291,9 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 
 	t.Log("All parameters - short form")
 	{
-		webhookMsg := MessageModel{
-			TriggerText: "bitrise -",
-			Text:        "bitrise - b: develop | t: v1.1|  m : this is:my message  | c: cmtHash321 | w: primary-wf",
-		}
+		slackText := "b: develop | t: v1.1|  m : this is:my message  | c: cmtHash321 | w: primary-wf"
 
-		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		hookTransformResult := transformOutgoingWebhookMessage(slackText)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -328,12 +311,9 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 
 	t.Log("Missing branch parameter")
 	{
-		webhookMsg := MessageModel{
-			TriggerText: "bitrise -",
-			Text:        "bitrise - message: only message",
-		}
+		slackText := "message: only message"
 
-		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		hookTransformResult := transformOutgoingWebhookMessage(slackText)
 		require.EqualError(t, hookTransformResult.Error, "Missing 'branch' and 'workflow' parameters - at least one of these is required")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
@@ -392,7 +372,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 
 		hookTransformResult := provider.TransformRequest(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Failed to parse the request/message: Missing required parameter: 'text'")
+		require.EqualError(t, hookTransformResult.Error, "Failed to parse the request/message: 'trigger_word' parameter found, but 'text' parameter is missing or empty")
 	}
 }
 
