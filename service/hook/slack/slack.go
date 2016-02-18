@@ -71,16 +71,25 @@ func collectParamsFromPipeSeparatedText(text string) map[string]string {
 	return collectedParams
 }
 
+func chooseFirstNonEmptyString(strs ...string) string {
+	for _, aStr := range strs {
+		if aStr != "" {
+			return aStr
+		}
+	}
+	return ""
+}
+
 func transformOutgoingWebhookMessage(webhookMsg MessageModel) hookCommon.TransformResultModel {
 	cleanedUpText := strings.TrimSpace(
 		strings.TrimPrefix(webhookMsg.Text, webhookMsg.TriggerText))
 
 	collectedParams := collectParamsFromPipeSeparatedText(cleanedUpText)
-	branch := collectedParams["branch"]
-	message := collectedParams["message"]
-	commitHash := collectedParams["commit"]
-	tag := collectedParams["tag"]
-	workflowID := collectedParams["workflow"]
+	branch := chooseFirstNonEmptyString(collectedParams["branch"], collectedParams["b"])
+	message := chooseFirstNonEmptyString(collectedParams["message"], collectedParams["m"])
+	commitHash := chooseFirstNonEmptyString(collectedParams["commit"], collectedParams["c"])
+	tag := chooseFirstNonEmptyString(collectedParams["tag"], collectedParams["t"])
+	workflowID := chooseFirstNonEmptyString(collectedParams["workflow"], collectedParams["w"])
 
 	if branch == "" && workflowID == "" {
 		return hookCommon.TransformResultModel{

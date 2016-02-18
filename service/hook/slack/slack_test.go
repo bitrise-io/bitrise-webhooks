@@ -70,6 +70,16 @@ func Test_createMessageModelFromFormRequest(t *testing.T) {
 	}
 }
 
+func Test_chooseFirstNonEmptyString(t *testing.T) {
+	require.Equal(t, "a", chooseFirstNonEmptyString("a", "b"))
+	require.Equal(t, "b", chooseFirstNonEmptyString("", "b"))
+	require.Equal(t, "b", chooseFirstNonEmptyString("", "b", ""))
+	require.Equal(t, "b", chooseFirstNonEmptyString("", "b", "c"))
+	require.Equal(t, "c", chooseFirstNonEmptyString("", "", "c"))
+	require.Equal(t, "", chooseFirstNonEmptyString("", "", ""))
+	require.Equal(t, "", chooseFirstNonEmptyString())
+}
+
 func Test_collectParamsFromPipeSeparatedText(t *testing.T) {
 	t.Log("Single item - trimming")
 	{
@@ -78,6 +88,7 @@ func Test_collectParamsFromPipeSeparatedText(t *testing.T) {
 			"key : the value",
 			"key :the value",
 			"key :   the value   ",
+			" key :   the value   ",
 			"key: the value |",
 		}
 		for _, aText := range texts {
@@ -269,11 +280,34 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
-	t.Log("All parameters")
+	t.Log("All parameters - long form")
 	{
 		webhookMsg := MessageModel{
 			TriggerText: "bitrise -",
 			Text:        "bitrise - branch : develop | tag: v1.1|  message : this is:my message  | commit: cmtHash321 | workflow: primary-wf",
+		}
+
+		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch:        "develop",
+					Tag:           "v1.1",
+					CommitHash:    "cmtHash321",
+					CommitMessage: "this is:my message",
+					WorkflowID:    "primary-wf",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("All parameters - short form")
+	{
+		webhookMsg := MessageModel{
+			TriggerText: "bitrise -",
+			Text:        "bitrise - b: develop | t: v1.1|  m : this is:my message  | c: cmtHash321 | w: primary-wf",
 		}
 
 		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
