@@ -2,7 +2,7 @@
 
 Bitrise Webhooks processor.
 
-Transforms various webhooks (GitHub, Bitbucket, Slack, ...) to [bitrise.io](https://www.bitrise.io)'s
+Transforms various webhooks (GitHub, Bitbucket, Slack, Visual Studio Team Services, ...) to [bitrise.io](https://www.bitrise.io)'s
 [Build Trigger API format](http://devcenter.bitrise.io/docs/build-trigger-api),
 and calls it to start a build.
 
@@ -18,6 +18,8 @@ For more information check the *How to add support for a new Provider* section.
   * handled on the path: `/h/bitbucket-v2/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * Bitbucket V1 (aka "Services" on the Bitbucket web UI) - **WIP**
 * Slack - **WIP**
+* Visual Studio Team Services
+  * handled on the path: `/h/visual-studio-team-services/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 
 
 ## How to compile & run the server
@@ -211,5 +213,4 @@ response provider will be used.
 ## TODO
 
 * Re-try handling
-* Provider Support: Visual Studio Online
 * Provider Support: GitLab
