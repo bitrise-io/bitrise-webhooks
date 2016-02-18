@@ -142,15 +142,38 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 // ----------------------------
 // --- Response transformer ---
 
-// OutgoingWebhookRespModel ...
-type OutgoingWebhookRespModel struct {
+const (
+	slackColorGood    = "good"
+	slackColorWarning = "warning"
+	slackColorDanger  = "danger"
+)
+
+// AttachmentItemModel ...
+type AttachmentItemModel struct {
+	Fallback string `json:"fallback"`
 	Text     string `json:"text"`
-	Username string `json:"username,omitempty"`
+	Color    string `json:"color,omitempty"`
+}
+
+func createAttachmentItemModel(text, color string) AttachmentItemModel {
+	return AttachmentItemModel{
+		Fallback: text,
+		Text:     text,
+		Color:    color,
+	}
+}
+
+// RespModel ...
+type RespModel struct {
+	Text        string                `json:"text"`
+	Username    string                `json:"username,omitempty"`
+	Attachments []AttachmentItemModel `json:"attachments,omitempty"`
 }
 
 // TransformResponse ...
 func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInputModel) hookCommon.TransformResponseModel {
 	responseText := "Results:"
+
 	isError := false
 	if len(input.Errors) > 0 {
 		isError = true
@@ -177,9 +200,17 @@ func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInput
 		}
 	}
 
+	responseColor := slackColorGood
+	if isError {
+		responseColor = slackColorDanger
+	}
+
 	return hookCommon.TransformResponseModel{
-		Data: OutgoingWebhookRespModel{
+		Data: RespModel{
 			Text: responseText,
+			Attachments: []AttachmentItemModel{
+				createAttachmentItemModel(responseText, responseColor),
+			},
 		},
 		HTTPStatusCode: 200,
 	}
@@ -187,9 +218,13 @@ func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInput
 
 // TransformErrorMessageResponse ...
 func (hp HookProvider) TransformErrorMessageResponse(errMsg string) hookCommon.TransformResponseModel {
+	respText := fmt.Sprintf("*[!] Error*: %s", errMsg)
 	return hookCommon.TransformResponseModel{
-		Data: OutgoingWebhookRespModel{
-			Text: fmt.Sprintf("*[!] Error*: %s", errMsg),
+		Data: RespModel{
+			Text: respText,
+			Attachments: []AttachmentItemModel{
+				createAttachmentItemModel(respText, slackColorDanger),
+			},
 		},
 		HTTPStatusCode: 200,
 	}
@@ -198,8 +233,11 @@ func (hp HookProvider) TransformErrorMessageResponse(errMsg string) hookCommon.T
 // TransformSuccessMessageResponse ...
 func (hp HookProvider) TransformSuccessMessageResponse(msg string) hookCommon.TransformResponseModel {
 	return hookCommon.TransformResponseModel{
-		Data: OutgoingWebhookRespModel{
+		Data: RespModel{
 			Text: msg,
+			Attachments: []AttachmentItemModel{
+				createAttachmentItemModel(msg, slackColorGood),
+			},
 		},
 		HTTPStatusCode: 200,
 	}

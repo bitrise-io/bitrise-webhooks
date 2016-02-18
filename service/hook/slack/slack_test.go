@@ -394,11 +394,19 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 		}
 
 		resp := provider.TransformResponse(baseRespModel)
-		require.Equal(t, hookCommon.TransformResponseModel{
-			Data: OutgoingWebhookRespModel{
-				Text: `Results:
+		expectedText := `Results:
 *Success!* Details:
-* {Status:ok Message:triggered build Service:bitrise AppSlug:app-slug BuildSlug:build-slug}`,
+* {Status:ok Message:triggered build Service:bitrise AppSlug:app-slug BuildSlug:build-slug}`
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: RespModel{
+				Text: expectedText,
+				Attachments: []AttachmentItemModel{
+					{
+						Text:     expectedText,
+						Fallback: expectedText,
+						Color:    slackColorGood,
+					},
+				},
 			},
 			HTTPStatusCode: 200,
 		}, resp)
@@ -419,11 +427,19 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 		}
 
 		resp := provider.TransformResponse(baseRespModel)
-		require.Equal(t, hookCommon.TransformResponseModel{
-			Data: OutgoingWebhookRespModel{
-				Text: `Results:
+		expectedText := `Results:
 *[!] Failed Triggers*:
-* {Status:error Message:some error happened Service:bitrise AppSlug:app-slug BuildSlug:build-slug}`,
+* {Status:error Message:some error happened Service:bitrise AppSlug:app-slug BuildSlug:build-slug}`
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: RespModel{
+				Text: expectedText,
+				Attachments: []AttachmentItemModel{
+					{
+						Text:     expectedText,
+						Fallback: expectedText,
+						Color:    slackColorDanger,
+					},
+				},
 			},
 			HTTPStatusCode: 200,
 		}, resp)
@@ -436,11 +452,19 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 		}
 
 		resp := provider.TransformResponse(baseRespModel)
-		require.Equal(t, hookCommon.TransformResponseModel{
-			Data: OutgoingWebhookRespModel{
-				Text: `Results:
+		expectedText := `Results:
 *[!] Errors*:
-* a single error`,
+* a single error`
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: RespModel{
+				Text: expectedText,
+				Attachments: []AttachmentItemModel{
+					{
+						Text:     expectedText,
+						Fallback: expectedText,
+						Color:    slackColorDanger,
+					},
+				},
 			},
 			HTTPStatusCode: 200,
 		}, resp)
@@ -453,12 +477,20 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 		}
 
 		resp := provider.TransformResponse(baseRespModel)
-		require.Equal(t, hookCommon.TransformResponseModel{
-			Data: OutgoingWebhookRespModel{
-				Text: `Results:
+		expectedText := `Results:
 *[!] Errors*:
 * first error
-* Second Error`,
+* Second Error`
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: RespModel{
+				Text: expectedText,
+				Attachments: []AttachmentItemModel{
+					{
+						Text:     expectedText,
+						Fallback: expectedText,
+						Color:    slackColorDanger,
+					},
+				},
 			},
 			HTTPStatusCode: 200,
 		}, resp)
@@ -470,9 +502,17 @@ func Test_HookProvider_TransformErrorMessageResponse(t *testing.T) {
 
 	{
 		resp := provider.TransformErrorMessageResponse("my Err msg")
+		expectedText := "*[!] Error*: my Err msg"
 		require.Equal(t, hookCommon.TransformResponseModel{
-			Data: OutgoingWebhookRespModel{
-				Text: "*[!] Error*: my Err msg",
+			Data: RespModel{
+				Text: expectedText,
+				Attachments: []AttachmentItemModel{
+					{
+						Text:     expectedText,
+						Fallback: expectedText,
+						Color:    slackColorDanger,
+					},
+				},
 			},
 			HTTPStatusCode: 200,
 		}, resp)
@@ -484,9 +524,17 @@ func Test_HookProvider_TransformSuccessMessageResponse(t *testing.T) {
 
 	{
 		resp := provider.TransformSuccessMessageResponse("my Success msg")
+		expectedText := "my Success msg"
 		require.Equal(t, hookCommon.TransformResponseModel{
-			Data: OutgoingWebhookRespModel{
-				Text: "my Success msg",
+			Data: RespModel{
+				Text: expectedText,
+				Attachments: []AttachmentItemModel{
+					{
+						Text:     expectedText,
+						Fallback: expectedText,
+						Color:    slackColorGood,
+					},
+				},
 			},
 			HTTPStatusCode: 200,
 		}, resp)
