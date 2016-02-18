@@ -57,7 +57,8 @@ func transformOutgoingWebhookMessage(webhookMsg MessageModel) hookCommon.Transfo
 	for _, aItm := range splits {
 		cleanedUpItm := strings.TrimSpace(aItm)
 		if strings.HasPrefix(cleanedUpItm, "branch:") {
-			branch = strings.TrimPrefix(cleanedUpItm, "branch:")
+			branch = strings.TrimSpace(
+				strings.TrimPrefix(cleanedUpItm, "branch:"))
 		}
 	}
 

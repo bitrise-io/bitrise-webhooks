@@ -89,6 +89,24 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 			},
 		}, hookTransformResult.TriggerAPIParams)
 	}
+	t.Log("Should be OK - space between param key&value")
+	{
+		webhookMsg := MessageModel{
+			TriggerText: "bitrise -",
+			Text:        "bitrise - branch: master",
+		}
+
+		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch: "master",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
 
 	t.Log("Missing branch parameter")
 	{
