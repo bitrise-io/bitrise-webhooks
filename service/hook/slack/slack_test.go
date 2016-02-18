@@ -399,7 +399,8 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 * {Status:ok Message:triggered build Service:bitrise AppSlug:app-slug BuildSlug:build-slug}`
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: RespModel{
-				Text: expectedText,
+				ResponseType: "in_channel",
+				Text:         expectedText,
 				Attachments: []AttachmentItemModel{
 					{
 						Text:     expectedText,
@@ -432,7 +433,8 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 * {Status:error Message:some error happened Service:bitrise AppSlug:app-slug BuildSlug:build-slug}`
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: RespModel{
-				Text: expectedText,
+				ResponseType: "in_channel",
+				Text:         expectedText,
 				Attachments: []AttachmentItemModel{
 					{
 						Text:     expectedText,
@@ -457,7 +459,8 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 * a single error`
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: RespModel{
-				Text: expectedText,
+				ResponseType: "in_channel",
+				Text:         expectedText,
 				Attachments: []AttachmentItemModel{
 					{
 						Text:     expectedText,
@@ -483,7 +486,8 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 * Second Error`
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: RespModel{
-				Text: expectedText,
+				ResponseType: "in_channel",
+				Text:         expectedText,
 				Attachments: []AttachmentItemModel{
 					{
 						Text:     expectedText,
@@ -505,7 +509,8 @@ func Test_HookProvider_TransformErrorMessageResponse(t *testing.T) {
 		expectedText := "*[!] Error*: my Err msg"
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: RespModel{
-				Text: expectedText,
+				ResponseType: "in_channel",
+				Text:         expectedText,
 				Attachments: []AttachmentItemModel{
 					{
 						Text:     expectedText,
@@ -527,7 +532,8 @@ func Test_HookProvider_TransformSuccessMessageResponse(t *testing.T) {
 		expectedText := "my Success msg"
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: RespModel{
-				Text: expectedText,
+				ResponseType: "in_channel",
+				Text:         expectedText,
 				Attachments: []AttachmentItemModel{
 					{
 						Text:     expectedText,

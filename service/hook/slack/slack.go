@@ -165,9 +165,10 @@ func createAttachmentItemModel(text, color string) AttachmentItemModel {
 
 // RespModel ...
 type RespModel struct {
-	Text        string                `json:"text"`
-	Username    string                `json:"username,omitempty"`
-	Attachments []AttachmentItemModel `json:"attachments,omitempty"`
+	Text         string                `json:"text"`
+	ResponseType string                `json:"response_type,omitempty"`
+	Username     string                `json:"username,omitempty"`
+	Attachments  []AttachmentItemModel `json:"attachments,omitempty"`
 }
 
 // TransformResponse ...
@@ -211,6 +212,7 @@ func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInput
 			Attachments: []AttachmentItemModel{
 				createAttachmentItemModel(responseText, responseColor),
 			},
+			ResponseType: "in_channel",
 		},
 		HTTPStatusCode: 200,
 	}
@@ -225,6 +227,7 @@ func (hp HookProvider) TransformErrorMessageResponse(errMsg string) hookCommon.T
 			Attachments: []AttachmentItemModel{
 				createAttachmentItemModel(respText, slackColorDanger),
 			},
+			ResponseType: "in_channel",
 		},
 		HTTPStatusCode: 200,
 	}
@@ -238,6 +241,7 @@ func (hp HookProvider) TransformSuccessMessageResponse(msg string) hookCommon.Tr
 			Attachments: []AttachmentItemModel{
 				createAttachmentItemModel(msg, slackColorGood),
 			},
+			ResponseType: "in_channel",
 		},
 		HTTPStatusCode: 200,
 	}
