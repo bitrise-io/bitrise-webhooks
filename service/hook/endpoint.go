@@ -19,9 +19,9 @@ import (
 
 func supportedProviders() map[string]hookCommon.Provider {
 	return map[string]hookCommon.Provider{
-		"github":       github.HookProvider{},
-		"bitbucket-v2": bitbucketv2.HookProvider{},
-		"slack":        slack.HookProvider{},
+		"github":        github.HookProvider{},
+		"bitbucket-v2":  bitbucketv2.HookProvider{},
+		"slack-webhook": slack.HookProvider{},
 	}
 }
 
