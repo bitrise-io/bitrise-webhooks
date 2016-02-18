@@ -1,4 +1,4 @@
-package slack
+package slackslashcommand
 
 import (
 	"errors"
