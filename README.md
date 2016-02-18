@@ -131,6 +131,8 @@ provider implementation.
 * Create a folder in `service/hook`, following the naming pattern of existing providers (and Go package naming conventions)
   * Use only lowercase ASCII letters & numbers, without any whitespace, dash, underscore, ... characters
 * Create a test file (`..._test.go`)
+* **Note:** you should create a testing function for every function you add,
+  before you'd write any code for the function!
 * Split the logic into functions; usually this split should be fine (at least for starting):
   * Validate the required headers (content type, event ID if supported, etc.)
   * Declare your **data model(s)** for the Webhook data
