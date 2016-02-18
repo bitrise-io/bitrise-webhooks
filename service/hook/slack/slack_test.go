@@ -70,6 +70,68 @@ func Test_createMessageModelFromFormRequest(t *testing.T) {
 	}
 }
 
+func Test_collectParamsFromPipeSeparatedText(t *testing.T) {
+	t.Log("Single item - trimming")
+	{
+		texts := []string{
+			"key: the value",
+			"key : the value",
+			"key :the value",
+			"key :   the value   ",
+			"key: the value |",
+		}
+		for _, aText := range texts {
+			collectedParams := collectParamsFromPipeSeparatedText(aText)
+			require.Equal(t, map[string]string{"key": "the value"}, collectedParams)
+		}
+	}
+
+	t.Log("Single item, includes :")
+	{
+		collectedParams := collectParamsFromPipeSeparatedText("key: the:value")
+		require.Equal(t, map[string]string{"key": "the:value"}, collectedParams)
+		collectedParams = collectParamsFromPipeSeparatedText("key: the :value")
+		require.Equal(t, map[string]string{"key": "the :value"}, collectedParams)
+		collectedParams = collectParamsFromPipeSeparatedText("key: the : value")
+		require.Equal(t, map[string]string{"key": "the : value"}, collectedParams)
+		collectedParams = collectParamsFromPipeSeparatedText("key: the  :  value")
+		require.Equal(t, map[string]string{"key": "the  :  value"}, collectedParams)
+		collectedParams = collectParamsFromPipeSeparatedText("key    : the : value")
+		require.Equal(t, map[string]string{"key": "the : value"}, collectedParams)
+	}
+
+	t.Log("Multiple items")
+	{
+		collectedParams := collectParamsFromPipeSeparatedText("key1: value 1 |   key2 : value 2")
+		require.Equal(t, map[string]string{
+			"key1": "value 1",
+			"key2": "value 2",
+		},
+			collectedParams)
+	}
+
+	t.Log("Multiple items - empty parts")
+	{
+		collectedParams := collectParamsFromPipeSeparatedText("|key1: value 1 |   key2 : value 2|")
+		require.Equal(t, map[string]string{
+			"key2": "value 2",
+			"key1": "value 1",
+		},
+			collectedParams)
+	}
+
+	t.Log("Multiple items - formatting test")
+	{
+		collectedParams := collectParamsFromPipeSeparatedText("|key1: value 1 |   key2 : value 2 |key3:value 3")
+		require.Equal(t, map[string]string{
+			"key1": "value 1",
+			"key3": "value 3",
+			"key2": "value 2",
+		},
+			collectedParams)
+	}
+}
+
 func Test_transformOutgoingWebhookMessage(t *testing.T) {
 	t.Log("Should be OK")
 	{
@@ -89,6 +151,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 			},
 		}, hookTransformResult.TriggerAPIParams)
 	}
+
 	t.Log("Should be OK - space between param key&value")
 	{
 		webhookMsg := MessageModel{
@@ -103,6 +166,107 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
 					Branch: "master",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Empty parameter component")
+	{
+		webhookMsg := MessageModel{
+			TriggerText: "bitrise -",
+			Text:        "bitrise - branch: master | ",
+		}
+
+		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch: "master",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Message parameter")
+	{
+		webhookMsg := MessageModel{
+			TriggerText: "bitrise -",
+			Text:        "bitrise - branch: master | message: this is the Commit Message param",
+		}
+
+		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch:        "master",
+					CommitMessage: "this is the Commit Message param",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Commit parameter")
+	{
+		webhookMsg := MessageModel{
+			TriggerText: "bitrise -",
+			Text:        "bitrise - branch: master | commit: cmtHash123",
+		}
+
+		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch:     "master",
+					CommitHash: "cmtHash123",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Tag parameter")
+	{
+		webhookMsg := MessageModel{
+			TriggerText: "bitrise -",
+			Text:        "bitrise - tag: v1.0|branch : develop",
+		}
+
+		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch: "develop",
+					Tag:    "v1.0",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("All parameters")
+	{
+		webhookMsg := MessageModel{
+			TriggerText: "bitrise -",
+			Text:        "bitrise - branch : develop | tag: v1.1|  message : this is:my message  | commit: cmtHash321",
+		}
+
+		hookTransformResult := transformOutgoingWebhookMessage(webhookMsg)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch:        "develop",
+					Tag:           "v1.1",
+					CommitHash:    "cmtHash321",
+					CommitMessage: "this is:my message",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)

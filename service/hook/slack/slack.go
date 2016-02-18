@@ -48,19 +48,38 @@ func createMessageModelFromFormRequest(r *http.Request) (MessageModel, error) {
 	return msgModel, nil
 }
 
+func collectParamsFromPipeSeparatedText(text string) map[string]string {
+	collectedParams := map[string]string{}
+
+	splits := strings.Split(text, "|")
+	for _, aItm := range splits {
+		cleanedUpItm := strings.TrimSpace(aItm)
+		if cleanedUpItm == "" {
+			// skip, empty item
+			continue
+		}
+		itmSplits := strings.Split(cleanedUpItm, ":")
+		if len(itmSplits) < 2 {
+			// skip, no split separator found
+			continue
+		}
+		key := strings.TrimSpace(itmSplits[0])
+		value := strings.TrimSpace(strings.Join(itmSplits[1:], ":"))
+		collectedParams[key] = value
+	}
+
+	return collectedParams
+}
+
 func transformOutgoingWebhookMessage(webhookMsg MessageModel) hookCommon.TransformResultModel {
 	cleanedUpText := strings.TrimSpace(
 		strings.TrimPrefix(webhookMsg.Text, webhookMsg.TriggerText))
 
-	splits := strings.Split(cleanedUpText, "|")
-	branch := ""
-	for _, aItm := range splits {
-		cleanedUpItm := strings.TrimSpace(aItm)
-		if strings.HasPrefix(cleanedUpItm, "branch:") {
-			branch = strings.TrimSpace(
-				strings.TrimPrefix(cleanedUpItm, "branch:"))
-		}
-	}
+	collectedParams := collectParamsFromPipeSeparatedText(cleanedUpText)
+	branch := collectedParams["branch"]
+	message := collectedParams["message"]
+	commitHash := collectedParams["commit"]
+	tag := collectedParams["tag"]
 
 	if branch == "" {
 		return hookCommon.TransformResultModel{
@@ -72,7 +91,10 @@ func transformOutgoingWebhookMessage(webhookMsg MessageModel) hookCommon.Transfo
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch: branch,
+					Branch:        branch,
+					CommitMessage: message,
+					CommitHash:    commitHash,
+					Tag:           tag,
 				},
 			},
 		},

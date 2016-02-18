@@ -3,6 +3,7 @@ package bitriseapi
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -13,9 +14,9 @@ import (
 
 // BuildParamsModel ...
 type BuildParamsModel struct {
-	CommitHash    string `json:"commit_hash"`
-	CommitMessage string `json:"commit_message"`
-	Branch        string `json:"branch"`
+	CommitHash    string `json:"commit_hash,omitempty"`
+	CommitMessage string `json:"commit_message,omitempty"`
+	Branch        string `json:"branch,omitempty"`
 	Tag           string `json:"tag,omitempty"`
 	PullRequestID *int   `json:"pull_request_id,omitempty"`
 }
@@ -32,6 +33,14 @@ type TriggerAPIResponseModel struct {
 	Service   string `json:"service"`
 	AppSlug   string `json:"slug"`
 	BuildSlug string `json:"build_slug"`
+}
+
+// Validate ...
+func (triggerParams TriggerAPIParamsModel) Validate() error {
+	if triggerParams.BuildParams.Branch == "" {
+		return errors.New("Missing Branch parameter")
+	}
+	return nil
 }
 
 // BuildTriggerURL ...
@@ -54,6 +63,10 @@ func BuildTriggerURL(apiRootURL string, appSlug string) (*url.URL, error) {
 // If the response is an HTTP success response then the whole response body
 //  will be returned, and error will be nil.
 func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) (TriggerAPIResponseModel, bool, error) {
+	if err := params.Validate(); err != nil {
+		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: build trigger parameter invalid: %s", err)
+	}
+
 	jsonStr, err := json.Marshal(params)
 	if err != nil {
 		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: failed to json marshal: %s", err)
