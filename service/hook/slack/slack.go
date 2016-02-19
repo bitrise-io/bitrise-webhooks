@@ -173,45 +173,27 @@ type RespModel struct {
 
 // TransformResponse ...
 func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInputModel) hookCommon.TransformResponseModel {
-	responseText := "Results:"
+	slackAttachments := []AttachmentItemModel{}
 
-	isError := false
 	if len(input.Errors) > 0 {
-		isError = true
-		responseText += "\n*[!] Errors*:"
 		for _, anErr := range input.Errors {
-			responseText += fmt.Sprintf("\n* %s", anErr)
+			slackAttachments = append(slackAttachments, createAttachmentItemModel(anErr, slackColorDanger))
 		}
 	}
 	if len(input.FailedTriggerResponses) > 0 {
-		isError = true
-		responseText += "\n*[!] Failed Triggers*:"
 		for _, aFailedTrigResp := range input.FailedTriggerResponses {
-			responseText += fmt.Sprintf("\n* %+v", aFailedTrigResp)
+			slackAttachments = append(slackAttachments, createAttachmentItemModel(fmt.Sprintf("\n* %+v", aFailedTrigResp), slackColorDanger))
 		}
 	}
 	if len(input.SuccessTriggerResponses) > 0 {
-		if isError {
-			responseText += "\n*Successful Triggers*:"
-		} else {
-			responseText += "\n*Success!* Details:"
-		}
 		for _, aSuccessTrigResp := range input.SuccessTriggerResponses {
-			responseText += fmt.Sprintf("\n* %+v", aSuccessTrigResp)
+			slackAttachments = append(slackAttachments, createAttachmentItemModel(fmt.Sprintf("\n* %+v", aSuccessTrigResp), slackColorGood))
 		}
-	}
-
-	responseColor := slackColorGood
-	if isError {
-		responseColor = slackColorDanger
 	}
 
 	return hookCommon.TransformResponseModel{
 		Data: RespModel{
-			Text: responseText,
-			Attachments: []AttachmentItemModel{
-				createAttachmentItemModel(responseText, responseColor),
-			},
+			Attachments:  slackAttachments,
 			ResponseType: "in_channel",
 		},
 		HTTPStatusCode: 200,
@@ -220,12 +202,10 @@ func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInput
 
 // TransformErrorMessageResponse ...
 func (hp HookProvider) TransformErrorMessageResponse(errMsg string) hookCommon.TransformResponseModel {
-	respText := fmt.Sprintf("*[!] Error*: %s", errMsg)
 	return hookCommon.TransformResponseModel{
 		Data: RespModel{
-			Text: respText,
 			Attachments: []AttachmentItemModel{
-				createAttachmentItemModel(respText, slackColorDanger),
+				createAttachmentItemModel(errMsg, slackColorDanger),
 			},
 			ResponseType: "in_channel",
 		},
@@ -237,7 +217,6 @@ func (hp HookProvider) TransformErrorMessageResponse(errMsg string) hookCommon.T
 func (hp HookProvider) TransformSuccessMessageResponse(msg string) hookCommon.TransformResponseModel {
 	return hookCommon.TransformResponseModel{
 		Data: RespModel{
-			Text: msg,
 			Attachments: []AttachmentItemModel{
 				createAttachmentItemModel(msg, slackColorGood),
 			},

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
-	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -376,173 +375,176 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 	}
 }
 
-func Test_HookProvider_TransformResponse(t *testing.T) {
-	provider := HookProvider{}
+// ----------------
+// --- Response ---
 
-	t.Log("Single success")
-	{
-		baseRespModel := hookCommon.TransformResponseInputModel{
-			SuccessTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
-				{
-					Status:    "ok",
-					Message:   "triggered build",
-					Service:   "bitrise",
-					AppSlug:   "app-slug",
-					BuildSlug: "build-slug",
-				},
-			},
-		}
-
-		resp := provider.TransformResponse(baseRespModel)
-		expectedText := `Results:
-*Success!* Details:
-* {Status:ok Message:triggered build Service:bitrise AppSlug:app-slug BuildSlug:build-slug}`
-		require.Equal(t, hookCommon.TransformResponseModel{
-			Data: RespModel{
-				ResponseType: "in_channel",
-				Text:         expectedText,
-				Attachments: []AttachmentItemModel{
-					{
-						Text:     expectedText,
-						Fallback: expectedText,
-						Color:    slackColorGood,
-					},
-				},
-			},
-			HTTPStatusCode: 200,
-		}, resp)
-	}
-
-	t.Log("Single failed trigger")
-	{
-		baseRespModel := hookCommon.TransformResponseInputModel{
-			FailedTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
-				{
-					Status:    "error",
-					Message:   "some error happened",
-					Service:   "bitrise",
-					AppSlug:   "app-slug",
-					BuildSlug: "build-slug",
-				},
-			},
-		}
-
-		resp := provider.TransformResponse(baseRespModel)
-		expectedText := `Results:
-*[!] Failed Triggers*:
-* {Status:error Message:some error happened Service:bitrise AppSlug:app-slug BuildSlug:build-slug}`
-		require.Equal(t, hookCommon.TransformResponseModel{
-			Data: RespModel{
-				ResponseType: "in_channel",
-				Text:         expectedText,
-				Attachments: []AttachmentItemModel{
-					{
-						Text:     expectedText,
-						Fallback: expectedText,
-						Color:    slackColorDanger,
-					},
-				},
-			},
-			HTTPStatusCode: 200,
-		}, resp)
-	}
-
-	t.Log("Single error")
-	{
-		baseRespModel := hookCommon.TransformResponseInputModel{
-			Errors: []string{"a single error"},
-		}
-
-		resp := provider.TransformResponse(baseRespModel)
-		expectedText := `Results:
-*[!] Errors*:
-* a single error`
-		require.Equal(t, hookCommon.TransformResponseModel{
-			Data: RespModel{
-				ResponseType: "in_channel",
-				Text:         expectedText,
-				Attachments: []AttachmentItemModel{
-					{
-						Text:     expectedText,
-						Fallback: expectedText,
-						Color:    slackColorDanger,
-					},
-				},
-			},
-			HTTPStatusCode: 200,
-		}, resp)
-	}
-
-	t.Log("Multiple errors")
-	{
-		baseRespModel := hookCommon.TransformResponseInputModel{
-			Errors: []string{"first error", "Second Error"},
-		}
-
-		resp := provider.TransformResponse(baseRespModel)
-		expectedText := `Results:
-*[!] Errors*:
-* first error
-* Second Error`
-		require.Equal(t, hookCommon.TransformResponseModel{
-			Data: RespModel{
-				ResponseType: "in_channel",
-				Text:         expectedText,
-				Attachments: []AttachmentItemModel{
-					{
-						Text:     expectedText,
-						Fallback: expectedText,
-						Color:    slackColorDanger,
-					},
-				},
-			},
-			HTTPStatusCode: 200,
-		}, resp)
-	}
-}
-
-func Test_HookProvider_TransformErrorMessageResponse(t *testing.T) {
-	provider := HookProvider{}
-
-	{
-		resp := provider.TransformErrorMessageResponse("my Err msg")
-		expectedText := "*[!] Error*: my Err msg"
-		require.Equal(t, hookCommon.TransformResponseModel{
-			Data: RespModel{
-				ResponseType: "in_channel",
-				Text:         expectedText,
-				Attachments: []AttachmentItemModel{
-					{
-						Text:     expectedText,
-						Fallback: expectedText,
-						Color:    slackColorDanger,
-					},
-				},
-			},
-			HTTPStatusCode: 200,
-		}, resp)
-	}
-}
-
-func Test_HookProvider_TransformSuccessMessageResponse(t *testing.T) {
-	provider := HookProvider{}
-
-	{
-		resp := provider.TransformSuccessMessageResponse("my Success msg")
-		expectedText := "my Success msg"
-		require.Equal(t, hookCommon.TransformResponseModel{
-			Data: RespModel{
-				ResponseType: "in_channel",
-				Text:         expectedText,
-				Attachments: []AttachmentItemModel{
-					{
-						Text:     expectedText,
-						Fallback: expectedText,
-						Color:    slackColorGood,
-					},
-				},
-			},
-			HTTPStatusCode: 200,
-		}, resp)
-	}
-}
+// func Test_HookProvider_TransformResponse(t *testing.T) {
+// 	provider := HookProvider{}
+//
+// 	t.Log("Single success")
+// 	{
+// 		baseRespModel := hookCommon.TransformResponseInputModel{
+// 			SuccessTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
+// 				{
+// 					Status:    "ok",
+// 					Message:   "triggered build",
+// 					Service:   "bitrise",
+// 					AppSlug:   "app-slug",
+// 					BuildSlug: "build-slug",
+// 				},
+// 			},
+// 		}
+//
+// 		resp := provider.TransformResponse(baseRespModel)
+// 		expectedText := `Results:
+// *Success!* Details:
+// * {Status:ok Message:triggered build Service:bitrise AppSlug:app-slug BuildSlug:build-slug}`
+// 		require.Equal(t, hookCommon.TransformResponseModel{
+// 			Data: RespModel{
+// 				ResponseType: "in_channel",
+// 				Text:         expectedText,
+// 				Attachments: []AttachmentItemModel{
+// 					{
+// 						Text:     expectedText,
+// 						Fallback: expectedText,
+// 						Color:    slackColorGood,
+// 					},
+// 				},
+// 			},
+// 			HTTPStatusCode: 200,
+// 		}, resp)
+// 	}
+//
+// 	t.Log("Single failed trigger")
+// 	{
+// 		baseRespModel := hookCommon.TransformResponseInputModel{
+// 			FailedTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
+// 				{
+// 					Status:    "error",
+// 					Message:   "some error happened",
+// 					Service:   "bitrise",
+// 					AppSlug:   "app-slug",
+// 					BuildSlug: "build-slug",
+// 				},
+// 			},
+// 		}
+//
+// 		resp := provider.TransformResponse(baseRespModel)
+// 		expectedText := `Results:
+// *[!] Failed Triggers*:
+// * {Status:error Message:some error happened Service:bitrise AppSlug:app-slug BuildSlug:build-slug}`
+// 		require.Equal(t, hookCommon.TransformResponseModel{
+// 			Data: RespModel{
+// 				ResponseType: "in_channel",
+// 				Text:         expectedText,
+// 				Attachments: []AttachmentItemModel{
+// 					{
+// 						Text:     expectedText,
+// 						Fallback: expectedText,
+// 						Color:    slackColorDanger,
+// 					},
+// 				},
+// 			},
+// 			HTTPStatusCode: 200,
+// 		}, resp)
+// 	}
+//
+// 	t.Log("Single error")
+// 	{
+// 		baseRespModel := hookCommon.TransformResponseInputModel{
+// 			Errors: []string{"a single error"},
+// 		}
+//
+// 		resp := provider.TransformResponse(baseRespModel)
+// 		expectedText := `Results:
+// *[!] Errors*:
+// * a single error`
+// 		require.Equal(t, hookCommon.TransformResponseModel{
+// 			Data: RespModel{
+// 				ResponseType: "in_channel",
+// 				Text:         expectedText,
+// 				Attachments: []AttachmentItemModel{
+// 					{
+// 						Text:     expectedText,
+// 						Fallback: expectedText,
+// 						Color:    slackColorDanger,
+// 					},
+// 				},
+// 			},
+// 			HTTPStatusCode: 200,
+// 		}, resp)
+// 	}
+//
+// 	t.Log("Multiple errors")
+// 	{
+// 		baseRespModel := hookCommon.TransformResponseInputModel{
+// 			Errors: []string{"first error", "Second Error"},
+// 		}
+//
+// 		resp := provider.TransformResponse(baseRespModel)
+// 		expectedText := `Results:
+// *[!] Errors*:
+// * first error
+// * Second Error`
+// 		require.Equal(t, hookCommon.TransformResponseModel{
+// 			Data: RespModel{
+// 				ResponseType: "in_channel",
+// 				Text:         expectedText,
+// 				Attachments: []AttachmentItemModel{
+// 					{
+// 						Text:     expectedText,
+// 						Fallback: expectedText,
+// 						Color:    slackColorDanger,
+// 					},
+// 				},
+// 			},
+// 			HTTPStatusCode: 200,
+// 		}, resp)
+// 	}
+// }
+//
+// func Test_HookProvider_TransformErrorMessageResponse(t *testing.T) {
+// 	provider := HookProvider{}
+//
+// 	{
+// 		resp := provider.TransformErrorMessageResponse("my Err msg")
+// 		expectedText := "*[!] Error*: my Err msg"
+// 		require.Equal(t, hookCommon.TransformResponseModel{
+// 			Data: RespModel{
+// 				ResponseType: "in_channel",
+// 				Text:         expectedText,
+// 				Attachments: []AttachmentItemModel{
+// 					{
+// 						Text:     expectedText,
+// 						Fallback: expectedText,
+// 						Color:    slackColorDanger,
+// 					},
+// 				},
+// 			},
+// 			HTTPStatusCode: 200,
+// 		}, resp)
+// 	}
+// }
+//
+// func Test_HookProvider_TransformSuccessMessageResponse(t *testing.T) {
+// 	provider := HookProvider{}
+//
+// 	{
+// 		resp := provider.TransformSuccessMessageResponse("my Success msg")
+// 		expectedText := "my Success msg"
+// 		require.Equal(t, hookCommon.TransformResponseModel{
+// 			Data: RespModel{
+// 				ResponseType: "in_channel",
+// 				Text:         expectedText,
+// 				Attachments: []AttachmentItemModel{
+// 					{
+// 						Text:     expectedText,
+// 						Fallback: expectedText,
+// 						Color:    slackColorGood,
+// 					},
+// 				},
+// 			},
+// 			HTTPStatusCode: 200,
+// 		}, resp)
+// 	}
+// }
