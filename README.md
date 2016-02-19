@@ -121,6 +121,7 @@ it to [bitrise.io](https://www.bitrise.io).
       or Production mode.
       You can simply set an empty value for `SEND_REQUEST_TO` to disable it: `heroku config:set SEND_REQUEST_TO=""`
 * `git push heroku master`
+* `heroku ps:scale web=1`
 
 Done. Your Bitrise Webhooks server is now running on Heroku.
 
