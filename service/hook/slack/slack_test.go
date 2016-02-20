@@ -429,7 +429,7 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 		}, resp)
 	}
 
-	t.Log("Single failed trigger")
+	t.Log("Single failed trigger - with defined 'message'")
 	{
 		baseRespModel := hookCommon.TransformResponseInputModel{
 			FailedTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
@@ -444,7 +444,39 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 		}
 
 		resp := provider.TransformResponse(baseRespModel)
-		expectedText := `{Status:error Message:some error happened Service:bitrise AppSlug:app-slug BuildSlug:build-slug BuildURL: TriggeredWorkflow:}`
+		expectedText := `some error happened`
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: RespModel{
+				ResponseType: "in_channel",
+				Text:         "",
+				Attachments: []AttachmentItemModel{
+					{
+						Text:     expectedText,
+						Fallback: expectedText,
+						Color:    slackColorDanger,
+					},
+				},
+			},
+			HTTPStatusCode: 200,
+		}, resp)
+	}
+
+	t.Log("Single failed trigger - empty 'message'")
+	{
+		baseRespModel := hookCommon.TransformResponseInputModel{
+			FailedTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
+				{
+					Status:    "error",
+					Message:   "",
+					Service:   "bitrise",
+					AppSlug:   "app-slug",
+					BuildSlug: "build-slug",
+				},
+			},
+		}
+
+		resp := provider.TransformResponse(baseRespModel)
+		expectedText := `{Status:error Message: Service:bitrise AppSlug:app-slug BuildSlug:build-slug BuildURL: TriggeredWorkflow:}`
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: RespModel{
 				ResponseType: "in_channel",

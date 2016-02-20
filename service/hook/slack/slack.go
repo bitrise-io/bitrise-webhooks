@@ -189,7 +189,11 @@ func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInput
 	}
 	if len(input.FailedTriggerResponses) > 0 {
 		for _, aFailedTrigResp := range input.FailedTriggerResponses {
-			slackAttachments = append(slackAttachments, createAttachmentItemModel(fmt.Sprintf("%+v", aFailedTrigResp), slackColorDanger))
+			errMsg := aFailedTrigResp.Message
+			if errMsg == "" {
+				errMsg = fmt.Sprintf("%+v", aFailedTrigResp)
+			}
+			slackAttachments = append(slackAttachments, createAttachmentItemModel(errMsg, slackColorDanger))
 		}
 	}
 	if len(input.SuccessTriggerResponses) > 0 {
