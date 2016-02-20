@@ -29,11 +29,13 @@ type TriggerAPIParamsModel struct {
 
 // TriggerAPIResponseModel ...
 type TriggerAPIResponseModel struct {
-	Status    string `json:"status"`
-	Message   string `json:"message"`
-	Service   string `json:"service"`
-	AppSlug   string `json:"slug"`
-	BuildSlug string `json:"build_slug"`
+	Status            string `json:"status"`
+	Message           string `json:"message"`
+	Service           string `json:"service"`
+	AppSlug           string `json:"slug"`
+	BuildSlug         string `json:"build_slug"`
+	BuildURL          string `json:"build_url"`
+	TriggeredWorkflow string `json:"triggered_workflow"`
 }
 
 // Validate ...
