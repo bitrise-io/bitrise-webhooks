@@ -3,6 +3,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
   envs:
+  - GO15VENDOREXPERIMENT: "1"
   - GO_PROJECT_PATH: github.com/bitrise-io/bitrise-webhooks
   - PORT: "4000"
   # if set to "yes" we'll use github.com/codegangsta/gin to live-reload the code on change
@@ -51,14 +52,14 @@ workflows:
     before_run:
     - _install_test_tools
     steps:
-    - script:
-        title: Godeps - GOPATH patch
-        inputs:
-        - content: |-
-            set -e
-            set -x
-            envman add --key ORIG_GOPATH --value "$GOPATH"
-            envman add --key GOPATH --value "$(godep path):$GOPATH"
+    # - script:
+    #     title: Godeps - GOPATH patch
+    #     inputs:
+    #     - content: |-
+    #         set -e
+    #         set -x
+    #         envman add --key ORIG_GOPATH --value "$GOPATH"
+    #         envman add --key GOPATH --value "$(godep path):$GOPATH"
     - script:
         title: Go Test
         inputs:
@@ -80,10 +81,10 @@ workflows:
               echo "${golint_out}"
               exit 1
             fi
-    - script:
-        title: Restore original GOPATH
-        inputs:
-        - content: envman add --key GOPATH --value "$ORIG_GOPATH"
+    # - script:
+    #     title: Restore original GOPATH
+    #     inputs:
+    #     - content: envman add --key GOPATH --value "$ORIG_GOPATH"
   godeps-update:
     steps:
     - script:
