@@ -68,6 +68,10 @@ workflows:
         inputs:
         - content: go test ./...
     - script:
+        title: Go Vet
+        inputs:
+        - content: go vet ./...
+    - script:
         title: Err check
         inputs:
         - content: errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
@@ -78,16 +82,15 @@ workflows:
             #!/bin/bash
             set -e
 
-            golint_out="$(golint $GOLIST_WITHOUT_VENDOR)"
-            if [[ "${golint_out}" != "" ]] ; then
-              echo "=> Golint issues found:"
-              echo "${golint_out}"
-              exit 1
-            fi
-    - script:
-        title: Go Vet
-        inputs:
-        - content: go vet ./...
+            while read -r line; do
+              echo "-> Linting: $line"
+              golint_out="$(golint $line)"
+              if [[ "${golint_out}" != "" ]] ; then
+                echo "=> Golint issues found:"
+                echo "${golint_out}"
+                exit 1
+              fi
+            done <<< "$GOLIST_WITHOUT_VENDOR"
   godeps-update:
     steps:
     - script:

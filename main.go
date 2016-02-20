@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/bitrise-io/bitrise-webhooks/config"
-	"github.com/bitrise-io/bitrise-webhooks/metrics"
 )
 
 func stringFlagOrEnv(flagValue *string, envKey string) string {
@@ -29,7 +28,6 @@ func main() {
 	var (
 		portFlag          = flag.String("port", "", `Use port [$PORT]`)
 		sendRequestToFlag = flag.String("send-request-to", "", `Send requests to this URL. If set, every request will be sent to this URL and not to bitrise.io. You can use this to debug/test, e.g. with http://requestb.in [$SEND_REQUEST_TO]`)
-		newRelicKeyFlag   = flag.String("newrelic", "", `NewRelic license key`)
 	)
 	flag.Parse()
 
@@ -49,12 +47,12 @@ func main() {
 		log.Printf(" (!) Send-Request-To specified, every request will be sent to: %s", config.SendRequestToURL)
 	}
 
-	// Monitoring
-	if newRelicKey := stringFlagOrEnv(newRelicKeyFlag, "NEW_RELIC_LICENSE_KEY"); newRelicKey != "" && config.GetServerEnvMode() == config.ServerEnvModeProd {
-		metrics.SetupNewRelic("BitriseWebhooksProcessor", newRelicKey)
-	} else {
-		log.Println(" (!) Skipping NewRelic setup - environment is not 'production' or no NEW_RELIC_LICENSE_KEY provided")
-	}
+	// // NewRelic
+	// if newRelicKey := stringFlagOrEnv(newRelicKeyFlag, "NEW_RELIC_LICENSE_KEY"); newRelicKey != "" && config.GetServerEnvMode() == config.ServerEnvModeProd {
+	// 	metrics.SetupNewRelic("BitriseWebhooksProcessor", newRelicKey)
+	// } else {
+	// 	log.Println(" (!) Skipping NewRelic setup - environment is not 'production' or no NEW_RELIC_LICENSE_KEY provided")
+	// }
 
 	// Routing
 	setupRoutes()
