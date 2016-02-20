@@ -36,6 +36,7 @@ workflows:
         inputs:
         - content: |-
             set -x
+            set -e
             wget -q https://storage.googleapis.com/golang/go1.6.linux-amd64.tar.gz -O go-bins.tar.gz
             tar -C /usr/local -xvzf go-bins.tar.gz
             rm go-bins.tar.gz
