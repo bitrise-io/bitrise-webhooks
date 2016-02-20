@@ -171,6 +171,13 @@ type RespModel struct {
 	Attachments  []AttachmentItemModel `json:"attachments,omitempty"`
 }
 
+func messageForSuccessfulBuildTrigger(apiResponse bitriseapi.TriggerAPIResponseModel) string {
+	return fmt.Sprintf("Triggered build: %s, with workflow: %s - url: %s",
+		apiResponse.BuildSlug,
+		apiResponse.TriggeredWorkflow,
+		apiResponse.BuildURL)
+}
+
 // TransformResponse ...
 func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInputModel) hookCommon.TransformResponseModel {
 	slackAttachments := []AttachmentItemModel{}
@@ -182,12 +189,12 @@ func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInput
 	}
 	if len(input.FailedTriggerResponses) > 0 {
 		for _, aFailedTrigResp := range input.FailedTriggerResponses {
-			slackAttachments = append(slackAttachments, createAttachmentItemModel(fmt.Sprintf("\n* %+v", aFailedTrigResp), slackColorDanger))
+			slackAttachments = append(slackAttachments, createAttachmentItemModel(fmt.Sprintf("%+v", aFailedTrigResp), slackColorDanger))
 		}
 	}
 	if len(input.SuccessTriggerResponses) > 0 {
 		for _, aSuccessTrigResp := range input.SuccessTriggerResponses {
-			slackAttachments = append(slackAttachments, createAttachmentItemModel(fmt.Sprintf("\n* %+v", aSuccessTrigResp), slackColorGood))
+			slackAttachments = append(slackAttachments, createAttachmentItemModel(messageForSuccessfulBuildTrigger(aSuccessTrigResp), slackColorGood))
 		}
 	}
 
