@@ -32,6 +32,14 @@ workflows:
   _install_test_tools:
     steps:
     - script:
+        title: "TMP: install Go 1.6.0"
+        inputs:
+        - content: |-
+            set -x
+            wget -q https://storage.googleapis.com/golang/go1.6.0.linux-amd64.tar.gz -O go-bins.tar.gz
+            tar -C /usr/local -xvzf go-bins.tar.gz
+            rm go-bins.tar.gz
+    - script:
         title: Install required testing tools
         run_if: .IsCI
         inputs:
@@ -55,14 +63,6 @@ workflows:
     before_run:
     - _install_test_tools
     steps:
-    - script:
-        title: "TMP: install Go 1.6"
-        inputs:
-        - content: |-
-            set -x
-            wget -q https://storage.googleapis.com/golang/go1.6.0.linux-amd64.tar.gz -O go-bins.tar.gz
-            tar -C /usr/local -xvzf go-bins.tar.gz
-            rm go-bins.tar.gz
     - script:
         title: Print infos for the test
         inputs:
