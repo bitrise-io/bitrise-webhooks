@@ -3,7 +3,6 @@ package metrics
 import (
 	"log"
 
-	"github.com/yvasiyarov/go-metrics"
 	"github.com/yvasiyarov/gorelic"
 )
 
@@ -16,7 +15,6 @@ func SetupNewRelic(appName, newRelicLicenseKey string) {
 	agent := gorelic.NewAgent()
 	agent.NewrelicLicense = newRelicLicenseKey
 	agent.NewrelicName = appName
-	agent.HTTPTimer = metrics.NewTimer()
 	agent.CollectHTTPStat = true
 	agent.Verbose = true
 
