@@ -48,26 +48,29 @@ workflows:
 
             # Go lint
             go get -u github.com/golang/lint/golint
+
+            # Go Vet
+            go get -u golang.org/x/tools/cmd/vet
   test:
     before_run:
     - _install_test_tools
     steps:
-    # - script:
-    #     title: Godeps - GOPATH patch
-    #     inputs:
-    #     - content: |-
-    #         set -e
-    #         set -x
-    #         envman add --key ORIG_GOPATH --value "$GOPATH"
-    #         envman add --key GOPATH --value "$(godep path):$GOPATH"
+    - script:
+        title: GOLIST_WITHOUT_VENDOR
+        inputs:
+        - content: |-
+            set -e
+            set -x
+            no_vendor_paths="$(go list ./... | grep -v vendor)"
+            envman add --key GOLIST_WITHOUT_VENDOR --value "$no_vendor_paths"
     - script:
         title: Go Test
         inputs:
-        - content: godep go test ./...
+        - content: go test ./...
     - script:
         title: Err check
         inputs:
-        - content: errcheck -asserts=true -blank=true $(godep go list ./...)
+        - content: errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
     - script:
         title: Go Lint
         inputs:
@@ -75,16 +78,16 @@ workflows:
             #!/bin/bash
             set -e
 
-            golint_out="$(golint ./...)"
+            golint_out="$(golint $GOLIST_WITHOUT_VENDOR)"
             if [[ "${golint_out}" != "" ]] ; then
               echo "=> Golint issues found:"
               echo "${golint_out}"
               exit 1
             fi
-    # - script:
-    #     title: Restore original GOPATH
-    #     inputs:
-    #     - content: envman add --key GOPATH --value "$ORIG_GOPATH"
+    - script:
+        title: Go Vet
+        inputs:
+        - content: go vet ./...
   godeps-update:
     steps:
     - script:
