@@ -47,6 +47,7 @@ An example with all parameters included: `workflow: primary|b: master|tag: v1.0|
 ## How to compile & run the server
 
 * Install [Go](https://golang.org), and [set up your Workspace](https://golang.org/doc/code.html#Workspaces) and your [$GOPATH](https://golang.org/doc/code.html#GOPATH)
+  * Go `1.6` or newer required!
 * If you want to change things, Fork this repository
 * `git clone` the project into your GOPATH: `git clone your-fork.url $GOPATH/src/github.com/bitrise-io/bitrise-webhooks`
 * `cd $GOPATH/src/github.com/bitrise-io/bitrise-webhooks`
