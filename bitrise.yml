@@ -56,6 +56,13 @@ workflows:
     - _install_test_tools
     steps:
     - script:
+        title: Print infos for the test
+        inputs:
+        - content: |-
+            set -x
+            go version
+            echo $GO15VENDOREXPERIMENT
+    - script:
         title: GOLIST_WITHOUT_VENDOR
         inputs:
         - content: |-
