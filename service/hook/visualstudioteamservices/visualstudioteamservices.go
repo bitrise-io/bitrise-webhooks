@@ -76,15 +76,9 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 		}
 	}
 
-	if len(codePushEvent.Resource.Commits) < 1 {
-		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("No 'changes' included in the webhook, can't start a build."),
-		}
-	}
-
 	if len(codePushEvent.Resource.RefUpdates) != 1 {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Can't detect branch information, can't start a build."),
+			Error: fmt.Errorf("Can't detect branch information (resource.refUpdates is empty), can't start a build."),
 		}
 	}
 
@@ -95,27 +89,25 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 	}
 	branch := strings.TrimPrefix(codePushEvent.Resource.RefUpdates[0].Name, "refs/heads/")
 
-	triggerAPIParams := []bitriseapi.TriggerAPIParamsModel{}
-	errs := []string{}
-
-	for _, aCommit := range codePushEvent.Resource.Commits {
-		aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
-			BuildParams: bitriseapi.BuildParamsModel{
-				CommitHash:    aCommit.CommitID,
-				CommitMessage: aCommit.Comment,
-				Branch:        branch,
-			},
-		}
-		triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
-	}
-	if len(triggerAPIParams) < 1 {
+	if len(codePushEvent.Resource.Commits) < 1 {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("'changes' specified in the webhook, but none can be transformed into a build. Collected errors: %s", errs),
+			Error: fmt.Errorf("No 'commits' included in the webhook, can't start a build."),
 		}
 	}
+	// VSO sends separate events for separate branches,
+	//  and commits are in ascending order, by commit date-time
+	aCommit := codePushEvent.Resource.Commits[0]
 
 	return hookCommon.TransformResultModel{
-		TriggerAPIParams: triggerAPIParams,
+		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    aCommit.CommitID,
+					CommitMessage: aCommit.Comment,
+					Branch:        branch,
+				},
+			},
+		},
 	}
 }
 

@@ -182,53 +182,53 @@ const (
 	}`
 
 	sampleCodeGitPushWithMultipleCommits = `{
-	  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
-	  "notificationId": 10,
-	  "id": "03c164c2-8912-4d5e-8009-3707d5f83734",
-	  "eventType": "git.push",
-	  "publisherId": "tfs",
-	  "resource": {
-	    "commits": [
-	      {
-	        "commitId": "33b55f7cb7e7e245323987634f960cf4a6e6bc74",
-	        "author": {
-	          "name": "Jamal Hartnett",
-	          "email": "fabrikamfiber4@hotmail.com",
-	          "date": "2015-02-25T19:01:00Z"
-	        },
-	        "committer": {
-	          "name": "Jamal Hartnett",
-	          "email": "fabrikamfiber4@hotmail.com",
-	          "date": "2015-02-25T19:01:00Z"
-	        },
-	        "comment": "Fixed bug",
-	        "url": "https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_git/Fabrikam-Fiber-Git/commit/33b55f7cb7e7e245323987634f960cf4a6e6bc74"
-	      },
-				{
-	        "commitId": "0c23515bcd14e30961356a0a129c732asd9d0wds",
-	        "author": {
-	          "name": "Jamal Hartnett",
-	          "email": "fabrikamfiber4@hotmail.com",
-	          "date": "2015-02-25T19:02:00Z"
-	        },
-	        "committer": {
-	          "name": "Jamal Hartnett",
-	          "email": "fabrikamfiber4@hotmail.com",
-	          "date": "2015-02-25T19:02:00Z"
-	        },
-	        "comment": "More changes",
-	        "url": "https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_git/Fabrikam-Fiber-Git/commit/33b55f7cb7e7e245323987634f960cf4a6e6bc74"
-	      }
-	    ],
-	    "refUpdates": [
-	      {
-	        "name": "refs/heads/master",
-	        "oldObjectId": "aad331d8d3b131fa9ae03cf5e53965b51942618a",
-	        "newObjectId": "33b55f7cb7e7e245323987634f960cf4a6e6bc74"
-	      }
-	    ]
-		}
-	}`
+    "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+    "notificationId": 10,
+    "id": "03c164c2-8912-4d5e-8009-3707d5f83734",
+    "eventType": "git.push",
+    "publisherId": "tfs",
+    "resource": {
+      "commits": [
+        {
+          "commitId": "0c23515bcd14e30961356a0a129c732asd9d0wds",
+          "author": {
+            "name": "Jamal Hartnett",
+            "email": "fabrikamfiber4@hotmail.com",
+            "date": "2015-02-25T19:02:00Z"
+          },
+          "committer": {
+            "name": "Jamal Hartnett",
+            "email": "fabrikamfiber4@hotmail.com",
+            "date": "2015-02-25T19:02:00Z"
+          },
+          "comment": "More changes",
+          "url": "https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_git/Fabrikam-Fiber-Git/commit/33b55f7cb7e7e245323987634f960cf4a6e6bc74"
+        },
+        {
+          "commitId": "33b55f7cb7e7e245323987634f960cf4a6e6bc74",
+          "author": {
+            "name": "Jamal Hartnett",
+            "email": "fabrikamfiber4@hotmail.com",
+            "date": "2015-02-25T19:01:00Z"
+          },
+          "committer": {
+            "name": "Jamal Hartnett",
+            "email": "fabrikamfiber4@hotmail.com",
+            "date": "2015-02-25T19:01:00Z"
+          },
+          "comment": "Fixed bug",
+          "url": "https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_git/Fabrikam-Fiber-Git/commit/33b55f7cb7e7e245323987634f960cf4a6e6bc74"
+        }
+      ],
+      "refUpdates": [
+        {
+          "name": "refs/heads/master",
+          "oldObjectId": "aad331d8d3b131fa9ae03cf5e53965b51942618a",
+          "newObjectId": "33b55f7cb7e7e245323987634f960cf4a6e6bc74"
+        }
+      ]
+    }
+  }`
 )
 
 func Test_detectContentType(t *testing.T) {
@@ -336,7 +336,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushWithNoChanges)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "No 'changes' included in the webhook, can't start a build.")
+		require.EqualError(t, hookTransformResult.Error, "No 'commits' included in the webhook, can't start a build.")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
@@ -350,7 +350,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushWithNoBranchInformation)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Can't detect branch information, can't start a build.")
+		require.EqualError(t, hookTransformResult.Error, "Can't detect branch information (resource.refUpdates is empty), can't start a build.")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
@@ -391,7 +391,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
-	t.Log("Git.push with multiple commits")
+	t.Log("Git.push with multiple commits - only the first one (latest commit) should be picked")
 	{
 		request := http.Request{
 			Header: http.Header{
@@ -403,13 +403,6 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "33b55f7cb7e7e245323987634f960cf4a6e6bc74",
-					CommitMessage: "Fixed bug",
-					Branch:        "master",
-				},
-			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:    "0c23515bcd14e30961356a0a129c732asd9d0wds",
