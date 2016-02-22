@@ -33,6 +33,7 @@ workflows:
     steps:
     - script:
         title: "TMP: install Go 1.6.0"
+        run_if: .IsCI
         inputs:
         - content: |-
             set -x
