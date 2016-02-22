@@ -23,7 +23,7 @@ func main() {
 		log.Fatalf("Failed to read version file: %s", err)
 	}
 	versionFileContent := string(versionFileBytes)
-	re := regexp.MustCompile(`const VERSION = "(?P<version>[0-9]+\.[0-9-]+)"`)
+	re := regexp.MustCompile(`const VERSION = "(?P<version>[0-9]+\.[0-9-]\.[0-9-]+)"`)
 	results := re.FindAllStringSubmatch(versionFileContent, -1)
 	versionStr := ""
 	for _, v := range results {
