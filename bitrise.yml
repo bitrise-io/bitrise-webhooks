@@ -146,7 +146,7 @@ workflows:
             fi
 
             current_version="$(go run _scripts/get_version.go -file "$version_file_path")"
-            bumped_version=$(ruby -e "splits='${current_version}'.split('.');major=splits[0];minor=splits[1];puts \"#{major}.#{minor.to_i.next}\"")
+            bumped_version=$(ruby -e "splits='${current_version}'.split('.');major=splits[0];minor=splits[1];patch=splits[2];puts \"#{major}.#{minor}.#{patch.to_i.next}\"")
 
             bash _scripts/set_version.sh "$version_file_path" "$bumped_version"
 
