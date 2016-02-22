@@ -172,7 +172,8 @@ type RespModel struct {
 }
 
 func messageForSuccessfulBuildTrigger(apiResponse bitriseapi.TriggerAPIResponseModel) string {
-	return fmt.Sprintf("Triggered build: %s, with workflow: %s - url: %s",
+	return fmt.Sprintf("Triggered build #%d (%s), with workflow: %s - url: %s",
+		apiResponse.BuildNumber,
 		apiResponse.BuildSlug,
 		apiResponse.TriggeredWorkflow,
 		apiResponse.BuildURL)

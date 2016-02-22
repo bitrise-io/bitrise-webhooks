@@ -34,6 +34,7 @@ type TriggerAPIResponseModel struct {
 	Service           string `json:"service"`
 	AppSlug           string `json:"slug"`
 	BuildSlug         string `json:"build_slug"`
+	BuildNumber       int    `json:"build_number"`
 	BuildURL          string `json:"build_url"`
 	TriggeredWorkflow string `json:"triggered_workflow"`
 }

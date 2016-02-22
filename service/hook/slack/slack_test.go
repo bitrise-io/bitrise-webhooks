@@ -380,13 +380,14 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 // --- Response ---
 
 func Test_messageForSuccessfulBuildTrigger(t *testing.T) {
-	require.Equal(t, "Triggered build: build-slug, with workflow: test-wf - url: bitrise.io/...",
+	require.Equal(t, "Triggered build #23 (build-slug), with workflow: test-wf - url: bitrise.io/...",
 		messageForSuccessfulBuildTrigger(bitriseapi.TriggerAPIResponseModel{
 			Status:            "ok",
 			Message:           "some msg from the server",
 			Service:           "bitrise",
 			AppSlug:           "app-slug",
 			BuildSlug:         "build-slug",
+			BuildNumber:       23,
 			BuildURL:          "bitrise.io/...",
 			TriggeredWorkflow: "test-wf",
 		}))
@@ -405,6 +406,7 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 					Service:           "bitrise",
 					AppSlug:           "app-slug",
 					BuildSlug:         "build-slug",
+					BuildNumber:       23,
 					BuildURL:          "bitrise.io/...",
 					TriggeredWorkflow: "wf-one",
 				},
@@ -412,7 +414,7 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 		}
 
 		resp := provider.TransformResponse(baseRespModel)
-		expectedText := `Triggered build: build-slug, with workflow: wf-one - url: bitrise.io/...`
+		expectedText := `Triggered build #23 (build-slug), with workflow: wf-one - url: bitrise.io/...`
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: RespModel{
 				ResponseType: "in_channel",
@@ -434,11 +436,12 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 		baseRespModel := hookCommon.TransformResponseInputModel{
 			FailedTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
 				{
-					Status:    "error",
-					Message:   "some error happened",
-					Service:   "bitrise",
-					AppSlug:   "app-slug",
-					BuildSlug: "build-slug",
+					Status:      "error",
+					Message:     "some error happened",
+					Service:     "bitrise",
+					AppSlug:     "app-slug",
+					BuildSlug:   "build-slug",
+					BuildNumber: 23,
 				},
 			},
 		}
@@ -466,17 +469,18 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 		baseRespModel := hookCommon.TransformResponseInputModel{
 			FailedTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
 				{
-					Status:    "error",
-					Message:   "",
-					Service:   "bitrise",
-					AppSlug:   "app-slug",
-					BuildSlug: "build-slug",
+					Status:      "error",
+					Message:     "",
+					Service:     "bitrise",
+					AppSlug:     "app-slug",
+					BuildSlug:   "build-slug",
+					BuildNumber: 23,
 				},
 			},
 		}
 
 		resp := provider.TransformResponse(baseRespModel)
-		expectedText := `{Status:error Message: Service:bitrise AppSlug:app-slug BuildSlug:build-slug BuildURL: TriggeredWorkflow:}`
+		expectedText := `{Status:error Message: Service:bitrise AppSlug:app-slug BuildSlug:build-slug BuildNumber:23 BuildURL: TriggeredWorkflow:}`
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: RespModel{
 				ResponseType: "in_channel",
