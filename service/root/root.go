@@ -21,7 +21,7 @@ type RespModel struct {
 // HTTPHandler ...
 func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	resp := RespModel{
-		Message:         "Welcome to bitrise-webhooks!",
+		Message:         "Welcome to bitrise-webhooks! You can find more information and setup guides at: https://github.com/bitrise-io/bitrise-webhooks",
 		Version:         version.VERSION,
 		Time:            fmt.Sprintf("%s", time.Now()),
 		EnvironmentMode: config.GetServerEnvMode(),
