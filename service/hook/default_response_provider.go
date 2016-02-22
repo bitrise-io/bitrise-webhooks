@@ -28,7 +28,7 @@ type SuccessRespModel struct {
 type TransformResponseModel struct {
 	Errors                  []string                             `json:"errors,omitempty"`
 	SuccessTriggerResponses []bitriseapi.TriggerAPIResponseModel `json:"success_responses"`
-	FailedTriggerResponses  []bitriseapi.TriggerAPIResponseModel `json:"failed_responses"`
+	FailedTriggerResponses  []bitriseapi.TriggerAPIResponseModel `json:"failed_responses,omitempty"`
 }
 
 // TransformResponse ...
