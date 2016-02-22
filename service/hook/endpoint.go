@@ -23,7 +23,7 @@ func supportedProviders() map[string]hookCommon.Provider {
 		"github":       github.HookProvider{},
 		"bitbucket-v2": bitbucketv2.HookProvider{},
 		"slack":        slack.HookProvider{},
-		"visual-studio-team-services": visualstudioteamservices.HookProvider{},
+		"visualstudio": visualstudioteamservices.HookProvider{},
 	}
 }
 
