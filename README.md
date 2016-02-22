@@ -59,8 +59,33 @@ a [Bitbucket](https://bitbucket.org) *repository*.
     Bitbucket Webhooks.
 7. Click `Save`
 
-That's all, the next time you push code or create a pull request (if you enabled the related event(s))
-a build will be triggered.
+That's all, the next time you push code (into your repository) a build will be triggered.
+
+
+### Visual Studio Online / Visual Studio Team Services - setup & usage:
+
+All you have to do is register your `bitrise-webhooks` URL for
+a [visualstudio.com](https://visualstudio.com) *project* as a `Service Hooks` integration.
+
+You can find an official guide
+on [visualstudio.com 's documentations site](https://www.visualstudio.com/en-us/get-started/integrate/service-hooks/webhooks-and-vso-vs).
+
+A short step-by-step guide:
+
+1. Open your *project* on [visualstudio.com](https://visualstudio.com)
+2. Go to the *Admin/Control panel* of the *project*
+3. Select `Service Hooks`
+4. Create a service integration
+  * In the Service list select the `Web Hooks` option
+  * Select the `Code pushed` event as the *Trigger*
+  * In the `Filters` section select the `Repository` you want to integrate
+  * You can leave the other filters on default
+  * Click `Next`
+  * On the `Action` setup form specify the `bitrise-webhooks` URL (`.../h/visualstudio/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `URL` field
+  * You can leave every other option on default
+7. Click `Finish`
+
+That's all, the next time you push code (into your repository) a build will be triggered.
 
 
 ### Slack - setup & usage:
