@@ -12,15 +12,66 @@ For more information check the *How to add support for a new Provider* section.
 
 ## Supported webhooks / providers
 
-* GitHub
+* [GitHub](https://github.com)
   * handled on the path: `/h/github/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
-* Bitbucket V2 (aka "Webhooks" on the Bitbucket web UI)
+* [Bitbucket](https://bitbucket.org) webhooks V2 ("Webhooks" on the Bitbucket web UI)
   * handled on the path: `/h/bitbucket-v2/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
-* Bitbucket V1 (aka "Services" on the Bitbucket web UI) - **WIP**
-* Slack (both outgoing webhooks & slash commands)
+* [Slack](https://slack.com) (both outgoing webhooks & slash commands)
   * handled on the path: `/h/slack/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 
-### Setup & usage: Slack
+Work in progress:
+
+* [Visual Studio Team Services](https://www.visualstudio.com/products/visual-studio-team-services-vs)
+* [GitLab](https://gitlab.com)
+
+
+### GitHub - setup & usage:
+
+All you have to do is register your `bitrise-webhooks` URL for
+a [GitHub](https://github.com) *repository*.
+
+1. Open your *repository* on [GitHub.com](https://github.com)
+2. Go to `Settings` of the *repository*
+3. Select `Webhooks & services`
+4. Click on `Add webhook`
+5. Specify the `bitrise-webhooks` URL (`.../h/github/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `Payload URL` field
+6. Select the *events* you want to trigger a webhook for
+  * Right now `bitrise-webhooks` supports the `Push` and `Pull Request` events,
+    every other webhook (triggered by another event) will be ignored.
+7. Click `Add webhook`
+
+That's all, the next time you push code or create a pull request (if you enabled the related event(s))
+a build will be triggered.
+
+
+### Bitbucket (V2) Webhooks - setup & usage:
+
+All you have to do is register your `bitrise-webhooks` URL for
+a [Bitbucket](https://bitbucket.org) *repository*.
+
+1. Open your *repository* on [Bitbucket.org](https://bitbucket.org)
+2. Go to `Settings` of the *repository*
+3. Select `Webhooks`
+4. Click on `Add webhook`
+5. Specify the `bitrise-webhooks` URL (`.../h/bitbucket-v2/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `URL` field
+6. In the *Triggers* section select `Repository push`
+  * Right now `bitrise-webhooks` only supports the *Repository push* trigger for
+    Bitbucket Webhooks.
+7. Click `Save`
+
+That's all, the next time you push code or create a pull request (if you enabled the related event(s))
+a build will be triggered.
+
+
+### Slack - setup & usage:
+
+You can register the `bitrise-webhooks` URL (`.../h/slack/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) as either
+an [Outgoing Webhook](https://my.slack.com/services/new/outgoing-webhook) or
+as a [slash command](https://my.slack.com/services/new/slash-commands) for your Slack team.
+
+Once the URL is registered check the *usage* section below for all the
+accepted and required parameters you can define in the message, and
+for a couple of examples.
 
 #### Usage - the message format
 
@@ -239,5 +290,5 @@ response provider will be used.
 ## TODO
 
 * Re-try handling
-* Provider Support: Visual Studio Online
-* Provider Support: GitLab
+* Bitbucket V1 (aka "Services" on the Bitbucket web UI) - not sure whether we should support this,
+  it'll be deprecated in the future, and we already support the newer, V2 webhooks.
