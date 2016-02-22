@@ -3,6 +3,7 @@ package bitriseapi
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -13,16 +14,37 @@ import (
 
 // BuildParamsModel ...
 type BuildParamsModel struct {
-	CommitHash    string `json:"commit_hash"`
-	CommitMessage string `json:"commit_message"`
-	Branch        string `json:"branch"`
+	CommitHash    string `json:"commit_hash,omitempty"`
+	CommitMessage string `json:"commit_message,omitempty"`
+	Branch        string `json:"branch,omitempty"`
 	Tag           string `json:"tag,omitempty"`
 	PullRequestID *int   `json:"pull_request_id,omitempty"`
+	WorkflowID    string `json:"workflow_id,omitempty"`
 }
 
 // TriggerAPIParamsModel ...
 type TriggerAPIParamsModel struct {
 	BuildParams BuildParamsModel `json:"build_params"`
+}
+
+// TriggerAPIResponseModel ...
+type TriggerAPIResponseModel struct {
+	Status            string `json:"status"`
+	Message           string `json:"message"`
+	Service           string `json:"service"`
+	AppSlug           string `json:"slug"`
+	BuildSlug         string `json:"build_slug"`
+	BuildNumber       int    `json:"build_number"`
+	BuildURL          string `json:"build_url"`
+	TriggeredWorkflow string `json:"triggered_workflow"`
+}
+
+// Validate ...
+func (triggerParams TriggerAPIParamsModel) Validate() error {
+	if triggerParams.BuildParams.Branch == "" && triggerParams.BuildParams.WorkflowID == "" {
+		return errors.New("Missing Branch and WorkflowID parameters - at least one of these is required")
+	}
+	return nil
 }
 
 // BuildTriggerURL ...
@@ -44,22 +66,29 @@ func BuildTriggerURL(apiRootURL string, appSlug string) (*url.URL, error) {
 //  not a HTTP success response.
 // If the response is an HTTP success response then the whole response body
 //  will be returned, and error will be nil.
-func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) ([]byte, error) {
+func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) (TriggerAPIResponseModel, bool, error) {
+	if err := params.Validate(); err != nil {
+		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: build trigger parameter invalid: %s", err)
+	}
+
 	jsonStr, err := json.Marshal(params)
 	if err != nil {
-		return []byte{}, fmt.Errorf("TriggerBuild: failed to json marshal: %s", err)
+		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: failed to json marshal: %s", err)
 	}
 
 	log.Printf("===> Triggering Build: (url:%s)", url)
 	log.Printf("====> JSON body: %s", jsonStr)
 
 	if isOnlyLog {
-		return []byte("LOG-ONLY-MODE"), nil
+		return TriggerAPIResponseModel{
+			Status:  "ok",
+			Message: "LOG ONLY MODE",
+		}, true, nil
 	}
 
 	req, err := http.NewRequest("POST", url.String(), bytes.NewBuffer(jsonStr))
 	if err != nil {
-		return []byte{}, fmt.Errorf("TriggerBuild: failed to create request: %s", err)
+		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: failed to create request: %s", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Api-Token", apiToken)
@@ -70,7 +99,7 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return []byte{}, fmt.Errorf("TriggerBuild: failed to send request: %s", err)
+		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: failed to send request: %s", err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -80,12 +109,17 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return []byte{}, fmt.Errorf("TriggerBuild: request sent, but failed to read response body (http-code:%d): %s", resp.StatusCode, body)
+		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: request sent, but failed to read response body (http-code:%d): %s", resp.StatusCode, body)
+	}
+
+	var respModel TriggerAPIResponseModel
+	if err := json.Unmarshal(body, &respModel); err != nil {
+		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: request sent, but failed to parse response (http-code:%d): %s", resp.StatusCode, body)
 	}
 
 	if 200 <= resp.StatusCode && resp.StatusCode <= 202 {
-		return body, nil
+		return respModel, true, nil
 	}
 
-	return []byte{}, fmt.Errorf("TriggerBuild: request sent, but received a non success response (http-code:%d): %s", resp.StatusCode, body)
+	return respModel, false, nil
 }

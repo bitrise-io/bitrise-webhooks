@@ -17,11 +17,37 @@ For more information check the *How to add support for a new Provider* section.
 * Bitbucket V2 (aka "Webhooks" on the Bitbucket web UI)
   * handled on the path: `/h/bitbucket-v2/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * Bitbucket V1 (aka "Services" on the Bitbucket web UI) - **WIP**
+* Slack (both outgoing webhooks & slash commands)
+  * handled on the path: `/h/slack/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
+
+### Setup & usage: Slack
+
+#### Usage - the message format
+
+Your message have to be in the format: `key:value|key:value|...`,
+where the supported `keys` are:
+
+At least one of these two parameters are required:
+
+* `b` or `branch` - example: `branch: master`
+* `w` or `workflow` - example: `workflow: primary`
+
+Other, optional parameters:
+
+* `t` or `tag` - example: `branch: master|tag: v1.0`
+* `c` or `commit` - example: `workflow: primary|commit: eee55509f16e7715bdb43308bb55e8736da4e21e`
+* `m` or `message` - example: `branch: master|message: ship it!!`
+
+**NOTE**: at least either `branch` or `workflow` have to be specified, and of course
+you can specify both if you want to. You're free to specify any number of optional parameters.
+
+An example with all parameters included: `workflow: primary|b: master|tag: v1.0|commit:eee55509f16e7715bdb43308bb55e8736da4e21e|m: start my build!`
 
 
 ## How to compile & run the server
 
 * Install [Go](https://golang.org), and [set up your Workspace](https://golang.org/doc/code.html#Workspaces) and your [$GOPATH](https://golang.org/doc/code.html#GOPATH)
+  * Go `1.6` or newer required!
 * If you want to change things, Fork this repository
 * `git clone` the project into your GOPATH: `git clone your-fork.url $GOPATH/src/github.com/bitrise-io/bitrise-webhooks`
 * `cd $GOPATH/src/github.com/bitrise-io/bitrise-webhooks`
@@ -96,6 +122,7 @@ it to [bitrise.io](https://www.bitrise.io).
       or Production mode.
       You can simply set an empty value for `SEND_REQUEST_TO` to disable it: `heroku config:set SEND_REQUEST_TO=""`
 * `git push heroku master`
+* `heroku ps:scale web=1`
 
 Done. Your Bitrise Webhooks server is now running on Heroku.
 
@@ -130,10 +157,12 @@ provider implementation.
 * Create a folder in `service/hook`, following the naming pattern of existing providers (and Go package naming conventions)
   * Use only lowercase ASCII letters & numbers, without any whitespace, dash, underscore, ... characters
 * Create a test file (`..._test.go`)
+* **Note:** you should create a testing function for every function you add,
+  before you'd write any code for the function!
 * Split the logic into functions; usually this split should be fine (at least for starting):
   * Validate the required headers (content type, event ID if supported, etc.)
   * Declare your **data model(s)** for the Webhook data
-  * Create a test for the `Transform` method, with checks for the required inputs (headers, event type, etc.).
+  * Create a test for the `TransformRequest` method, with checks for the required inputs (headers, event type, etc.).
     * You can test it with a sample webhook request string right away, but it's probably easier to write the
       transform utility function(s) first
   * Create your transform utility function(s):
@@ -145,7 +174,7 @@ provider implementation.
       without an actual test implementation.
     * Then start to write the test implementations, one by one; write the test first, then
       make the code pass, then go to the next test implementation
-  * Once your transform functions are well tested you should get back to the `Transform` function,
+  * Once your transform functions are well tested you should get back to the `TransformRequest` function,
     test & implement that too
     * You should include a sample webhook data & test, as you can see it in the `github` and `bitbucketv2` services.
 * Once the implementation is ready you can register a path/route for the service/provider:
@@ -162,20 +191,53 @@ and you can create a Pull Request, to have it merged with the official
 [bitrise.io](https://www.bitrise.io) webhook processor.
 
 
+#### Optional: define response Transform functions
+
+Once you have a working Provider you can optionally define response
+transformers too. With this you can define the exact response JSON data,
+and the HTTP status code, both for success and for error responses.
+
+If you don't define a response Transformer the default response provider
+will be used (`service/hook/default_reponse_provider.go`).
+
+To define your own Response Provider/Transform functions you just have to
+implement the functions of `ResponseTransformer` (`service/hook/common/common.go`).
+
+If your Provider implements these functions it'll be used for generating
+the response. You have to implement every function defined in the
+interface, or your Provider won't be considered as an implementation of the interface
+and the default response provider will be used instead.
+
+
 ## Response
 
-### Errors
+Response is always in JSON format.
 
-The server returns a single `{error: "..."}` (JSON) everywhere, **except** when the error is related to build trigger.
-This is because a single webhook might trigger multiple builds.
+**If provider declares the response transformers** it'll be used, and the
+provider is responsible for generating the response JSON.
 
-In case everything else was OK (every validation,
-transformation of the data to Bitrise Build Trigger API parameters, etc.) but the build trigger call(s) fail it'll return an `{errors: ["", "", ...]}` (JSON array of strings) response instead,
-listing every trigger error.
+If it doesn't provide the response transformer functions then the default
+response provider will be used.
+
+**The default response provider** generates the following responses:
+
+* If an error prevents any build calls then a single `{"error": "..."}` response
+  will be generated (with HTTP code `400`).
+* If a single success message is generated (e.g. if the hook is skipped and it's
+  declared as a success, instead of an error) then a `{"message": "..."}` response
+  will be generated (with HTTP status code `200`).
+* If at least one Bitrise Trigger call was initiated:
+  * All the received responses will be included as a `"success_responses": []`
+    and `"failed_responses": []` JSON arrays
+  * And all the errors (where the response was not available / call timed out, etc.)
+    as a `"errors": []` JSON array (if any)
+  * If at least one call fails or the response is an error response
+    the HTTP status code will be `400`
+  * If all trigger calls succeed the status code will be `201`
 
 
 ## TODO
 
+* Re-try handling
 * Provider Support: Visual Studio Online
 * Provider Support: GitLab
-* Provider Support: Slack

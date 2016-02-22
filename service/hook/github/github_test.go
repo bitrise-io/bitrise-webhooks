@@ -346,7 +346,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 	}
 }
 
-func Test_HookProvider_Transform(t *testing.T) {
+func Test_HookProvider_TransformRequest(t *testing.T) {
 	provider := HookProvider{}
 
 	t.Log("Ping - should be skipped")
@@ -357,7 +357,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 				"X-Github-Event": {"ping"},
 			},
 		}
-		hookTransformResult := provider.Transform(&request)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Ping event received")
 	}
@@ -370,7 +370,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 				"X-Github-Event": {"ping"},
 			},
 		}
-		hookTransformResult := provider.Transform(&request)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Content-Type is not supported: not/supported")
 	}
@@ -383,7 +383,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 				"X-Github-Event": {"label"},
 			},
 		}
-		hookTransformResult := provider.Transform(&request)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Unsupported GitHub Webhook event: label")
 	}
@@ -396,7 +396,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 				"X-Github-Event": {"push"},
 			},
 		}
-		hookTransformResult := provider.Transform(&request)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
 	}
@@ -409,7 +409,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 				"X-Github-Event": {"pull_request"},
 			},
 		}
-		hookTransformResult := provider.Transform(&request)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
 	}
@@ -422,7 +422,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 				"X-Github-Event": {"push"},
 			},
 		}
-		hookTransformResult := provider.Transform(&request)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
 	}
@@ -436,7 +436,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 			},
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
 		}
-		hookTransformResult := provider.Transform(&request)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -459,7 +459,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 			},
 			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestData)),
 		}
-		hookTransformResult := provider.Transform(&request)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{

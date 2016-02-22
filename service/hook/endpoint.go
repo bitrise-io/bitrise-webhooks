@@ -1,7 +1,6 @@
 package hook
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/bitbucketv2"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/github"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/slack"
 	"github.com/gorilla/mux"
 )
 
@@ -21,47 +21,86 @@ func supportedProviders() map[string]hookCommon.Provider {
 	return map[string]hookCommon.Provider{
 		"github":       github.HookProvider{},
 		"bitbucket-v2": bitbucketv2.HookProvider{},
+		"slack":        slack.HookProvider{},
 	}
 }
 
-// SuccessRespModel ...
-type SuccessRespModel struct {
-	Message string `json:"message"`
-}
+// ----------------------------------
+// --- Response handler functions ---
 
-// ErrorsRespModel ...
-type ErrorsRespModel struct {
-	Errors []string `json:"errors"`
-}
-
-func respondWithSingleErrorStr(w http.ResponseWriter, errStr string) {
-	service.RespondWithError(w, http.StatusBadRequest, errStr)
-}
-
-func respondWithErrors(w http.ResponseWriter, errs []error) {
-	errStrs := []string{}
-	for _, aErr := range errs {
-		errStrs = append(errStrs, aErr.Error())
+func respondWithErrorString(w http.ResponseWriter, provider *hookCommon.Provider, errStr string) {
+	responseProvider := hookCommon.ResponseTransformer(DefaultResponseProvider{})
+	if provider != nil {
+		if respTransformer, ok := (*provider).(hookCommon.ResponseTransformer); ok {
+			// provider can transform responses - let it do so
+			responseProvider = respTransformer
+		}
 	}
-	service.RespondWithErrorJSON(w, http.StatusBadRequest, ErrorsRespModel{Errors: errStrs})
+	//
+	respInfo := responseProvider.TransformErrorMessageResponse(errStr)
+	httpStatusCode := 400 // default
+	if respInfo.HTTPStatusCode != 0 {
+		httpStatusCode = respInfo.HTTPStatusCode
+	}
+	service.RespondWith(w, httpStatusCode, respInfo.Data)
 }
 
-func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitriseapi.TriggerAPIParamsModel) error {
+func respondWithSuccessMessage(w http.ResponseWriter, provider *hookCommon.Provider, msg string) {
+	responseProvider := hookCommon.ResponseTransformer(DefaultResponseProvider{})
+	if provider != nil {
+		if respTransformer, ok := (*provider).(hookCommon.ResponseTransformer); ok {
+			// provider can transform responses - let it do so
+			responseProvider = respTransformer
+		}
+	}
+	//
+	respInfo := responseProvider.TransformSuccessMessageResponse(msg)
+	httpStatusCode := 201 // default
+	if respInfo.HTTPStatusCode != 0 {
+		httpStatusCode = respInfo.HTTPStatusCode
+	}
+	service.RespondWith(w, httpStatusCode, respInfo.Data)
+}
+
+func respondWithResults(w http.ResponseWriter, provider *hookCommon.Provider, results hookCommon.TransformResponseInputModel) {
+	responseProvider := hookCommon.ResponseTransformer(DefaultResponseProvider{})
+	if provider != nil {
+		if respTransformer, ok := (*provider).(hookCommon.ResponseTransformer); ok {
+			// provider can transform responses - let it do so
+			responseProvider = respTransformer
+		}
+	}
+	//
+	respInfo := responseProvider.TransformResponse(results)
+	httpStatusCode := 201 // default
+	if respInfo.HTTPStatusCode != 0 {
+		httpStatusCode = respInfo.HTTPStatusCode
+	}
+	service.RespondWith(w, httpStatusCode, respInfo.Data)
+}
+
+// -------------------------
+// --- Utility functions ---
+
+func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitriseapi.TriggerAPIParamsModel) (bitriseapi.TriggerAPIResponseModel, bool, error) {
 	log.Printf(" ===> trigger build: %s", triggerURL)
 	isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
 	if isOnlyLog {
 		log.Println(" (debug) isOnlyLog: true")
 	}
 
-	respBody, err := bitriseapi.TriggerBuild(triggerURL, apiToken, triggerAPIParams, isOnlyLog)
+	responseModel, isSuccess, err := bitriseapi.TriggerBuild(triggerURL, apiToken, triggerAPIParams, isOnlyLog)
 	if err != nil {
 		log.Printf(" [!] Exception: failed to trigger build: %s", err)
-		return fmt.Errorf("Failed to Trigger the Build: %s", err)
+		return bitriseapi.TriggerAPIResponseModel{}, false, fmt.Errorf("Failed to Trigger the Build: %s", err)
 	}
-	log.Printf(" ===> trigger build - SUCCESS (%s)", triggerURL)
-	log.Printf("      (debug) response body: (%s)", respBody)
-	return nil
+	log.Printf(" ===> trigger build - DONE (success: %t) (%s)", isSuccess, triggerURL)
+	log.Printf("      (debug) response: (%#v)", responseModel)
+	return responseModel, isSuccess, nil
 }
+
+// ------------------------------
+// --- Main HTTP Handler code ---
 
 // HTTPHandler ...
 func HTTPHandler(w http.ResponseWriter, r *http.Request) {
@@ -71,86 +110,74 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	apiToken := vars["api-token"]
 
 	if serviceID == "" {
-		respondWithSingleErrorStr(w, "No service-id defined")
+		respondWithErrorString(w, nil, "No service-id defined")
 		return
 	}
-	if appSlug == "" {
-		respondWithSingleErrorStr(w, "No App Slug parameter defined")
-		return
-	}
-	if apiToken == "" {
-		respondWithSingleErrorStr(w, "No API Token parameter defined")
+	hookProvider, isSupported := supportedProviders()[serviceID]
+	if !isSupported {
+		respondWithErrorString(w, nil, fmt.Sprintf("Unsupported Webhook Type / Provider: %s", serviceID))
 		return
 	}
 
-	hookProvider, isSupported := supportedProviders()[serviceID]
-	if !isSupported {
-		respondWithSingleErrorStr(w, fmt.Sprintf("Unsupported Webhook Type / Provider: %s", serviceID))
+	if appSlug == "" {
+		respondWithErrorString(w, &hookProvider, "No App Slug parameter defined")
+		return
+	}
+	if apiToken == "" {
+		respondWithErrorString(w, &hookProvider, "No API Token parameter defined")
 		return
 	}
 
 	hookTransformResult := hookCommon.TransformResultModel{}
 	metrics.Trace("Hook: Transform", func() {
-		hookTransformResult = hookProvider.Transform(r)
+		hookTransformResult = hookProvider.TransformRequest(r)
 	})
 
 	if hookTransformResult.ShouldSkip {
-		resp := SuccessRespModel{
-			Message: fmt.Sprintf("Acknowledged, but skipping. Reason: %s", hookTransformResult.Error),
-		}
-		service.RespondWithSuccess(w, http.StatusCreated, resp)
+		respondWithSuccessMessage(w, &hookProvider, fmt.Sprintf("Acknowledged, but skipping. Reason: %s", hookTransformResult.Error))
 		return
 	}
 	if hookTransformResult.Error != nil {
 		errMsg := fmt.Sprintf("Failed to transform the webhook: %s", hookTransformResult.Error)
 		log.Printf(" (debug) %s", errMsg)
-		respondWithSingleErrorStr(w, errMsg)
+		respondWithErrorString(w, &hookProvider, errMsg)
 		return
 	}
 
-	// Let's Trigger a Build!
+	// Let's Trigger a build / some builds!
 	triggerURL := config.SendRequestToURL
 	if triggerURL == nil {
 		u, err := bitriseapi.BuildTriggerURL("https://www.bitrise.io", appSlug)
 		if err != nil {
 			log.Printf(" [!] Exception: hookHandler: failed to create Build Trigger URL: %s", err)
-			respondWithSingleErrorStr(w, fmt.Sprintf("Failed to create Build Trigger URL: %s", err))
+			respondWithErrorString(w, &hookProvider, fmt.Sprintf("Failed to create Build Trigger URL: %s", err))
 			return
 		}
 		triggerURL = u
 	}
 
-	respondWithErrs := []error{}
 	buildTriggerCount := len(hookTransformResult.TriggerAPIParams)
+	if buildTriggerCount == 0 {
+		respondWithErrorString(w, &hookProvider, "After processing the webhook we failed to detect any event in it which could be turned into a build.")
+		return
+	}
+
+	respondWith := hookCommon.TransformResponseInputModel{
+		Errors:                  []string{},
+		SuccessTriggerResponses: []bitriseapi.TriggerAPIResponseModel{},
+		FailedTriggerResponses:  []bitriseapi.TriggerAPIResponseModel{},
+	}
 	metrics.Trace("Hook: Trigger Builds", func() {
-		if buildTriggerCount == 0 {
-			respondWithErrs = append(respondWithErrs, errors.New("After processing the webhook we failed to detect any event in it which could be turned into a build."))
-			return
-		} else if buildTriggerCount == 1 {
-			err := triggerBuild(triggerURL, apiToken, hookTransformResult.TriggerAPIParams[0])
-			if err != nil {
-				respondWithErrs = append(respondWithErrs, err)
-				return
-			}
-		} else {
-			for _, aBuildTriggerParam := range hookTransformResult.TriggerAPIParams {
-				if err := triggerBuild(triggerURL, apiToken, aBuildTriggerParam); err != nil {
-					respondWithErrs = append(respondWithErrs, err)
-				}
+		for _, aBuildTriggerParam := range hookTransformResult.TriggerAPIParams {
+			if triggerResp, isSuccess, err := triggerBuild(triggerURL, apiToken, aBuildTriggerParam); err != nil {
+				respondWith.Errors = append(respondWith.Errors, fmt.Sprintf("Failed to Trigger Build: %s", err))
+			} else if isSuccess {
+				respondWith.SuccessTriggerResponses = append(respondWith.SuccessTriggerResponses, triggerResp)
+			} else {
+				respondWith.FailedTriggerResponses = append(respondWith.FailedTriggerResponses, triggerResp)
 			}
 		}
 	})
 
-	if len(respondWithErrs) > 0 {
-		respondWithErrors(w, respondWithErrs)
-		return
-	}
-
-	successMsg := ""
-	if buildTriggerCount == 1 {
-		successMsg = "Successfully triggered 1 build."
-	} else {
-		successMsg = fmt.Sprintf("Successfully triggered %d builds.", buildTriggerCount)
-	}
-	service.RespondWithSuccess(w, http.StatusCreated, SuccessRespModel{Message: successMsg})
+	respondWithResults(w, &hookProvider, respondWith)
 }

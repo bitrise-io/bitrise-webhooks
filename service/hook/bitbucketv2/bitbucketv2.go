@@ -107,8 +107,8 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 	}
 }
 
-// Transform ...
-func (hp HookProvider) Transform(r *http.Request) hookCommon.TransformResultModel {
+// TransformRequest ...
+func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformResultModel {
 	contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(r.Header)
 	if err != nil {
 		return hookCommon.TransformResultModel{
@@ -128,8 +128,7 @@ func (hp HookProvider) Transform(r *http.Request) hookCommon.TransformResultMode
 	// Check: is this a re-try hook?
 	if attemptNum != "1" {
 		return hookCommon.TransformResultModel{
-			ShouldSkip: true,
-			Error:      fmt.Errorf("No retry is supported (X-Attempt-Number: %s)", attemptNum),
+			Error: fmt.Errorf("No retry is supported (X-Attempt-Number: %s)", attemptNum),
 		}
 	}
 

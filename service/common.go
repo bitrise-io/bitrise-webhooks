@@ -12,20 +12,23 @@ type StandardErrorRespModel struct {
 }
 
 // -----------------
+// --- Generic ---
+
+// RespondWith ...
+func RespondWith(w http.ResponseWriter, httpStatusCode int, respModel interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(httpStatusCode)
+	if err := json.NewEncoder(w).Encode(&respModel); err != nil {
+		log.Println(" [!] Exception: RespondWith: Error: ", err)
+	}
+}
+
+// -----------------
 // --- Successes ---
 
 // RespondWithSuccessOK ...
 func RespondWithSuccessOK(w http.ResponseWriter, respModel interface{}) {
-	RespondWithSuccess(w, http.StatusOK, respModel)
-}
-
-// RespondWithSuccess ...
-func RespondWithSuccess(w http.ResponseWriter, httpStatusCode int, respModel interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(httpStatusCode)
-	if err := json.NewEncoder(w).Encode(&respModel); err != nil {
-		log.Println(" [!] Exception: respondWithSuccess: Error: ", err)
-	}
+	RespondWith(w, http.StatusOK, respModel)
 }
 
 // --------------
@@ -54,6 +57,6 @@ func RespondWithErrorJSON(w http.ResponseWriter, httpErrCode int, respModel inte
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpErrCode)
 	if err := json.NewEncoder(w).Encode(&respModel); err != nil {
-		log.Println("Error: ", err)
+		log.Println(" [!] Exception: RespondWithErrorJSON: Error: ", err)
 	}
 }

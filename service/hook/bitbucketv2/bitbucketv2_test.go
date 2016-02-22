@@ -41,7 +41,7 @@ const (
 }`
 )
 
-func Test_detectContentTypeUserAgentAndEventKey(t *testing.T) {
+func Test_detectContentTypeAttemptNumberAndEventKey(t *testing.T) {
 	t.Log("Push event - should handle")
 	{
 		header := http.Header{
@@ -327,7 +327,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 	}
 }
 
-func Test_HookProvider_Transform(t *testing.T) {
+func Test_HookProvider_TransformRequest(t *testing.T) {
 	provider := HookProvider{}
 
 	t.Log("It's a re-try (X-Attempt-Number >= 2) - skip")
@@ -339,9 +339,9 @@ func Test_HookProvider_Transform(t *testing.T) {
 				"X-Attempt-Number": {"2"},
 			},
 		}
-		hookTransformResult := provider.Transform(&request)
-		require.True(t, hookTransformResult.ShouldSkip)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.EqualError(t, hookTransformResult.Error, "No retry is supported (X-Attempt-Number: 2)")
+		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 
@@ -354,7 +354,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 				"X-Attempt-Number": {"1"},
 			},
 		}
-		hookTransformResult := provider.Transform(&request)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "X-Event-Key is not supported: not:supported")
 	}
@@ -368,7 +368,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 				"X-Attempt-Number": {"1"},
 			},
 		}
-		hookTransformResult := provider.Transform(&request)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Content-Type is not supported: not/supported")
 	}
@@ -382,7 +382,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 				"X-Attempt-Number": {"1"},
 			},
 		}
-		hookTransformResult := provider.Transform(&request)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
 	}
@@ -397,7 +397,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 			},
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
 		}
-		hookTransformResult := provider.Transform(&request)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -428,7 +428,7 @@ func Test_HookProvider_Transform(t *testing.T) {
 			},
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
 		}
-		hookTransformResult := provider.Transform(&request)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -459,9 +459,9 @@ func Test_HookProvider_Transform(t *testing.T) {
 			},
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
 		}
-		hookTransformResult := provider.Transform(&request)
-		require.True(t, hookTransformResult.ShouldSkip)
+		hookTransformResult := provider.TransformRequest(&request)
 		require.EqualError(t, hookTransformResult.Error, "No retry is supported (X-Attempt-Number: 2)")
+		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 }
