@@ -20,10 +20,8 @@ For more information check the *How to add support for a new Provider* section.
   * handled on the path: `/h/slack/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * [Visual Studio Team Services](https://www.visualstudio.com/products/visual-studio-team-services-vs)
   * handled on the path: `/h/visualstudio/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
-
-Work in progress:
-
 * [GitLab](https://gitlab.com)
+  * handled on the path: `/h/gitlab/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 
 
 ### GitHub - setup & usage:
@@ -59,6 +57,23 @@ a [Bitbucket](https://bitbucket.org) *repository*.
   * Right now `bitrise-webhooks` only supports the *Repository push* trigger for
     Bitbucket Webhooks.
 7. Click `Save`
+
+That's all, the next time you push code (into your repository) a build will be triggered.
+
+
+### GitLab - setup & usage:
+
+All you have to do is register your `bitrise-webhooks` URL for
+a [GitLab](https://gitlab.com) *project*.
+
+1. Open your *project* on [GitLab.com](https://gitlab.com)
+2. Go to `Settings` of the *project*
+3. Select `Web Hooks`
+4. Specify the `bitrise-webhooks` URL (`.../h/gitlab/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `URL` field
+5. In the *Triggers* section select `Push events`
+  * Right now `bitrise-webhooks` only supports the *Push events* trigger for
+    GitLab Webhooks.
+6. Click `Add Web Hook`
 
 That's all, the next time you push code (into your repository) a build will be triggered.
 
@@ -317,4 +332,4 @@ response provider will be used.
 
 * Re-try handling
 * Bitbucket V1 (aka "Services" on the Bitbucket web UI) - not sure whether we should support this,
-  it'll be deprecated in the future, and we already support the newer, V2 webhooks.
+  it's already kind of deprecated, and we already support the newer, V2 webhooks.
