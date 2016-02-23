@@ -18,10 +18,11 @@ For more information check the *How to add support for a new Provider* section.
   * handled on the path: `/h/bitbucket-v2/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * [Slack](https://slack.com) (both outgoing webhooks & slash commands)
   * handled on the path: `/h/slack/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
+* [Visual Studio Team Services](https://www.visualstudio.com/products/visual-studio-team-services-vs)
+  * handled on the path: `/h/visualstudio/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 
 Work in progress:
 
-* [Visual Studio Team Services](https://www.visualstudio.com/products/visual-studio-team-services-vs)
 * [GitLab](https://gitlab.com)
 
 
