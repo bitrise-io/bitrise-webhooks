@@ -331,5 +331,6 @@ response provider will be used.
 ## TODO
 
 * Re-try handling
+* Docker image: auto-create & publish a Docker Image for the webhooks server, to make it easy to run it on your own server
 * Bitbucket V1 (aka "Services" on the Bitbucket web UI) - not sure whether we should support this,
   it's already kind of deprecated, and we already support the newer, V2 webhooks.
