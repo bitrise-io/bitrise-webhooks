@@ -22,6 +22,8 @@ For more information check the *How to add support for a new Provider* section.
   * handled on the path: `/h/visualstudio/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * [GitLab](https://gitlab.com)
   * handled on the path: `/h/gitlab/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
+* [Gogs](https://gogs.io)
+  * handled on the path: `/h/gogs/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 
 
 ### GitHub - setup & usage:
@@ -74,6 +76,22 @@ a [GitLab](https://gitlab.com) *project*.
   * Right now `bitrise-webhooks` only supports the *Push events* trigger for
     GitLab Webhooks.
 6. Click `Add Web Hook`
+
+That's all, the next time you push code (into your repository) a build will be triggered.
+
+
+### Gogs - setup & usage:
+
+All you have to do is register your `bitrise-webhooks` URL as a Webhook in your [Gogs](https://gogs.io) repository.
+
+1. Open your *project* on your repository's hosting URL.
+1. Go to `Settings` of the *project*
+1. Select `Webhooks`, `Add Webhook`, then `Gogs`.
+1. Specify the `bitrise-webhooks` URL (`.../h/gogs/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `Payload URL` field.
+1. Set the `Content Type` to `application/json`.
+1. A Secret is not required at this time.
+1. Set the trigger to be fired on `Just the push event`
+1. Save the Webhook.
 
 That's all, the next time you push code (into your repository) a build will be triggered.
 
@@ -334,3 +352,8 @@ response provider will be used.
 * Docker image: auto-create & publish a Docker Image for the webhooks server, to make it easy to run it on your own server
 * Bitbucket V1 (aka "Services" on the Bitbucket web UI) - not sure whether we should support this,
   it's already kind of deprecated, and we already support the newer, V2 webhooks.
+
+## Contributors
+
+* [The Bitrise Team](https://github.com/bitrise-io)
+* [Chad Robinson](https://github.com/crrobinson14)
