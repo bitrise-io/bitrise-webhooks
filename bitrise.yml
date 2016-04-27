@@ -59,9 +59,6 @@ workflows:
 
             # Go lint
             go get -u github.com/golang/lint/golint
-
-            # Go Vet
-            go get -u golang.org/x/tools/cmd/vet
   test:
     before_run:
     - _install_test_tools

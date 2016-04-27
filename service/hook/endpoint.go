@@ -14,6 +14,7 @@ import (
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/github"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/gitlab"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/gogs"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/slack"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/visualstudioteamservices"
 	"github.com/gorilla/mux"
@@ -26,6 +27,7 @@ func supportedProviders() map[string]hookCommon.Provider {
 		"slack":        slack.HookProvider{},
 		"visualstudio": visualstudioteamservices.HookProvider{},
 		"gitlab":       gitlab.HookProvider{},
+		"gogs":         gogs.HookProvider{},
 	}
 }
 
