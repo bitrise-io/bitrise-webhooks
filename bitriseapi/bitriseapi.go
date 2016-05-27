@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// EnvironmentItem ...
 type EnvironmentItem struct {
 	Name        string 	`json:"mapped_to,omitempty"`
 	Value       string 	`json:"value,omitempty"`
