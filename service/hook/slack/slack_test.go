@@ -102,28 +102,28 @@ func Test_collectParamsFromPipeSeparatedText(t *testing.T) {
 			"key: the value |",
 		}
 		for _, aText := range texts {
-			collectedParams := collectParamsFromPipeSeparatedText(aText)
+			collectedParams, _ := collectParamsFromPipeSeparatedText(aText)
 			require.Equal(t, map[string]string{"key": "the value"}, collectedParams)
 		}
 	}
 
 	t.Log("Single item, includes :")
 	{
-		collectedParams := collectParamsFromPipeSeparatedText("key: the:value")
+		collectedParams, _ := collectParamsFromPipeSeparatedText("key: the:value")
 		require.Equal(t, map[string]string{"key": "the:value"}, collectedParams)
-		collectedParams = collectParamsFromPipeSeparatedText("key: the :value")
+		collectedParams, _ = collectParamsFromPipeSeparatedText("key: the :value")
 		require.Equal(t, map[string]string{"key": "the :value"}, collectedParams)
-		collectedParams = collectParamsFromPipeSeparatedText("key: the : value")
+		collectedParams, _ = collectParamsFromPipeSeparatedText("key: the : value")
 		require.Equal(t, map[string]string{"key": "the : value"}, collectedParams)
-		collectedParams = collectParamsFromPipeSeparatedText("key: the  :  value")
+		collectedParams, _ = collectParamsFromPipeSeparatedText("key: the  :  value")
 		require.Equal(t, map[string]string{"key": "the  :  value"}, collectedParams)
-		collectedParams = collectParamsFromPipeSeparatedText("key    : the : value")
+		collectedParams, _ = collectParamsFromPipeSeparatedText("key    : the : value")
 		require.Equal(t, map[string]string{"key": "the : value"}, collectedParams)
 	}
 
 	t.Log("Multiple items")
 	{
-		collectedParams := collectParamsFromPipeSeparatedText("key1: value 1 |   key2 : value 2")
+		collectedParams, _ := collectParamsFromPipeSeparatedText("key1: value 1 |   key2 : value 2")
 		require.Equal(t, map[string]string{
 			"key1": "value 1",
 			"key2": "value 2",
@@ -133,7 +133,7 @@ func Test_collectParamsFromPipeSeparatedText(t *testing.T) {
 
 	t.Log("Multiple items - empty parts")
 	{
-		collectedParams := collectParamsFromPipeSeparatedText("|key1: value 1 |   key2 : value 2|")
+		collectedParams, _ := collectParamsFromPipeSeparatedText("|key1: value 1 |   key2 : value 2|")
 		require.Equal(t, map[string]string{
 			"key2": "value 2",
 			"key1": "value 1",
@@ -143,13 +143,22 @@ func Test_collectParamsFromPipeSeparatedText(t *testing.T) {
 
 	t.Log("Multiple items - formatting test")
 	{
-		collectedParams := collectParamsFromPipeSeparatedText("|key1: value 1 |   key2 : value 2 |key3:value 3")
+		collectedParams, _ := collectParamsFromPipeSeparatedText("|key1: value 1 |   key2 : value 2 |key3:value 3")
 		require.Equal(t, map[string]string{
 			"key1": "value 1",
 			"key3": "value 3",
 			"key2": "value 2",
 		},
 			collectedParams)
+	}
+
+	t.Log("Nested items - parsing environments (only capture env)")
+	{
+		_, envParams := collectParamsFromPipeSeparatedText("key1: value1 |env[validNestedKey]: valueNested|ignoredKey[nestedKey1]: value 2 |   ignoredKey [nestedKey2 ] : value 3 |key3:value 3")
+		require.Equal(t, []bitriseapi.EnvironmentItem{
+			bitriseapi.EnvironmentItem{Name: "validNestedKey", Value: "valueNested", IsExpand: true},
+		},
+			envParams)
 	}
 }
 
@@ -264,6 +273,45 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
 					WorkflowID: "my-wf1",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Single environment parameter")
+	{
+		slackText := "branch: develop | env[DEVICE_NAME]: Rafael's iPhone"
+
+		hookTransformResult := transformOutgoingWebhookMessage(slackText)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch:			"develop",
+					Environments: 	[]bitriseapi.EnvironmentItem{
+						bitriseapi.EnvironmentItem{Name: "DEVICE_NAME", Value: "Rafael's iPhone", IsExpand: true},
+					},
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Multiple environment parameters, interleaved and spaced keys")
+	{
+		slackText := " | env[ DEVICE_NAME]: Rafael's iPhone|branch: develop |env[DEVICE_UDID ]:xxxxyyyyyzzzz" 
+
+		hookTransformResult := transformOutgoingWebhookMessage(slackText)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch:			"develop",
+					Environments: 	[]bitriseapi.EnvironmentItem{
+						bitriseapi.EnvironmentItem{Name: "DEVICE_NAME", Value: "Rafael's iPhone", IsExpand: true},
+						bitriseapi.EnvironmentItem{Name: "DEVICE_UDID", Value: "xxxxyyyyyzzzz", IsExpand: true},						
+					},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)

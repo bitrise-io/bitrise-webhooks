@@ -50,8 +50,13 @@ func getInputTextFromFormRequest(r *http.Request) (string, error) {
 	return text, nil
 }
 
-func collectParamsFromPipeSeparatedText(text string) map[string]string {
+func collectParamsFromPipeSeparatedText(text string) (map[string]string, []bitriseapi.EnvironmentItem) {
+	parseFunc := func(c rune) bool {
+		return c == '[' || c == ']'
+    }
+
 	collectedParams := map[string]string{}
+	environmentParams := []bitriseapi.EnvironmentItem{}
 
 	splits := strings.Split(text, "|")
 	for _, aItm := range splits {
@@ -67,10 +72,24 @@ func collectParamsFromPipeSeparatedText(text string) map[string]string {
 		}
 		key := strings.TrimSpace(itmSplits[0])
 		value := strings.TrimSpace(strings.Join(itmSplits[1:], ":"))
-		collectedParams[key] = value
+		subKeys := strings.FieldsFunc(key, parseFunc)
+		if len(subKeys) == 2 {
+			subKeyParent := strings.TrimSpace(subKeys[0])
+			subKey := strings.TrimSpace(subKeys[1])
+			if subKeyParent == "env" {
+				environmentParams = append(environmentParams, bitriseapi.EnvironmentItem{Name: subKey, Value: value, IsExpand: true})		
+			}
+		} else {
+			collectedParams[key] = value		
+		}
+
 	}
 
-	return collectedParams
+	if len(environmentParams) == 0 {
+		environmentParams = nil
+	}
+
+	return collectedParams, environmentParams
 }
 
 func chooseFirstNonEmptyString(strs ...string) string {
@@ -85,7 +104,7 @@ func chooseFirstNonEmptyString(strs ...string) string {
 func transformOutgoingWebhookMessage(slackText string) hookCommon.TransformResultModel {
 	cleanedUpText := strings.TrimSpace(slackText)
 
-	collectedParams := collectParamsFromPipeSeparatedText(cleanedUpText)
+	collectedParams, environments := collectParamsFromPipeSeparatedText(cleanedUpText)
 	//
 	branch := chooseFirstNonEmptyString(collectedParams["branch"], collectedParams["b"])
 	workflowID := chooseFirstNonEmptyString(collectedParams["workflow"], collectedParams["w"])
@@ -109,6 +128,7 @@ func transformOutgoingWebhookMessage(slackText string) hookCommon.TransformResul
 					CommitHash:    commitHash,
 					Tag:           tag,
 					WorkflowID:    workflowID,
+					Environments:  environments,
 				},
 			},
 		},
