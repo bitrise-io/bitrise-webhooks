@@ -39,6 +39,13 @@ type TriggerAPIResponseModel struct {
 	TriggeredWorkflow string `json:"triggered_workflow"`
 }
 
+// SkipAPIResponseModel ...
+type SkipAPIResponseModel struct {
+	CommitHash    string `json:"commit_hash"`
+	CommitMessage string `json:"commit_message"`
+	Branch        string `json:"branch"`
+}
+
 // Validate ...
 func (triggerParams TriggerAPIParamsModel) Validate() error {
 	if triggerParams.BuildParams.Branch == "" && triggerParams.BuildParams.WorkflowID == "" {

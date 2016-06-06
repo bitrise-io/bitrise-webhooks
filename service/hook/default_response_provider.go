@@ -27,6 +27,7 @@ type SuccessRespModel struct {
 // TransformResponseModel ...
 type TransformResponseModel struct {
 	Errors                  []string                             `json:"errors,omitempty"`
+	SkipResponses           []bitriseapi.SkipAPIResponseModel    `json:"skipped,omitempty"`
 	SuccessTriggerResponses []bitriseapi.TriggerAPIResponseModel `json:"success_responses"`
 	FailedTriggerResponses  []bitriseapi.TriggerAPIResponseModel `json:"failed_responses,omitempty"`
 }
@@ -34,6 +35,11 @@ type TransformResponseModel struct {
 // TransformResponse ...
 func (hp DefaultResponseProvider) TransformResponse(input hookCommon.TransformResponseInputModel) hookCommon.TransformResponseModel {
 	httpStatusCode := 201
+
+	if len(input.SuccessTriggerResponses) == 0 && len(input.SkipResponses) > 0 {
+		httpStatusCode = 200
+	}
+
 	if len(input.Errors) > 0 || len(input.FailedTriggerResponses) > 0 {
 		httpStatusCode = 400
 	}
@@ -43,6 +49,7 @@ func (hp DefaultResponseProvider) TransformResponse(input hookCommon.TransformRe
 			Errors:                  input.Errors,
 			SuccessTriggerResponses: input.SuccessTriggerResponses,
 			FailedTriggerResponses:  input.FailedTriggerResponses,
+			SkipResponses:  input.SkipResponses,
 		},
 		HTTPStatusCode: httpStatusCode,
 	}
