@@ -41,6 +41,7 @@ type TriggerAPIResponseModel struct {
 
 // SkipAPIResponseModel ...
 type SkipAPIResponseModel struct {
+	Message       string `json:"message"`
 	CommitHash    string `json:"commit_hash"`
 	CommitMessage string `json:"commit_message"`
 	Branch        string `json:"branch"`

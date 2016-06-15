@@ -42,8 +42,8 @@ type TransformResponseModel struct {
 // TransformResponseInputModel ...
 type TransformResponseInputModel struct {
 	// Errors include the errors if the build could not trigger
-	Errors []string
-	SkipResponses        []bitriseapi.SkipAPIResponseModel
+	Errors                  []string
+	SkippedTriggerResponses []bitriseapi.SkipAPIResponseModel
 
 	// SuccessTriggerResponses include the successful trigger call responses
 	SuccessTriggerResponses []bitriseapi.TriggerAPIResponseModel

@@ -172,18 +172,19 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	respondWith := hookCommon.TransformResponseInputModel{
 		Errors:                  []string{},
 		SuccessTriggerResponses: []bitriseapi.TriggerAPIResponseModel{},
-		SkipResponses:           []bitriseapi.SkipAPIResponseModel{},
+		SkippedTriggerResponses: []bitriseapi.SkipAPIResponseModel{},
 		FailedTriggerResponses:  []bitriseapi.TriggerAPIResponseModel{},
 	}
 	metrics.Trace("Hook: Trigger Builds", func() {
 		for _, aBuildTriggerParam := range hookTransformResult.TriggerAPIParams {
 			commitMessage := aBuildTriggerParam.BuildParams.CommitMessage
 
-			if (strings.Contains(commitMessage, "[skip ci]") || strings.Contains(commitMessage, "[ci skip]")) {
-				respondWith.SkipResponses = append(respondWith.SkipResponses, bitriseapi.SkipAPIResponseModel{
-					CommitHash:  aBuildTriggerParam.BuildParams.CommitHash,
+			if strings.Contains(commitMessage, "[skip ci]") || strings.Contains(commitMessage, "[ci skip]") {
+				respondWith.SkippedTriggerResponses = append(respondWith.SkippedTriggerResponses, bitriseapi.SkipAPIResponseModel{
+					Message:       "Build skipped by request",
+					CommitHash:    aBuildTriggerParam.BuildParams.CommitHash,
 					CommitMessage: aBuildTriggerParam.BuildParams.CommitMessage,
-					Branch: aBuildTriggerParam.BuildParams.Branch,
+					Branch:        aBuildTriggerParam.BuildParams.Branch,
 				})
 				continue
 			}
