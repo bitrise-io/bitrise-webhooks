@@ -181,7 +181,7 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 
 			if strings.Contains(commitMessage, "[skip ci]") || strings.Contains(commitMessage, "[ci skip]") {
 				respondWith.SkippedTriggerResponses = append(respondWith.SkippedTriggerResponses, bitriseapi.SkipAPIResponseModel{
-					Message:       "Build skipped by request",
+					Message:       "Build skipped because the commit message included a skip ci keyword ([skip ci] or [ci skip]).",
 					CommitHash:    aBuildTriggerParam.BuildParams.CommitHash,
 					CommitMessage: aBuildTriggerParam.BuildParams.CommitMessage,
 					Branch:        aBuildTriggerParam.BuildParams.Branch,
