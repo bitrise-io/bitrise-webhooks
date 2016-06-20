@@ -12,3 +12,8 @@
   feel free to add yourself as a contributor if you implement support for a new service ;)
 - [ ] Before creating the Pull Request you should also run `bitrise run test` with the [Bitrise CLI](https://www.bitrise.io/cli),
   to perform all the automatic checks (which will run on your Pull Request when you open it).
+
+
+### Summary of Pull Request
+
+This Pull Request solves issue X ...
