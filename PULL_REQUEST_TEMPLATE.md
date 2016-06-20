@@ -16,4 +16,6 @@
 
 ### Summary of Pull Request
 
-This Pull Request solves issue X ...
+This Pull Request makes the code 10x faster, while reducing
+memory consumption by 99%, as well as it implements 5 new service support ...
+Something like this ;)
