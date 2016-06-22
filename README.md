@@ -358,4 +358,4 @@ response provider will be used.
 ## Contributors
 
 * [The Bitrise Team](https://github.com/bitrise-io)
-* [Chad Robinson](https://github.com/crrobinson14)
+* [Chad Robinson](https://github.com/crrobinson14) - `Gogs` support
