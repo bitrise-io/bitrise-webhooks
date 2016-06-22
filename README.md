@@ -359,3 +359,4 @@ response provider will be used.
 
 * [The Bitrise Team](https://github.com/bitrise-io)
 * [Chad Robinson](https://github.com/crrobinson14) - `Gogs` support
+* [Rafael Nobre](https://github.com/nobre84) - Environment variables support in `Slack` commands
