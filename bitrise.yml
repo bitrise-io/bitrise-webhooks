@@ -112,9 +112,13 @@ workflows:
         inputs:
         - content: |-
             #!/bin/bash
-            set -e
-            set -x
+            set -ex
+
+            go get -u -t ./...
+            rm -rf ./Godeps
+            rm -rf ./vendor 
             godep save ./...
+
   create-release:
     steps:
     - ensure-clean-git:
