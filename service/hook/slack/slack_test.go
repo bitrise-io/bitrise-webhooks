@@ -102,54 +102,88 @@ func Test_collectParamsFromPipeSeparatedText(t *testing.T) {
 			"key: the value |",
 		}
 		for _, aText := range texts {
-			collectedParams := collectParamsFromPipeSeparatedText(aText)
+			collectedParams, environmentParams := collectParamsFromPipeSeparatedText(aText)
 			require.Equal(t, map[string]string{"key": "the value"}, collectedParams)
+			require.Equal(t, []bitriseapi.EnvironmentItem{}, environmentParams)
 		}
 	}
 
 	t.Log("Single item, includes :")
 	{
-		collectedParams := collectParamsFromPipeSeparatedText("key: the:value")
+		collectedParams, environmentParams := collectParamsFromPipeSeparatedText("key: the:value")
 		require.Equal(t, map[string]string{"key": "the:value"}, collectedParams)
-		collectedParams = collectParamsFromPipeSeparatedText("key: the :value")
+		require.Equal(t, []bitriseapi.EnvironmentItem{}, environmentParams)
+		collectedParams, environmentParams = collectParamsFromPipeSeparatedText("key: the :value")
 		require.Equal(t, map[string]string{"key": "the :value"}, collectedParams)
-		collectedParams = collectParamsFromPipeSeparatedText("key: the : value")
+		require.Equal(t, []bitriseapi.EnvironmentItem{}, environmentParams)
+		collectedParams, environmentParams = collectParamsFromPipeSeparatedText("key: the : value")
 		require.Equal(t, map[string]string{"key": "the : value"}, collectedParams)
-		collectedParams = collectParamsFromPipeSeparatedText("key: the  :  value")
+		require.Equal(t, []bitriseapi.EnvironmentItem{}, environmentParams)
+		collectedParams, environmentParams = collectParamsFromPipeSeparatedText("key: the  :  value")
 		require.Equal(t, map[string]string{"key": "the  :  value"}, collectedParams)
-		collectedParams = collectParamsFromPipeSeparatedText("key    : the : value")
+		require.Equal(t, []bitriseapi.EnvironmentItem{}, environmentParams)
+		collectedParams, environmentParams = collectParamsFromPipeSeparatedText("key    : the : value")
 		require.Equal(t, map[string]string{"key": "the : value"}, collectedParams)
+		require.Equal(t, []bitriseapi.EnvironmentItem{}, environmentParams)
 	}
 
 	t.Log("Multiple items")
 	{
-		collectedParams := collectParamsFromPipeSeparatedText("key1: value 1 |   key2 : value 2")
+		collectedParams, environmentParams := collectParamsFromPipeSeparatedText("key1: value 1 |   key2 : value 2")
 		require.Equal(t, map[string]string{
 			"key1": "value 1",
 			"key2": "value 2",
 		},
 			collectedParams)
+		require.Equal(t, []bitriseapi.EnvironmentItem{}, environmentParams)
 	}
 
 	t.Log("Multiple items - empty parts")
 	{
-		collectedParams := collectParamsFromPipeSeparatedText("|key1: value 1 |   key2 : value 2|")
+		collectedParams, environmentParams := collectParamsFromPipeSeparatedText("|key1: value 1 |   key2 : value 2|")
 		require.Equal(t, map[string]string{
 			"key2": "value 2",
 			"key1": "value 1",
 		},
 			collectedParams)
+		require.Equal(t, []bitriseapi.EnvironmentItem{}, environmentParams)
 	}
 
 	t.Log("Multiple items - formatting test")
 	{
-		collectedParams := collectParamsFromPipeSeparatedText("|key1: value 1 |   key2 : value 2 |key3:value 3")
+		collectedParams, environmentParams := collectParamsFromPipeSeparatedText("|key1: value 1 |   key2 : value 2 |key3:value 3")
 		require.Equal(t, map[string]string{
 			"key1": "value 1",
 			"key3": "value 3",
 			"key2": "value 2",
 		},
 			collectedParams)
+		require.Equal(t, []bitriseapi.EnvironmentItem{}, environmentParams)
+	}
+
+	t.Log("Nested items - parsing environments (only capture env)")
+	{
+		collectedParams, envParams := collectParamsFromPipeSeparatedText("key1: value1 |env[validNestedKey]: valueNested|ignoredKey[nestedKey1]: value 2 |   ignoredKey [nestedKey2 ] : value 3 |key3:value 3")
+		require.Equal(t, map[string]string{
+			"key1": "value1",
+			"key3": "value 3",
+		},
+			collectedParams)
+		require.Equal(t, []bitriseapi.EnvironmentItem{
+			bitriseapi.EnvironmentItem{Name: "validNestedKey", Value: "valueNested", IsExpand: false},
+		},
+			envParams)
+	}
+
+	t.Log("Nested items - parsing environments (nested keys and keyed values, uppercase ENV support)")
+	{
+		collectedParams, envParams := collectParamsFromPipeSeparatedText("ENV[MY_KEY][something else]: my [value] here|ENV[MY_KEY]: my [value] here")
+		require.Equal(t, map[string]string{},
+			collectedParams)
+		require.Equal(t, []bitriseapi.EnvironmentItem{
+			bitriseapi.EnvironmentItem{Name: "MY_KEY", Value: "my [value] here", IsExpand: false},
+		},
+			envParams)
 	}
 }
 
@@ -164,7 +198,8 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch: "master",
+					Branch:       "master",
+					Environments: []bitriseapi.EnvironmentItem{},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -180,7 +215,8 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch: "master",
+					Branch:       "master",
+					Environments: []bitriseapi.EnvironmentItem{},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -196,7 +232,8 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch: "master",
+					Branch:       "master",
+					Environments: []bitriseapi.EnvironmentItem{},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -214,6 +251,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					Branch:        "master",
 					CommitMessage: "this is the Commit Message param",
+					Environments:  []bitriseapi.EnvironmentItem{},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -229,8 +267,9 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch:     "master",
-					CommitHash: "cmtHash123",
+					Branch:       "master",
+					CommitHash:   "cmtHash123",
+					Environments: []bitriseapi.EnvironmentItem{},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -246,8 +285,9 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch: "develop",
-					Tag:    "v1.0",
+					Branch:       "develop",
+					Tag:          "v1.0",
+					Environments: []bitriseapi.EnvironmentItem{},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -263,7 +303,47 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					WorkflowID: "my-wf1",
+					WorkflowID:   "my-wf1",
+					Environments: []bitriseapi.EnvironmentItem{},
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Single environment parameter")
+	{
+		slackText := "branch: develop | env[DEVICE_NAME]: Rafael's iPhone"
+
+		hookTransformResult := transformOutgoingWebhookMessage(slackText)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch: "develop",
+					Environments: []bitriseapi.EnvironmentItem{
+						bitriseapi.EnvironmentItem{Name: "DEVICE_NAME", Value: "Rafael's iPhone", IsExpand: false},
+					},
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Multiple environment parameters, interleaved and spaced keys")
+	{
+		slackText := " | env[ DEVICE_NAME]: Rafael's iPhone|branch: develop |env[DEVICE_UDID ]:xxxxyyyyyzzzz"
+
+		hookTransformResult := transformOutgoingWebhookMessage(slackText)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch: "develop",
+					Environments: []bitriseapi.EnvironmentItem{
+						bitriseapi.EnvironmentItem{Name: "DEVICE_NAME", Value: "Rafael's iPhone", IsExpand: false},
+						bitriseapi.EnvironmentItem{Name: "DEVICE_UDID", Value: "xxxxyyyyyzzzz", IsExpand: false},
+					},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -284,6 +364,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 					CommitHash:    "cmtHash321",
 					CommitMessage: "this is:my message",
 					WorkflowID:    "primary-wf",
+					Environments:  []bitriseapi.EnvironmentItem{},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -304,6 +385,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 					CommitHash:    "cmtHash321",
 					CommitMessage: "this is:my message",
 					WorkflowID:    "primary-wf",
+					Environments:  []bitriseapi.EnvironmentItem{},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -341,7 +423,8 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch: "master",
+					Branch:       "master",
+					Environments: []bitriseapi.EnvironmentItem{},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)

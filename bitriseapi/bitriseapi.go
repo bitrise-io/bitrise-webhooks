@@ -12,14 +12,22 @@ import (
 	"time"
 )
 
+// EnvironmentItem ...
+type EnvironmentItem struct {
+	Name        string 	`json:"mapped_to,omitempty"`
+	Value       string 	`json:"value,omitempty"`
+	IsExpand    bool 	`json:"is_expand,omitempty"`
+}
+
 // BuildParamsModel ...
 type BuildParamsModel struct {
-	CommitHash    string `json:"commit_hash,omitempty"`
-	CommitMessage string `json:"commit_message,omitempty"`
-	Branch        string `json:"branch,omitempty"`
-	Tag           string `json:"tag,omitempty"`
-	PullRequestID *int   `json:"pull_request_id,omitempty"`
-	WorkflowID    string `json:"workflow_id,omitempty"`
+	CommitHash    string 			`json:"commit_hash,omitempty"`
+	CommitMessage string 			`json:"commit_message,omitempty"`
+	Branch        string 			`json:"branch,omitempty"`
+	Tag           string 			`json:"tag,omitempty"`
+	PullRequestID *int   			`json:"pull_request_id,omitempty"`
+	WorkflowID    string 			`json:"workflow_id,omitempty"`
+	Environments  []EnvironmentItem `json:"environments,omitempty"`
 }
 
 // TriggerAPIParamsModel ...
