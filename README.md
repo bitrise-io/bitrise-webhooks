@@ -151,7 +151,9 @@ Other, optional parameters:
 **NOTE**: at least either `branch` or `workflow` have to be specified, and of course
 you can specify both if you want to. You're free to specify any number of optional parameters.
 
-An example with all parameters included: `workflow: primary|b: master|tag: v1.0|commit:eee55509f16e7715bdb43308bb55e8736da4e21e|m: start my build!`
+You can also send environment variables that will be available in your workflow with the format: `env[KEY1]:value1|ENV[KEY2]:value2`
+
+An example with all parameters included: `workflow: primary|b: master|tag: v1.0|commit:eee55509f16e7715bdb43308bb55e8736da4e21e|m: start my build!|ENV[DEVICE_NAME]:iPhone 6S|ENV[DEVICE_UDID]:82667b4079914d4aabed9c216620da5dedab630a`
 
 
 ## How to compile & run the server
@@ -356,4 +358,4 @@ response provider will be used.
 ## Contributors
 
 * [The Bitrise Team](https://github.com/bitrise-io)
-* [Chad Robinson](https://github.com/crrobinson14)
+* [Chad Robinson](https://github.com/crrobinson14) - `Gogs` support
