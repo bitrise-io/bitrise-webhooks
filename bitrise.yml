@@ -61,8 +61,7 @@ workflows:
         title: GOLIST_WITHOUT_VENDOR
         inputs:
         - content: |-
-            set -e
-            set -x
+            set -ex
             no_vendor_paths="$(go list ./... | grep -v vendor)"
             envman add --key GOLIST_WITHOUT_VENDOR --value "$no_vendor_paths"
     - script:
