@@ -36,8 +36,7 @@ workflows:
         inputs:
         - content: |-
             #!/bin/bash
-            set -e
-            set -x
+            set -ex
 
             # Install dependencies
             go get -u github.com/tools/godep
@@ -62,8 +61,7 @@ workflows:
         title: GOLIST_WITHOUT_VENDOR
         inputs:
         - content: |-
-            set -e
-            set -x
+            set -ex
             no_vendor_paths="$(go list ./... | grep -v vendor)"
             envman add --key GOLIST_WITHOUT_VENDOR --value "$no_vendor_paths"
     - script:
@@ -101,8 +99,11 @@ workflows:
         inputs:
         - content: |-
             #!/bin/bash
-            set -e
-            set -x
+            set -ex
+
+            go get -u -t ./...
+            rm -rf ./Godeps
+            rm -rf ./vendor 
             godep save ./...
 
   create-release:
