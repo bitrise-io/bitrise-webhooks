@@ -21,13 +21,16 @@ type EnvironmentItem struct {
 
 // BuildParamsModel ...
 type BuildParamsModel struct {
-	CommitHash    string            `json:"commit_hash,omitempty"`
-	CommitMessage string            `json:"commit_message,omitempty"`
-	Branch        string            `json:"branch,omitempty"`
-	Tag           string            `json:"tag,omitempty"`
-	PullRequestID *int              `json:"pull_request_id,omitempty"`
-	WorkflowID    string            `json:"workflow_id,omitempty"`
-	Environments  []EnvironmentItem `json:"environments,omitempty"`
+	CommitHash               string            `json:"commit_hash,omitempty"`
+	CommitMessage            string            `json:"commit_message,omitempty"`
+	Branch                   string            `json:"branch,omitempty"`
+	BranchDest               string            `json:"branch_dest,omitempty"`
+	Tag                      string            `json:"tag,omitempty"`
+	PullRequestID            *int              `json:"pull_request_id,omitempty"`
+	PullRequestRepositoryURL string            `json:"pull_request_repository_url,omitempty"`
+	PullRequestMergeBranch   string            `json:"pull_request_merge_branch,omitempty"`
+	WorkflowID               string            `json:"workflow_id,omitempty"`
+	Environments             []EnvironmentItem `json:"environments,omitempty"`
 }
 
 // TriggerAPIParamsModel ...
