@@ -39,6 +39,38 @@ const (
 	]
 }
 }`
+	samplePullRequestData = `{
+"pullrequest":{
+  "description":"",
+  "type":"pullrequest",
+  "destination":{
+    "commit":{
+      "hash":"7b3172ca0cf8"
+    },
+    "branch":{
+      "name":"master"
+    },
+    "repository":{
+      "name":"prtest",
+      "full_name":"birmacher/prtest",
+    }
+  },
+  "title":"change",
+  "id":1,
+  "state":"OPEN",
+  "source":{
+    "commit":{
+      "hash":"6a3451888d91"
+    },
+    "branch":{
+      "name":"feature/test"
+    },
+    "repository":{
+      "name":"prtest",
+      "full_name":"birmacher/prtest",
+    }
+  }
+}`
 )
 
 func Test_detectContentTypeAttemptNumberAndEventKey(t *testing.T) {
