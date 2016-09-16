@@ -115,7 +115,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 			Error: fmt.Errorf("Issue with Headers: %s", err),
 		}
 	}
-	if contentType != "application/json" {
+	if contentType != hookCommon.ContentTypeApplicationJSON {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Content-Type is not supported: %s", contentType),
 		}

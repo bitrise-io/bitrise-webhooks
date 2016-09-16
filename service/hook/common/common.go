@@ -6,6 +6,13 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 )
 
+const (
+	// ContentTypeApplicationJSON ...
+	ContentTypeApplicationJSON string = "application/json"
+	// ContentTypeApplicationXWWWFormURLEncoded ...
+	ContentTypeApplicationXWWWFormURLEncoded string = "application/x-www-form-urlencoded"
+)
+
 // TransformResultModel ...
 type TransformResultModel struct {
 	// TriggerAPIParams is the transformed Bitrise Trigger API params
