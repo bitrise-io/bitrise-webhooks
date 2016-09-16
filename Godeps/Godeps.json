@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/bitrise-io/bitrise-webhooks",
-	"GoVersion": "go1.6",
+	"GoVersion": "go1.7",
 	"GodepVersion": "v74",
 	"Packages": [
 		"./..."
@@ -8,40 +8,37 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/builtinutil",
-			"Rev": "3350ab0d82f7cf0c88a16b0365ff365d77507ea6"
+			"Rev": "5422c5893198ce5ca5d872179ebacaafa2013bc6"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/httputil",
-			"Rev": "3350ab0d82f7cf0c88a16b0365ff365d77507ea6"
+			"Rev": "5422c5893198ce5ca5d872179ebacaafa2013bc6"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/pointers",
-			"Rev": "3350ab0d82f7cf0c88a16b0365ff365d77507ea6"
+			"Rev": "5422c5893198ce5ca5d872179ebacaafa2013bc6"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/sliceutil",
-			"Rev": "3350ab0d82f7cf0c88a16b0365ff365d77507ea6"
+			"Rev": "5422c5893198ce5ca5d872179ebacaafa2013bc6"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/testutil",
-			"Rev": "3350ab0d82f7cf0c88a16b0365ff365d77507ea6"
+			"Rev": "5422c5893198ce5ca5d872179ebacaafa2013bc6"
 		},
 		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",
-			"Rev": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
-		},
-		{
-			"ImportPath": "github.com/gorilla/context",
-			"Comment": "v1.1-4-gaed02d1",
-			"Rev": "aed02d124ae4a0e94fea4541c8effd05bf0c8296"
+			"Comment": "v1.0.0-3-g6d21280",
+			"Rev": "6d212800a42e8ab5c146b8ace3490ee17e5225f9"
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",
-			"Comment": "v1.1-13-g9fa818a",
-			"Rev": "9fa818a44c2bf1396a17f9d5a3c0f6dd39d2ff8e"
+			"Comment": "v1.1-25-g0a192a1",
+			"Rev": "0a192a193177452756c362c20087ddafcf6829c4"
 		},
 		{
 			"ImportPath": "github.com/pmezard/go-difflib/difflib",
+			"Comment": "v1.0.0",
 			"Rev": "792786c7400a136282c1664665ae0a8db921c6c2"
 		},
 		{

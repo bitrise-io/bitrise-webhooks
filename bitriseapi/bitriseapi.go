@@ -21,13 +21,26 @@ type EnvironmentItem struct {
 
 // BuildParamsModel ...
 type BuildParamsModel struct {
-	CommitHash    string            `json:"commit_hash,omitempty"`
-	CommitMessage string            `json:"commit_message,omitempty"`
-	Branch        string            `json:"branch,omitempty"`
-	Tag           string            `json:"tag,omitempty"`
-	PullRequestID *int              `json:"pull_request_id,omitempty"`
-	WorkflowID    string            `json:"workflow_id,omitempty"`
-	Environments  []EnvironmentItem `json:"environments,omitempty"`
+	// git commit hash
+	CommitHash string `json:"commit_hash,omitempty"`
+	// git commit message
+	CommitMessage string `json:"commit_message,omitempty"`
+	// source branch
+	Branch string `json:"branch,omitempty"`
+	// destination branch, exposed for pull requests
+	BranchDest string `json:"branch_dest,omitempty"`
+	// tag
+	Tag string `json:"tag,omitempty"`
+	// pull request id, exposed for pull requests from the provider's serivce
+	PullRequestID *int `json:"pull_request_id,omitempty"`
+	// repository url that holds the source for the pull request
+	PullRequestRepositoryURL string `json:"pull_request_repository_url,omitempty"`
+	// pre-merged branch if the provider supports it, exposed for pull requests
+	PullRequestMergeBranch string `json:"pull_request_merge_branch,omitempty"`
+	// workflow id to run
+	WorkflowID string `json:"workflow_id,omitempty"`
+	// additional environment variables
+	Environments []EnvironmentItem `json:"environments,omitempty"`
 }
 
 // TriggerAPIParamsModel ...
