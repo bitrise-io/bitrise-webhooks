@@ -18,8 +18,7 @@ workflows:
         inputs:
         - content: |-
             #!/bin/bash
-            set -e
-            set -x
+            set -ex
             go get github.com/tools/godep
             godep go install $GO_PROJECT_PATH
             if [ "$IS_USE_GIN" == "yes" ] ; then
@@ -37,9 +36,6 @@ workflows:
         - content: |-
             #!/bin/bash
             set -ex
-
-            # Install dependencies
-            go get -u github.com/tools/godep
 
             # Check for unhandled errors
             go get -u github.com/kisielk/errcheck
@@ -100,10 +96,14 @@ workflows:
         - content: |-
             #!/bin/bash
             set -ex
-
-            go get -u -t ./...
+            go get -u -v github.com/tools/godep
+            #
             rm -rf ./Godeps
-            rm -rf ./vendor 
+            rm -rf ./vendor
+            #
+            go get -t -d ./...
+            go get github.com/davecgh/go-spew/spew
+            go get github.com/pmezard/go-difflib/difflib
             godep save ./...
 
   create-release:
