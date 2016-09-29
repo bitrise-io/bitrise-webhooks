@@ -10,6 +10,9 @@ app:
   - IS_USE_GIN: "yes"
   # optionally, define these in your .bitrise.secrets.yml
   - SEND_REQUEST_TO: $SEND_REQUEST_TO
+  # 
+  - RELEASE_START_BRANCH: 'master'
+  - RELEASE_DESTINATION_BRANCH: 'prod'
 
 workflows:
   start:
@@ -125,11 +128,9 @@ workflows:
 
             set -x
             version_file_path="./version/version.go"
-            release_start_branch='master'
-            release_destination_branch='prod'
             current_branch="$(git symbolic-ref --short HEAD)"
-            if [[ "$current_branch" != "${release_start_branch}" ]] ; then
-              echo " [!] You have to be on the ${release_start_branch} branch to create a release!"
+            if [[ "$current_branch" != "${RELEASE_START_BRANCH}" ]] ; then
+              echo " [!] You have to be on the ${RELEASE_START_BRANCH} branch to create a release!"
               exit 1
             fi
 
@@ -141,9 +142,30 @@ workflows:
             git add "$version_file_path"
             git commit -m "v${bumped_version}"
 
-            git checkout ${release_destination_branch}
-            # git merge ${release_start_branch} --no-ff -m "Merge ${release_start_branch} into ${release_destination_branch}, release: v${bumped_version}"
-            git merge ${release_start_branch} -m "Merge ${release_start_branch} into ${release_destination_branch}, release: v${bumped_version}"
+            git checkout ${RELEASE_DESTINATION_BRANCH}
+            # git merge ${RELEASE_START_BRANCH} --no-ff -m "Merge ${RELEASE_START_BRANCH} into ${RELEASE_DESTINATION_BRANCH}, release: v${bumped_version}"
+            git merge ${RELEASE_START_BRANCH} -m "Merge ${RELEASE_START_BRANCH} into ${RELEASE_DESTINATION_BRANCH}, release: v${bumped_version}"
             git tag "${bumped_version}"
 
-            git checkout ${release_start_branch}
+            git checkout ${RELEASE_START_BRANCH}
+
+  publish-release:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            current_branch="$(git symbolic-ref --short HEAD)"
+            if [[ "$current_branch" != "${RELEASE_START_BRANCH}" ]] ; then
+              echo " [!] You have to be on the ${RELEASE_START_BRANCH} branch to create a release!"
+              exit 1
+            fi
+            git push
+            git push --tags
+            # 
+            git checkout ${RELEASE_DESTINATION_BRANCH}
+            git push
+            git push --tags
+            #
+            git checkout ${RELEASE_START_BRANCH} 
