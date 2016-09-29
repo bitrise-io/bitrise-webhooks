@@ -182,8 +182,8 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		res, err := http.Head(fmt.Sprintf("https://api.bitbucket.org/2.0/repositories/%s", pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.FullName))
 		if err != nil {
 			return hookCommon.TransformResultModel{
-				Error:      fmt.Errorf("%s", err),
-				ShouldSkip: true,
+				Error:      fmt.Errorf("Failed to check repository publicity: %s", err),
+				ShouldSkip: false,
 			}
 		}
 
