@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
@@ -194,7 +193,8 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	if pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.IsPrivate {
 		sourceRepositoryURL = fmt.Sprintf("git@bitbucket.org:%s.git", pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.FullName)
 	} else {
-		sourceRepositoryURL = fmt.Sprintf("https://%s@bitbucket.org/%s.git", strings.Split(pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.FullName, "/")[0], pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.FullName)
+		sourceRepoFullName := pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.FullName
+		sourceRepositoryURL = fmt.Sprintf("https://bitbucket.org/%s.git", sourceRepoFullName)
 	}
 
 	return hookCommon.TransformResultModel{
