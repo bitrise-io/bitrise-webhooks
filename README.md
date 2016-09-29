@@ -10,6 +10,11 @@ and calls it to start a build.
 For more information check the *How to add support for a new Provider* section.
 
 
+## CI Skip
+ 
+If the (commit) message includes `[skip ci]` or `[ci skip]` no build will be triggered.
+
+
 ## Supported webhooks / providers
 
 * [GitHub](https://github.com)
@@ -360,3 +365,4 @@ response provider will be used.
 * [The Bitrise Team](https://github.com/bitrise-io)
 * [Chad Robinson](https://github.com/crrobinson14) - `Gogs` support
 * [Rafael Nobre](https://github.com/nobre84) - Environment variables support in `Slack` commands
+* [Tuomas Peippo](https://github.com/tume)- Skip CI feature

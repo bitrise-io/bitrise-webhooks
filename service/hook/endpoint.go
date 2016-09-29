@@ -36,7 +36,7 @@ func supportedProviders() map[string]hookCommon.Provider {
 // --- Response handler functions ---
 
 func respondWithErrorString(w http.ResponseWriter, provider *hookCommon.Provider, errStr string) {
-	responseProvider := hookCommon.ResponseTransformer(DefaultResponseProvider{})
+	responseProvider := hookCommon.ResponseTransformer(hookCommon.DefaultResponseProvider{})
 	if provider != nil {
 		if respTransformer, ok := (*provider).(hookCommon.ResponseTransformer); ok {
 			// provider can transform responses - let it do so
@@ -53,7 +53,7 @@ func respondWithErrorString(w http.ResponseWriter, provider *hookCommon.Provider
 }
 
 func respondWithSuccessMessage(w http.ResponseWriter, provider *hookCommon.Provider, msg string) {
-	responseProvider := hookCommon.ResponseTransformer(DefaultResponseProvider{})
+	responseProvider := hookCommon.ResponseTransformer(hookCommon.DefaultResponseProvider{})
 	if provider != nil {
 		if respTransformer, ok := (*provider).(hookCommon.ResponseTransformer); ok {
 			// provider can transform responses - let it do so
@@ -70,7 +70,7 @@ func respondWithSuccessMessage(w http.ResponseWriter, provider *hookCommon.Provi
 }
 
 func respondWithResults(w http.ResponseWriter, provider *hookCommon.Provider, results hookCommon.TransformResponseInputModel) {
-	responseProvider := hookCommon.ResponseTransformer(DefaultResponseProvider{})
+	responseProvider := hookCommon.ResponseTransformer(hookCommon.DefaultResponseProvider{})
 	if provider != nil {
 		if respTransformer, ok := (*provider).(hookCommon.ResponseTransformer); ok {
 			// provider can transform responses - let it do so
@@ -172,15 +172,15 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	respondWith := hookCommon.TransformResponseInputModel{
 		Errors:                  []string{},
 		SuccessTriggerResponses: []bitriseapi.TriggerAPIResponseModel{},
-		SkippedTriggerResponses: []bitriseapi.SkipAPIResponseModel{},
+		SkippedTriggerResponses: []hookCommon.SkipAPIResponseModel{},
 		FailedTriggerResponses:  []bitriseapi.TriggerAPIResponseModel{},
 	}
 	metrics.Trace("Hook: Trigger Builds", func() {
 		for _, aBuildTriggerParam := range hookTransformResult.TriggerAPIParams {
 			commitMessage := aBuildTriggerParam.BuildParams.CommitMessage
 
-			if strings.Contains(commitMessage, "[skip ci]") || strings.Contains(commitMessage, "[ci skip]") {
-				respondWith.SkippedTriggerResponses = append(respondWith.SkippedTriggerResponses, bitriseapi.SkipAPIResponseModel{
+			if isSkipBuildByCommitMessage(commitMessage) {
+				respondWith.SkippedTriggerResponses = append(respondWith.SkippedTriggerResponses, hookCommon.SkipAPIResponseModel{
 					Message:       "Build skipped because the commit message included a skip ci keyword ([skip ci] or [ci skip]).",
 					CommitHash:    aBuildTriggerParam.BuildParams.CommitHash,
 					CommitMessage: aBuildTriggerParam.BuildParams.CommitMessage,
@@ -200,4 +200,11 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	respondWithResults(w, &hookProvider, respondWith)
+}
+
+func isSkipBuildByCommitMessage(commitMsg string) bool {
+	if strings.Contains(commitMsg, "[skip ci]") || strings.Contains(commitMsg, "[ci skip]") {
+		return true
+	}
+	return false
 }
