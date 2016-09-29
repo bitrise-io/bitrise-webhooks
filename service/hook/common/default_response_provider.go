@@ -1,8 +1,7 @@
-package hook
+package common
 
 import (
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
-	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 )
 
 // DefaultResponseProvider ...
@@ -29,7 +28,7 @@ type TransformResponseModel struct {
 	Errors                  []string                             `json:"errors,omitempty"`
 	SuccessTriggerResponses []bitriseapi.TriggerAPIResponseModel `json:"success_responses"`
 	FailedTriggerResponses  []bitriseapi.TriggerAPIResponseModel `json:"failed_responses,omitempty"`
-	SkippedTriggerResponses []hookCommon.SkipAPIResponseModel    `json:"skipped_responses,omitempty"`
+	SkippedTriggerResponses []SkipAPIResponseModel               `json:"skipped_responses,omitempty"`
 }
 
 // TransformResponse ...
