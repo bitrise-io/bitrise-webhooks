@@ -8,11 +8,6 @@ import (
 type DefaultResponseProvider struct {
 }
 
-// ErrorsRespModel ...
-type ErrorsRespModel struct {
-	Errors []string `json:"errors"`
-}
-
 // SingleErrorRespModel ...
 type SingleErrorRespModel struct {
 	Error string `json:"error"`
