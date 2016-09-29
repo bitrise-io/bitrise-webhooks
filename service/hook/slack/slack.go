@@ -214,6 +214,15 @@ func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInput
 			slackAttachments = append(slackAttachments, createAttachmentItemModel(errMsg, slackColorDanger))
 		}
 	}
+	if len(input.SkippedTriggerResponses) > 0 {
+		for _, aSkippedTrigResp := range input.SkippedTriggerResponses {
+			errMsg := aSkippedTrigResp.Message
+			if errMsg == "" {
+				errMsg = fmt.Sprintf("%+v", aSkippedTrigResp)
+			}
+			slackAttachments = append(slackAttachments, createAttachmentItemModel(errMsg, slackColorDanger))
+		}
+	}
 	if len(input.SuccessTriggerResponses) > 0 {
 		for _, aSuccessTrigResp := range input.SuccessTriggerResponses {
 			slackAttachments = append(slackAttachments, createAttachmentItemModel(messageForSuccessfulBuildTrigger(aSuccessTrigResp), slackColorGood))

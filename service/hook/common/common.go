@@ -35,7 +35,7 @@ type Provider interface {
 }
 
 // ---------------------------------------
-// --- Optional, Response transformers ---
+// --- Response transformers ---
 
 // TransformResponseModel ...
 type TransformResponseModel struct {
@@ -46,15 +46,27 @@ type TransformResponseModel struct {
 	HTTPStatusCode int
 }
 
+// SkipAPIResponseModel ...
+type SkipAPIResponseModel struct {
+	Message       string `json:"message"`
+	CommitHash    string `json:"commit_hash"`
+	CommitMessage string `json:"commit_message"`
+	Branch        string `json:"branch"`
+}
+
 // TransformResponseInputModel ...
 type TransformResponseInputModel struct {
 	// Errors include the errors if the build could not trigger
 	Errors []string
+
 	// SuccessTriggerResponses include the successful trigger call responses
 	SuccessTriggerResponses []bitriseapi.TriggerAPIResponseModel
 	// FailedTriggerResponses include the trigger calls which were performed,
 	//  but the response had a non success HTTP status code
 	FailedTriggerResponses []bitriseapi.TriggerAPIResponseModel
+	// SkippedTriggerResponses include responses for the trigger calls
+	//  that were skipped
+	SkippedTriggerResponses []SkipAPIResponseModel
 }
 
 // ResponseTransformer ...
