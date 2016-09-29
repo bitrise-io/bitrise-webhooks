@@ -25,14 +25,6 @@ type TransformResultModel struct {
 	Error error
 }
 
-// SkipAPIResponseModel ...
-type SkipAPIResponseModel struct {
-	Message       string `json:"message"`
-	CommitHash    string `json:"commit_hash"`
-	CommitMessage string `json:"commit_message"`
-	Branch        string `json:"branch"`
-}
-
 // Provider ...
 type Provider interface {
 	// TransformRequest should transform the hook into a bitriseapi.TriggerAPIParamsModel
@@ -43,7 +35,7 @@ type Provider interface {
 }
 
 // ---------------------------------------
-// --- Optional, Response transformers ---
+// --- Response transformers ---
 
 // TransformResponseModel ...
 type TransformResponseModel struct {
@@ -52,6 +44,14 @@ type TransformResponseModel struct {
 	// HTTPStatusCode if specified (!= 0) will be used as the respone's
 	//  HTTP response status code.
 	HTTPStatusCode int
+}
+
+// SkipAPIResponseModel ...
+type SkipAPIResponseModel struct {
+	Message       string `json:"message"`
+	CommitHash    string `json:"commit_hash"`
+	CommitMessage string `json:"commit_message"`
+	Branch        string `json:"branch"`
 }
 
 // TransformResponseInputModel ...
