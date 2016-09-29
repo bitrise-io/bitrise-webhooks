@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
+	"github.com/bitrise-io/go-utils/pointers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -52,7 +53,7 @@ const (
     },
     "repository":{
       "name":"prtest",
-      "full_name":"birmacher/prtest",
+      "full_name":"birmacher/prtest"
     }
   },
   "title":"change",
@@ -67,9 +68,10 @@ const (
     },
     "repository":{
       "name":"prtest",
-      "full_name":"birmacher/prtest",
+      "full_name":"birmacher/prtest"
     }
   }
+}
 }`
 )
 
@@ -85,6 +87,34 @@ func Test_detectContentTypeAttemptNumberAndEventKey(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "application/json", contentType)
 		require.Equal(t, "repo:push", eventKey)
+		require.Equal(t, "1", attemptNum)
+	}
+
+	t.Log("Pull Request create event - should handle")
+	{
+		header := http.Header{
+			"X-Event-Key":      {"pullrequest:create"},
+			"Content-Type":     {"application/json"},
+			"X-Attempt-Number": {"1"},
+		}
+		contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(header)
+		require.NoError(t, err)
+		require.Equal(t, "application/json", contentType)
+		require.Equal(t, "pullrequest:create", eventKey)
+		require.Equal(t, "1", attemptNum)
+	}
+
+	t.Log("Pull Request update event - should handle")
+	{
+		header := http.Header{
+			"X-Event-Key":      {"pullrequest:update"},
+			"Content-Type":     {"application/json"},
+			"X-Attempt-Number": {"1"},
+		}
+		contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(header)
+		require.NoError(t, err)
+		require.Equal(t, "application/json", contentType)
+		require.Equal(t, "pullrequest:update", eventKey)
 		require.Equal(t, "1", attemptNum)
 	}
 
@@ -359,6 +389,157 @@ func Test_transformCodePushEvent(t *testing.T) {
 	}
 }
 
+func Test_transformPullRequestEvent(t *testing.T) {
+	t.Log("Empty Pull Request action")
+	{
+		pullRequest := PullRequestEventModel{}
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Pull Request type is not supported: ")
+	}
+
+	t.Log("Invalid type")
+	{
+		pullRequest := PullRequestEventModel{
+			PullRequestInfo: PullRequestInfoModel{
+				Type: "Issue",
+			},
+		}
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Pull Request type is not supported: Issue")
+	}
+
+	t.Log("Already Merged")
+	{
+		pullRequest := PullRequestEventModel{
+			PullRequestInfo: PullRequestInfoModel{
+				Type:  "pullrequest",
+				State: "MERGED",
+			},
+		}
+
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Pull Request state doesn't require a build: MERGED")
+	}
+
+	t.Log("Already Declined")
+	{
+		pullRequest := PullRequestEventModel{
+			PullRequestInfo: PullRequestInfoModel{
+				Type:  "pullrequest",
+				State: "DECLINED",
+			},
+		}
+
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Pull Request state doesn't require a build: DECLINED")
+	}
+
+	t.Log("Open")
+	{
+		pullRequest := PullRequestEventModel{
+			PullRequestInfo: PullRequestInfoModel{
+				ID:    1,
+				Type:  "pullrequest",
+				Title: "Title of pull request",
+				State: "OPEN",
+				SourceInfo: PullRequestBranchInfoModel{
+					BranchInfo: BranchInfoModel{
+						Name: "branch2",
+					},
+					CommitInfo: CommitInfoModel{
+						CommitHash: "d3022fc0ca3d",
+					},
+					RepositoryInfo: RepositoryInfoModel{
+						FullName: "foo/myrepo",
+					},
+				},
+				DestinationInfo: PullRequestBranchInfoModel{
+					BranchInfo: BranchInfoModel{
+						Name: "master",
+					},
+					CommitInfo: CommitInfoModel{
+						CommitHash: "ce5965ddd289",
+					},
+					RepositoryInfo: RepositoryInfoModel{
+						FullName: "foo/myrepo",
+					},
+				},
+			},
+		}
+
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "d3022fc0ca3d",
+					CommitMessage:            "Title of pull request",
+					Branch:                   "branch2",
+					BranchDest:               "master",
+					PullRequestID:            pointers.NewIntPtr(1),
+					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Pull Request - Title & Body")
+	{
+		pullRequest := PullRequestEventModel{
+			PullRequestInfo: PullRequestInfoModel{
+				ID:          1,
+				Type:        "pullrequest",
+				Title:       "Title of pull request",
+				Description: "Description of pull request",
+				State:       "OPEN",
+				SourceInfo: PullRequestBranchInfoModel{
+					BranchInfo: BranchInfoModel{
+						Name: "branch2",
+					},
+					CommitInfo: CommitInfoModel{
+						CommitHash: "d3022fc0ca3d",
+					},
+					RepositoryInfo: RepositoryInfoModel{
+						FullName: "foo/myrepo",
+					},
+				},
+				DestinationInfo: PullRequestBranchInfoModel{
+					BranchInfo: BranchInfoModel{
+						Name: "master",
+					},
+					CommitInfo: CommitInfoModel{
+						CommitHash: "ce5965ddd289",
+					},
+					RepositoryInfo: RepositoryInfoModel{
+						FullName: "foo/myrepo",
+					},
+				},
+			},
+		}
+
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "d3022fc0ca3d",
+					CommitMessage:            "Title of pull request\n\nDescription of pull request",
+					Branch:                   "branch2",
+					BranchDest:               "master",
+					PullRequestID:            pointers.NewIntPtr(1),
+					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+}
+
 func Test_HookProvider_TransformRequest(t *testing.T) {
 	provider := HookProvider{}
 
@@ -445,6 +626,33 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitHash:    "19934139a2cf799bbd0f5061ab02e4760902e93f",
 					CommitMessage: "auto-test 2",
 					Branch:        "test",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Test with Sample Pull Request data")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":      {"pullrequest:created"},
+				"Content-Type":     {"application/json"},
+				"X-Attempt-Number": {"1"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "6a3451888d91",
+					CommitMessage:            "change",
+					Branch:                   "feature/test",
+					BranchDest:               "master",
+					PullRequestID:            pointers.NewIntPtr(1),
+					PullRequestRepositoryURL: "https://bitbucket.org/birmacher/prtest.git",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)

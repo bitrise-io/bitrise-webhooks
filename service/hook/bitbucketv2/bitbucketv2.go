@@ -156,16 +156,16 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 }
 
 func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.TransformResultModel {
-	if pullRequest.PullRequestInfo.State != "OPEN" {
+	if pullRequest.PullRequestInfo.Type != "pullrequest" {
 		return hookCommon.TransformResultModel{
-			Error:      fmt.Errorf("Pull Request state doesn't require a build: %s", pullRequest.PullRequestInfo.State),
+			Error:      fmt.Errorf("Pull Request type is not supported: %s", pullRequest.PullRequestInfo.Type),
 			ShouldSkip: true,
 		}
 	}
 
-	if pullRequest.PullRequestInfo.Type != "pullrequest" {
+	if pullRequest.PullRequestInfo.State != "OPEN" {
 		return hookCommon.TransformResultModel{
-			Error:      fmt.Errorf("Pull Request type is not supported: %s", pullRequest.PullRequestInfo.Type),
+			Error:      fmt.Errorf("Pull Request state doesn't require a build: %s", pullRequest.PullRequestInfo.State),
 			ShouldSkip: true,
 		}
 	}
