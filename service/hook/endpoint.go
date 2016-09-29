@@ -36,7 +36,7 @@ func supportedProviders() map[string]hookCommon.Provider {
 // --- Response handler functions ---
 
 func respondWithErrorString(w http.ResponseWriter, provider *hookCommon.Provider, errStr string) {
-	responseProvider := hookCommon.ResponseTransformer(DefaultResponseProvider{})
+	responseProvider := hookCommon.ResponseTransformer(hookCommon.DefaultResponseProvider{})
 	if provider != nil {
 		if respTransformer, ok := (*provider).(hookCommon.ResponseTransformer); ok {
 			// provider can transform responses - let it do so
@@ -53,7 +53,7 @@ func respondWithErrorString(w http.ResponseWriter, provider *hookCommon.Provider
 }
 
 func respondWithSuccessMessage(w http.ResponseWriter, provider *hookCommon.Provider, msg string) {
-	responseProvider := hookCommon.ResponseTransformer(DefaultResponseProvider{})
+	responseProvider := hookCommon.ResponseTransformer(hookCommon.DefaultResponseProvider{})
 	if provider != nil {
 		if respTransformer, ok := (*provider).(hookCommon.ResponseTransformer); ok {
 			// provider can transform responses - let it do so
@@ -70,7 +70,7 @@ func respondWithSuccessMessage(w http.ResponseWriter, provider *hookCommon.Provi
 }
 
 func respondWithResults(w http.ResponseWriter, provider *hookCommon.Provider, results hookCommon.TransformResponseInputModel) {
-	responseProvider := hookCommon.ResponseTransformer(DefaultResponseProvider{})
+	responseProvider := hookCommon.ResponseTransformer(hookCommon.DefaultResponseProvider{})
 	if provider != nil {
 		if respTransformer, ok := (*provider).(hookCommon.ResponseTransformer); ok {
 			// provider can transform responses - let it do so
