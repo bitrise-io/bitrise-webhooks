@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	"github.com/bitrise-io/bitrise-webhooks/config"
@@ -171,10 +172,23 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	respondWith := hookCommon.TransformResponseInputModel{
 		Errors:                  []string{},
 		SuccessTriggerResponses: []bitriseapi.TriggerAPIResponseModel{},
+		SkippedTriggerResponses: []bitriseapi.SkipAPIResponseModel{},
 		FailedTriggerResponses:  []bitriseapi.TriggerAPIResponseModel{},
 	}
 	metrics.Trace("Hook: Trigger Builds", func() {
 		for _, aBuildTriggerParam := range hookTransformResult.TriggerAPIParams {
+			commitMessage := aBuildTriggerParam.BuildParams.CommitMessage
+
+			if strings.Contains(commitMessage, "[skip ci]") || strings.Contains(commitMessage, "[ci skip]") {
+				respondWith.SkippedTriggerResponses = append(respondWith.SkippedTriggerResponses, bitriseapi.SkipAPIResponseModel{
+					Message:       "Build skipped because the commit message included a skip ci keyword ([skip ci] or [ci skip]).",
+					CommitHash:    aBuildTriggerParam.BuildParams.CommitHash,
+					CommitMessage: aBuildTriggerParam.BuildParams.CommitMessage,
+					Branch:        aBuildTriggerParam.BuildParams.Branch,
+				})
+				continue
+			}
+
 			if triggerResp, isSuccess, err := triggerBuild(triggerURL, apiToken, aBuildTriggerParam); err != nil {
 				respondWith.Errors = append(respondWith.Errors, fmt.Sprintf("Failed to Trigger Build: %s", err))
 			} else if isSuccess {
