@@ -172,7 +172,7 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	respondWith := hookCommon.TransformResponseInputModel{
 		Errors:                  []string{},
 		SuccessTriggerResponses: []bitriseapi.TriggerAPIResponseModel{},
-		SkippedTriggerResponses: []bitriseapi.SkipAPIResponseModel{},
+		SkippedTriggerResponses: []hookCommon.SkipAPIResponseModel{},
 		FailedTriggerResponses:  []bitriseapi.TriggerAPIResponseModel{},
 	}
 	metrics.Trace("Hook: Trigger Builds", func() {
@@ -180,7 +180,7 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 			commitMessage := aBuildTriggerParam.BuildParams.CommitMessage
 
 			if strings.Contains(commitMessage, "[skip ci]") || strings.Contains(commitMessage, "[ci skip]") {
-				respondWith.SkippedTriggerResponses = append(respondWith.SkippedTriggerResponses, bitriseapi.SkipAPIResponseModel{
+				respondWith.SkippedTriggerResponses = append(respondWith.SkippedTriggerResponses, hookCommon.SkipAPIResponseModel{
 					Message:       "Build skipped because the commit message included a skip ci keyword ([skip ci] or [ci skip]).",
 					CommitHash:    aBuildTriggerParam.BuildParams.CommitHash,
 					CommitMessage: aBuildTriggerParam.BuildParams.CommitMessage,

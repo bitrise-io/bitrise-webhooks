@@ -29,7 +29,7 @@ type TransformResponseModel struct {
 	Errors                  []string                             `json:"errors,omitempty"`
 	SuccessTriggerResponses []bitriseapi.TriggerAPIResponseModel `json:"success_responses"`
 	FailedTriggerResponses  []bitriseapi.TriggerAPIResponseModel `json:"failed_responses,omitempty"`
-	SkippedTriggerResponses []bitriseapi.SkipAPIResponseModel    `json:"skipped_responses,omitempty"`
+	SkippedTriggerResponses []hookCommon.SkipAPIResponseModel    `json:"skipped_responses,omitempty"`
 }
 
 // TransformResponse ...
