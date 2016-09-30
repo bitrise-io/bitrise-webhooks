@@ -141,11 +141,12 @@ workflows:
 
             git add "$version_file_path"
             git commit -m "v${bumped_version}"
+            git show
 
             git checkout ${RELEASE_DESTINATION_BRANCH}
-            # git merge ${RELEASE_START_BRANCH} --no-ff -m "Merge ${RELEASE_START_BRANCH} into ${RELEASE_DESTINATION_BRANCH}, release: v${bumped_version}"
-            git merge ${RELEASE_START_BRANCH} -m "Merge ${RELEASE_START_BRANCH} into ${RELEASE_DESTINATION_BRANCH}, release: v${bumped_version}"
+            git merge ${RELEASE_START_BRANCH} --no-ff -m "Merge ${RELEASE_START_BRANCH} into ${RELEASE_DESTINATION_BRANCH}, release: v${bumped_version}"
             git tag "${bumped_version}"
+            git show
 
             git checkout ${RELEASE_START_BRANCH}
 
