@@ -103,6 +103,10 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 	}
 }
 
+func isAcceptPullRequestAction(prAction string) bool {
+	return sliceutil.IsStringInSlice(prAction, []string{"opened", "reopened", "synchronize", "edited"})
+}
+
 func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.TransformResultModel {
 	if pullRequest.Action == "" {
 		return hookCommon.TransformResultModel{
@@ -110,7 +114,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 			ShouldSkip: true,
 		}
 	}
-	if !sliceutil.IsStringInSlice(pullRequest.Action, []string{"opened", "reopened", "synchronize"}) {
+	if !isAcceptPullRequestAction(pullRequest.Action) {
 		return hookCommon.TransformResultModel{
 			Error:      fmt.Errorf("Pull Request action doesn't require a build: %s", pullRequest.Action),
 			ShouldSkip: true,

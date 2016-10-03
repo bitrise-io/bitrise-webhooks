@@ -395,6 +395,26 @@ func Test_transformPullRequestEvent(t *testing.T) {
 	}
 }
 
+func Test_isAcceptPullRequestAction(t *testing.T) {
+	t.Log("Accept")
+	{
+		for _, anAction := range []string{"opened", "reopened", "synchronize", "edited"} {
+			t.Log(" * " + anAction)
+			require.Equal(t, true, isAcceptPullRequestAction(anAction))
+		}
+	}
+
+	t.Log("Don't accept")
+	{
+		for _, anAction := range []string{"",
+			"a", "not-an-action",
+			"assigned", "unassigned", "labeled", "unlabeled", "closed"} {
+			t.Log(" * " + anAction)
+			require.Equal(t, false, isAcceptPullRequestAction(anAction))
+		}
+	}
+}
+
 func Test_HookProvider_TransformRequest(t *testing.T) {
 	provider := HookProvider{}
 
