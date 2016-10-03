@@ -29,16 +29,20 @@ const (
     "head": {
       "ref": "feature/github-pr",
       "sha": "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-      "private": false,
-      "ssh_url": "git@github.com:bitrise-io/bitrise-webhooks.git",
-      "clone_url": "https://github.com/bitrise-io/bitrise-webhooks.git"
+      "repo" : {
+        "private": false,
+        "ssh_url": "git@github.com:bitrise-io/bitrise-webhooks.git",
+        "clone_url": "https://github.com/bitrise-io/bitrise-webhooks.git"
+      }
     },
     "base": {
       "ref": "master",
       "sha": "3c86b996d8014000a93f3c202fc0963e81e56c4c",
-      "private": false,
-      "ssh_url": "git@github.com:bitrise-io/bitrise-webhooks.git",
-      "clone_url": "https://github.com/bitrise-io/bitrise-webhooks.git"
+      "repo" : {
+        "private": false,
+        "ssh_url": "git@github.com:bitrise-io/bitrise-webhooks.git",
+        "clone_url": "https://github.com/bitrise-io/bitrise-webhooks.git"
+      }
     },
     "title": "PR test",
     "body": "PR text body",
@@ -276,16 +280,20 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
 					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					Private:    false,
-					SSHURL:     "git@github.com:bitrise-io/bitrise-webhooks.git",
-					CloneURL:   "https://github.com/bitrise-io/bitrise-webhooks.git",
+					Repo: RepoInfoModel{
+						Private:  false,
+						SSHURL:   "git@github.com:bitrise-io/bitrise-webhooks.git",
+						CloneURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
+					},
 				},
 				BaseBranchInfo: BranchInfoModel{
 					Ref:        "master",
 					CommitHash: "3c86b996d8014000a93f3c202fc0963e81e56c4c",
-					Private:    false,
-					SSHURL:     "git@github.com:bitrise-io/bitrise-webhooks.git",
-					CloneURL:   "https://github.com/bitrise-io/bitrise-webhooks.git",
+					Repo: RepoInfoModel{
+						Private:  false,
+						SSHURL:   "git@github.com:bitrise-io/bitrise-webhooks.git",
+						CloneURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
+					},
 				},
 			},
 		}
@@ -319,16 +327,20 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
 					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					Private:    false,
-					SSHURL:     "git@github.com:bitrise-io/bitrise-webhooks.git",
-					CloneURL:   "https://github.com/bitrise-io/bitrise-webhooks.git",
+					Repo: RepoInfoModel{
+						Private:  false,
+						SSHURL:   "git@github.com:bitrise-io/bitrise-webhooks.git",
+						CloneURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
+					},
 				},
 				BaseBranchInfo: BranchInfoModel{
 					Ref:        "master",
 					CommitHash: "3c86b996d8014000a93f3c202fc0963e81e56c4c",
-					Private:    false,
-					SSHURL:     "git@github.com:bitrise-io/bitrise-webhooks.git",
-					CloneURL:   "https://github.com/bitrise-io/bitrise-webhooks.git",
+					Repo: RepoInfoModel{
+						Private:  false,
+						SSHURL:   "git@github.com:bitrise-io/bitrise-webhooks.git",
+						CloneURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
+					},
 				},
 			},
 		}
@@ -363,16 +375,20 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
 					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					Private:    false,
-					SSHURL:     "git@github.com:bitrise-io/bitrise-webhooks.git",
-					CloneURL:   "https://github.com/bitrise-io/bitrise-webhooks.git",
+					Repo: RepoInfoModel{
+						Private:  false,
+						SSHURL:   "git@github.com:bitrise-io/bitrise-webhooks.git",
+						CloneURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
+					},
 				},
 				BaseBranchInfo: BranchInfoModel{
 					Ref:        "master",
 					CommitHash: "3c86b996d8014000a93f3c202fc0963e81e56c4c",
-					Private:    false,
-					SSHURL:     "git@github.com:bitrise-io/bitrise-webhooks.git",
-					CloneURL:   "https://github.com/bitrise-io/bitrise-webhooks.git",
+					Repo: RepoInfoModel{
+						Private:  false,
+						SSHURL:   "git@github.com:bitrise-io/bitrise-webhooks.git",
+						CloneURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
+					},
 				},
 			},
 		}

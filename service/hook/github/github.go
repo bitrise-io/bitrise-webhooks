@@ -30,15 +30,20 @@ type CodePushEventModel struct {
 	HeadCommit CommitModel `json:"head_commit"`
 }
 
-// BranchInfoModel ...
-type BranchInfoModel struct {
-	Ref        string `json:"ref"`
-	CommitHash string `json:"sha"`
-	Private    bool   `json:"private"`
+// RepoInfoModel ...
+type RepoInfoModel struct {
+	Private bool `json:"private"`
 	// Private git clone URL, used with SSH key
 	SSHURL string `json:"ssh_url"`
 	// Public git clone url
 	CloneURL string `json:"clone_url"`
+}
+
+// BranchInfoModel ...
+type BranchInfoModel struct {
+	Ref        string        `json:"ref"`
+	CommitHash string        `json:"sha"`
+	Repo       RepoInfoModel `json:"repo"`
 }
 
 // PullRequestInfoModel ...
@@ -254,8 +259,8 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 
 // returns the repository clone URL depending on the publicity of the project
 func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
-	if branchInfoModel.Private {
-		return branchInfoModel.SSHURL
+	if branchInfoModel.Repo.Private {
+		return branchInfoModel.Repo.SSHURL
 	}
-	return branchInfoModel.CloneURL
+	return branchInfoModel.Repo.CloneURL
 }
