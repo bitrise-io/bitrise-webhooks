@@ -60,9 +60,10 @@ a [Bitbucket](https://bitbucket.org) *repository*.
 3. Select `Webhooks`
 4. Click on `Add webhook`
 5. Specify the `bitrise-webhooks` URL (`.../h/bitbucket-v2/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `URL` field
-6. In the *Triggers* section select `Repository push`
-  * Right now `bitrise-webhooks` only supports the *Repository push* trigger for
-    Bitbucket Webhooks.
+6. In the *Triggers* section select `Choose from a full list of triggers` and the following properties:
+  * Repository > Push
+  * Pull Request > Created
+  * Pull Request > Updated
 7. Click `Save`
 
 That's all, the next time you push code (into your repository) a build will be triggered.

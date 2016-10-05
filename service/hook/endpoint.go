@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	"github.com/bitrise-io/bitrise-webhooks/config"
@@ -179,7 +178,7 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		for _, aBuildTriggerParam := range hookTransformResult.TriggerAPIParams {
 			commitMessage := aBuildTriggerParam.BuildParams.CommitMessage
 
-			if isSkipBuildByCommitMessage(commitMessage) {
+			if hookCommon.IsSkipBuildByCommitMessage(commitMessage) {
 				respondWith.SkippedTriggerResponses = append(respondWith.SkippedTriggerResponses, hookCommon.SkipAPIResponseModel{
 					Message:       "Build skipped because the commit message included a skip ci keyword ([skip ci] or [ci skip]).",
 					CommitHash:    aBuildTriggerParam.BuildParams.CommitHash,
@@ -200,11 +199,4 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	respondWithResults(w, &hookProvider, respondWith)
-}
-
-func isSkipBuildByCommitMessage(commitMsg string) bool {
-	if strings.Contains(commitMsg, "[skip ci]") || strings.Contains(commitMsg, "[ci skip]") {
-		return true
-	}
-	return false
 }
