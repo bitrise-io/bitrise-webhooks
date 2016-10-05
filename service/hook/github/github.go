@@ -143,7 +143,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		if pullRequest.Changes.Base == nil {
 			if !hookCommon.IsSkipBuildByCommitMessage(pullRequest.Changes.Title.From) && !hookCommon.IsSkipBuildByCommitMessage(pullRequest.Changes.Body.From) {
 				return hookCommon.TransformResultModel{
-					Error:      errors.New("Pull Request edit doesn't require a build, only title and/or description was changed, and previous one was not skipped"),
+					Error:      errors.New("Pull Request edit doesn't require a build: only title and/or description was changed, and previous one was not skipped"),
 					ShouldSkip: true,
 				}
 			}
