@@ -540,6 +540,30 @@ func Test_transformPullRequestEvent(t *testing.T) {
 	}
 }
 
+func Test_isAcceptEventType(t *testing.T) {
+	t.Log("Accept")
+	{
+		for _, anAction := range []string{"repo:push",
+			"pullrequest:created", "pullrequest:updated",
+		} {
+			t.Log(" * " + anAction)
+			require.Equal(t, true, isAcceptEventType(anAction))
+		}
+	}
+
+	t.Log("Don't accept")
+	{
+		for _, anAction := range []string{"",
+			"a", "not-an-action",
+			"pullrequest:approved", "pullrequest:unapproved", "pullrequest:fulfilled", "pullrequest:rejected",
+			"pullrequest:comment_created", "pullrequest:comment_updated", "pull_request:comment_deleted",
+		} {
+			t.Log(" * " + anAction)
+			require.Equal(t, false, isAcceptEventType(anAction))
+		}
+	}
+}
+
 func Test_HookProvider_TransformRequest(t *testing.T) {
 	provider := HookProvider{}
 

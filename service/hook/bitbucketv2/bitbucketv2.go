@@ -213,6 +213,10 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	}
 }
 
+func isAcceptEventType(eventKey string) bool {
+	return sliceutil.IsStringInSlice(eventKey, []string{"repo:push", "pullrequest:created", "pullrequest:updated"})
+}
+
 // TransformRequest ...
 func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformResultModel {
 	contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(r.Header)
@@ -227,7 +231,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 	}
 
-	if !sliceutil.IsStringInSlice(eventKey, []string{"repo:push", "pullrequest:created", "pullrequest:updated"}) {
+	if !isAcceptEventType(eventKey) {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("X-Event-Key is not supported: %s", eventKey),
 		}
