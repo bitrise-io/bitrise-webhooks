@@ -491,7 +491,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
-		require.EqualError(t, hookTransformResult.Error, "Pull Request edit doesn't require a build, only title and/or description was changed, and previous one was not skipped")
+		require.EqualError(t, hookTransformResult.Error, "Pull Request edit doesn't require a build: only title and/or description was changed, and previous one was not skipped")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel(nil), hookTransformResult.TriggerAPIParams)
 	}
@@ -585,7 +585,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
-		require.EqualError(t, hookTransformResult.Error, "Pull Request edit doesn't require a build, only title and/or description was changed, and previous one was not skipped")
+		require.EqualError(t, hookTransformResult.Error, "Pull Request edit doesn't require a build: only title and/or description was changed, and previous one was not skipped")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel(nil), hookTransformResult.TriggerAPIParams)
 	}
