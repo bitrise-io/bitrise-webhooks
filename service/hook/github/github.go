@@ -58,11 +58,24 @@ type PullRequestInfoModel struct {
 	Mergeable      *bool           `json:"mergeable"`
 }
 
+// PullRequestChangeFromItemModel ...
+type PullRequestChangeFromItemModel struct {
+	From string `json:"from"`
+}
+
+// PullRequestChangesInfoModel ...
+type PullRequestChangesInfoModel struct {
+	Title PullRequestChangeFromItemModel `json:"title"`
+	Body  PullRequestChangeFromItemModel `json:"body"`
+	Base  interface{}                    `json:"base"`
+}
+
 // PullRequestEventModel ...
 type PullRequestEventModel struct {
-	Action          string               `json:"action"`
-	PullRequestID   int                  `json:"number"`
-	PullRequestInfo PullRequestInfoModel `json:"pull_request"`
+	Action          string                      `json:"action"`
+	PullRequestID   int                         `json:"number"`
+	PullRequestInfo PullRequestInfoModel        `json:"pull_request"`
+	Changes         PullRequestChangesInfoModel `json:"changes"`
 }
 
 // ---------------------------------------
@@ -123,6 +136,17 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		return hookCommon.TransformResultModel{
 			Error:      fmt.Errorf("Pull Request action doesn't require a build: %s", pullRequest.Action),
 			ShouldSkip: true,
+		}
+	}
+	if pullRequest.Action == "edited" {
+		// skip it if only title / description changed, and the previous pattern did not include a [skip ci] pattern
+		if pullRequest.Changes.Base == nil {
+			if !hookCommon.IsSkipBuildByCommitMessage(pullRequest.Changes.Title.From) && !hookCommon.IsSkipBuildByCommitMessage(pullRequest.Changes.Body.From) {
+				return hookCommon.TransformResultModel{
+					Error:      errors.New("Pull Request edit doesn't require a build, only title and/or description was changed, and previous one was not skipped"),
+					ShouldSkip: true,
+				}
+			}
 		}
 	}
 	if pullRequest.PullRequestInfo.Merged {
