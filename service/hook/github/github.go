@@ -94,30 +94,53 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 	headCommit := pushEvent.HeadCommit
 
-	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
-		return hookCommon.TransformResultModel{
-			Error:      fmt.Errorf("Ref (%s) is not a head ref", pushEvent.Ref),
-			ShouldSkip: true,
-		}
-	}
-	branch := strings.TrimPrefix(pushEvent.Ref, "refs/heads/")
+	if strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
+		// code push
+		branch := strings.TrimPrefix(pushEvent.Ref, "refs/heads/")
 
-	if len(headCommit.CommitHash) == 0 {
+		if len(headCommit.CommitHash) == 0 {
+			return hookCommon.TransformResultModel{
+				Error: fmt.Errorf("Missing commit hash"),
+			}
+		}
+
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Missing commit hash"),
+			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+				{
+					BuildParams: bitriseapi.BuildParamsModel{
+						Branch:        branch,
+						CommitHash:    headCommit.CommitHash,
+						CommitMessage: headCommit.CommitMessage,
+					},
+				},
+			},
+		}
+	} else if strings.HasPrefix(pushEvent.Ref, "refs/tags/") {
+		// tag push
+		tag := strings.TrimPrefix(pushEvent.Ref, "refs/tags/")
+
+		if len(headCommit.CommitHash) == 0 {
+			return hookCommon.TransformResultModel{
+				Error: fmt.Errorf("Missing commit hash"),
+			}
+		}
+
+		return hookCommon.TransformResultModel{
+			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+				{
+					BuildParams: bitriseapi.BuildParamsModel{
+						Tag:           tag,
+						CommitHash:    headCommit.CommitHash,
+						CommitMessage: headCommit.CommitMessage,
+					},
+				},
+			},
 		}
 	}
 
 	return hookCommon.TransformResultModel{
-		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    headCommit.CommitHash,
-					CommitMessage: headCommit.CommitMessage,
-					Branch:        branch,
-				},
-			},
-		},
+		Error:      fmt.Errorf("Ref (%s) is not a head nor a tag ref", pushEvent.Ref),
+		ShouldSkip: true,
 	}
 }
 
