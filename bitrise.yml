@@ -3,7 +3,6 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
   envs:
-  - GO15VENDOREXPERIMENT: "1"
   - GO_PROJECT_PATH: github.com/bitrise-io/bitrise-webhooks
   - PORT: "4000"
   # if set to "yes" we'll use github.com/codegangsta/gin to live-reload the code on change
@@ -22,11 +21,10 @@ workflows:
         - content: |-
             #!/bin/bash
             set -ex
-            go get github.com/tools/godep
-            godep go install $GO_PROJECT_PATH
+            go install $GO_PROJECT_PATH
             if [ "$IS_USE_GIN" == "yes" ] ; then
               go get github.com/codegangsta/gin
-              gin --godep --port $PORT
+              gin --port $PORT
             else
               bitrise-webhooks -port $PORT
             fi
@@ -55,7 +53,6 @@ workflows:
         - content: |-
             set -x
             go version
-            echo $GO15VENDOREXPERIMENT
     - script:
         title: GOLIST_WITHOUT_VENDOR
         inputs:
