@@ -22,6 +22,16 @@ const (
   }
 }`
 
+	sampleTagPushData = `{
+  "ref": "refs/tags/v0.0.2",
+  "deleted": false,
+  "head_commit": {
+    "distinct": true,
+    "id": "2e197ebd2330183ae11338151cf3a75db0c23c92",
+    "message": "generalize Push Event (previously Code Push)\n\nwe'll handle the Tag Push too, so related codes are changed to reflect this (removed code from CodePush - e.g. CodePushEventModel -> PushEventModel)"
+  }
+}`
+
 	samplePullRequestData = `{
   "action": "opened",
   "number": 12,
@@ -169,10 +179,10 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 	}
 }
 
-func Test_transformCodePushEvent(t *testing.T) {
-	t.Log("Do Transform")
+func Test_transformPushEvent(t *testing.T) {
+	t.Log("Do Transform - Code Push")
 	{
-		codePush := CodePushEventModel{
+		codePush := PushEventModel{
 			Ref: "refs/heads/master",
 			HeadCommit: CommitModel{
 				Distinct:      true,
@@ -180,7 +190,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 				CommitMessage: "re-structuring Hook Providers, with added tests",
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := transformPushEvent(codePush)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -194,9 +204,33 @@ func Test_transformCodePushEvent(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
-	t.Log("Not Distinct Head Commit - should trigger a build")
+	t.Log("Do Transform - Tag Push")
 	{
-		codePush := CodePushEventModel{
+		tagPush := PushEventModel{
+			Ref: "refs/tags/v0.0.2",
+			HeadCommit: CommitModel{
+				Distinct:      true,
+				CommitHash:    "2e197ebd2330183ae11338151cf3a75db0c23c92",
+				CommitMessage: "generalize Push Event (previously Code Push)",
+			},
+		}
+		hookTransformResult := transformPushEvent(tagPush)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Tag:           "v0.0.2",
+					CommitHash:    "2e197ebd2330183ae11338151cf3a75db0c23c92",
+					CommitMessage: "generalize Push Event (previously Code Push)",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Not Distinct Head Commit - should still trigger a build (e.g. this can happen if you rebase-merge a PR, without creating a merge commit)")
+	{
+		codePush := PushEventModel{
 			Ref: "refs/heads/master",
 			HeadCommit: CommitModel{
 				Distinct:      false,
@@ -204,7 +238,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 				CommitMessage: "re-structuring Hook Providers, with added tests",
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := transformPushEvent(codePush)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -218,16 +252,55 @@ func Test_transformCodePushEvent(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
+	t.Log("Tag - Not Distinct Head Commit - should still trigger a build")
+	{
+		tagPush := PushEventModel{
+			Ref: "refs/tags/v0.0.2",
+			HeadCommit: CommitModel{
+				Distinct:      false,
+				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				CommitMessage: "re-structuring Hook Providers, with added tests",
+			},
+		}
+		hookTransformResult := transformPushEvent(tagPush)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Tag:           "v0.0.2",
+					CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					CommitMessage: "re-structuring Hook Providers, with added tests",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
 	t.Log("Missing Commit Hash")
 	{
-		codePush := CodePushEventModel{
+		codePush := PushEventModel{
 			Ref: "refs/heads/master",
 			HeadCommit: CommitModel{
 				Distinct:      true,
 				CommitMessage: "re-structuring Hook Providers, with added tests",
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := transformPushEvent(codePush)
+		require.EqualError(t, hookTransformResult.Error, "Missing commit hash")
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Missing Commit Hash - Tag")
+	{
+		tagPush := PushEventModel{
+			Ref: "refs/tags/v0.0.2",
+			HeadCommit: CommitModel{
+				Distinct:      true,
+				CommitMessage: "re-structuring Hook Providers, with added tests",
+			},
+		}
+		hookTransformResult := transformPushEvent(tagPush)
 		require.EqualError(t, hookTransformResult.Error, "Missing commit hash")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
@@ -235,7 +308,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 
 	t.Log("This is a 'deleted' event")
 	{
-		codePush := CodePushEventModel{
+		codePush := PushEventModel{
 			Deleted: true,
 			Ref:     "refs/heads/master",
 			HeadCommit: CommitModel{
@@ -244,15 +317,32 @@ func Test_transformCodePushEvent(t *testing.T) {
 				CommitMessage: "re-structuring Hook Providers, with added tests",
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := transformPushEvent(codePush)
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "This is a 'Deleted' event, no build can be started")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 
-	t.Log("Not a head ref")
+	t.Log("This is a 'deleted' event - Tag")
 	{
-		codePush := CodePushEventModel{
+		tagPush := PushEventModel{
+			Deleted: true,
+			Ref:     "refs/tags/v0.0.2",
+			HeadCommit: CommitModel{
+				Distinct:      true,
+				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				CommitMessage: "re-structuring Hook Providers, with added tests",
+			},
+		}
+		hookTransformResult := transformPushEvent(tagPush)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "This is a 'Deleted' event, no build can be started")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Not a head nor a tag ref")
+	{
+		codePush := PushEventModel{
 			Ref: "refs/not/head",
 			HeadCommit: CommitModel{
 				Distinct:      true,
@@ -260,9 +350,9 @@ func Test_transformCodePushEvent(t *testing.T) {
 				CommitMessage: "re-structuring Hook Providers, with added tests",
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := transformPushEvent(codePush)
 		require.True(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Ref (refs/not/head) is not a head ref")
+		require.EqualError(t, hookTransformResult.Error, "Ref (refs/not/head) is not a head nor a tag ref")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 }
@@ -706,7 +796,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Unsupported GitHub Webhook event: label")
 	}
 
-	t.Log("Code Push - should not be skipped")
+	t.Log("Push Event - should not be skipped")
 	{
 		request := http.Request{
 			Header: http.Header{
@@ -719,7 +809,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
 	}
 
-	t.Log("Pull Request - should not be skipped")
+	t.Log("Pull Request Event - should not be skipped")
 	{
 		request := http.Request{
 			Header: http.Header{
@@ -763,6 +853,29 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 					CommitMessage: "re-structuring Hook Providers, with added tests",
 					Branch:        "master",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Tag Push - should be handled")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Github-Event": {"push"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleTagPushData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Tag:           "v0.0.2",
+					CommitHash:    "2e197ebd2330183ae11338151cf3a75db0c23c92",
+					CommitMessage: "generalize Push Event (previously Code Push)\n\nwe'll handle the Tag Push too, so related codes are changed to reflect this (removed code from CodePush - e.g. CodePushEventModel -> PushEventModel)",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)

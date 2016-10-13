@@ -62,8 +62,8 @@ type TriggerAPIResponseModel struct {
 
 // Validate ...
 func (triggerParams TriggerAPIParamsModel) Validate() error {
-	if triggerParams.BuildParams.Branch == "" && triggerParams.BuildParams.WorkflowID == "" {
-		return errors.New("Missing Branch and WorkflowID parameters - at least one of these is required")
+	if triggerParams.BuildParams.Branch == "" && triggerParams.BuildParams.WorkflowID == "" && triggerParams.BuildParams.Tag == "" {
+		return errors.New("Missing Branch, Tag and WorkflowID parameters - at least one of these is required")
 	}
 	return nil
 }
