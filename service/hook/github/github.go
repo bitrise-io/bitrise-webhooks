@@ -23,8 +23,8 @@ type CommitModel struct {
 	CommitMessage string `json:"message"`
 }
 
-// CodePushEventModel ...
-type CodePushEventModel struct {
+// PushEventModel ...
+type PushEventModel struct {
 	Ref        string      `json:"ref"`
 	Deleted    bool        `json:"deleted"`
 	HeadCommit CommitModel `json:"head_commit"`
@@ -84,23 +84,23 @@ type PullRequestEventModel struct {
 // HookProvider ...
 type HookProvider struct{}
 
-func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
-	if codePushEvent.Deleted {
+func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
+	if pushEvent.Deleted {
 		return hookCommon.TransformResultModel{
 			Error:      errors.New("This is a 'Deleted' event, no build can be started"),
 			ShouldSkip: true,
 		}
 	}
 
-	headCommit := codePushEvent.HeadCommit
+	headCommit := pushEvent.HeadCommit
 
-	if !strings.HasPrefix(codePushEvent.Ref, "refs/heads/") {
+	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
 		return hookCommon.TransformResultModel{
-			Error:      fmt.Errorf("Ref (%s) is not a head ref", codePushEvent.Ref),
+			Error:      fmt.Errorf("Ref (%s) is not a head ref", pushEvent.Ref),
 			ShouldSkip: true,
 		}
 	}
-	branch := strings.TrimPrefix(codePushEvent.Ref, "refs/heads/")
+	branch := strings.TrimPrefix(pushEvent.Ref, "refs/heads/")
 
 	if len(headCommit.CommitHash) == 0 {
 		return hookCommon.TransformResultModel{
@@ -233,10 +233,10 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	}
 
 	if ghEvent == "push" {
-		// code push
-		var codePushEvent CodePushEventModel
+		// push (code & tag)
+		var pushEvent PushEventModel
 		if contentType == hookCommon.ContentTypeApplicationJSON {
-			if err := json.NewDecoder(r.Body).Decode(&codePushEvent); err != nil {
+			if err := json.NewDecoder(r.Body).Decode(&pushEvent); err != nil {
 				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: %s", err)}
 			}
 		} else if contentType == hookCommon.ContentTypeApplicationXWWWFormURLEncoded {
@@ -244,7 +244,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 			if payloadValue == "" {
 				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: empty payload")}
 			}
-			if err := json.NewDecoder(strings.NewReader(payloadValue)).Decode(&codePushEvent); err != nil {
+			if err := json.NewDecoder(strings.NewReader(payloadValue)).Decode(&pushEvent); err != nil {
 				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse payload: %s", err)}
 			}
 		} else {
@@ -252,7 +252,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 				Error: fmt.Errorf("Unsupported Content-Type: %s", contentType),
 			}
 		}
-		return transformCodePushEvent(codePushEvent)
+		return transformPushEvent(pushEvent)
 
 	} else if ghEvent == "pull_request" {
 		var pullRequestEvent PullRequestEventModel
