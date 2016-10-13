@@ -172,8 +172,7 @@ An example with all parameters included: `workflow: primary|b: master|tag: v1.0|
 
 Start the server:
 
-* Compile the `Go` code with `godep go install`
-  * If you don't have [godep](https://github.com/tools/godep) yet, you can get it with: `go get github.com/tools/godep`
+* Compile the `Go` code `go install`
 * Run it with: `bitrise-webhooks -port=4000`
 
 Alternatively, with [bitrise CLI](https://www.bitrise.io/cli):
