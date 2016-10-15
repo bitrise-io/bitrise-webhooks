@@ -24,6 +24,12 @@ package gitlab
 // which is related to a single branch we will only handle the commit
 // with the hash / id specified as the "checkout_sha".
 //
+// ### Tag Push
+//
+// GitLab sends webhooks for every tag separately. Even if you create 5 tags and push them with `git push --tags`
+// GitLab will send out (properly) 5 separate webhooks, one for every tag (other services typically don't send
+// these separately, or don't deliver all tags if you push more than ~3 tags in a single `git push --tags`).
+//
 // ### Merge request
 // A merge request is sent with the header: `X-Gitlab-Event: Merge Request Hook`
 // Official docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/web_hooks/web_hooks.md#merge-request-events
@@ -46,7 +52,8 @@ import (
 // --- Webhook Data Model ---
 
 const (
-	pushEventID         = "Push Hook"
+	tagPushEventID      = "Tag Push Hook"
+	codePushEventID     = "Push Hook"
 	mergeRequestEventID = "Merge Request Hook"
 )
 
@@ -62,6 +69,13 @@ type CodePushEventModel struct {
 	Ref         string        `json:"ref"`
 	CheckoutSHA string        `json:"checkout_sha"`
 	Commits     []CommitModel `json:"commits"`
+}
+
+// TagPushEventModel ...
+type TagPushEventModel struct {
+	ObjectKind  string `json:"object_kind"`
+	Ref         string `json:"ref"`
+	CheckoutSHA string `json:"checkout_sha"`
 }
 
 // BranchInfoModel ...
@@ -118,7 +132,7 @@ func detectContentTypeAndEventID(header http.Header) (string, string, error) {
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return sliceutil.IsStringInSlice(eventKey, []string{pushEventID, mergeRequestEventID})
+	return sliceutil.IsStringInSlice(eventKey, []string{tagPushEventID, codePushEventID, mergeRequestEventID})
 }
 
 func isAcceptMergeRequestState(prAction string) bool {
@@ -164,6 +178,39 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 					CommitHash:    lastCommit.CommitHash,
 					CommitMessage: lastCommit.CommitMessage,
 					Branch:        branch,
+				},
+			},
+		},
+	}
+}
+
+func transformTagPushEvent(tagPushEvent TagPushEventModel) hookCommon.TransformResultModel {
+	if tagPushEvent.ObjectKind != "tag_push" {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Not a Tag Push object: %s", tagPushEvent.ObjectKind),
+		}
+	}
+
+	if !strings.HasPrefix(tagPushEvent.Ref, "refs/tags/") {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Ref (%s) is not a tags ref", tagPushEvent.Ref),
+		}
+	}
+	tag := strings.TrimPrefix(tagPushEvent.Ref, "refs/tags/")
+
+	if len(tagPushEvent.CheckoutSHA) < 1 {
+		return hookCommon.TransformResultModel{
+			Error:      errors.New("This is a Tag Deleted event, no build is required"),
+			ShouldSkip: true,
+		}
+	}
+
+	return hookCommon.TransformResultModel{
+		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Tag:        tag,
+					CommitHash: tagPushEvent.CheckoutSHA,
 				},
 			},
 		},
@@ -256,7 +303,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 	}
 
-	if eventID == pushEventID {
+	if eventID == codePushEventID {
 		// code push
 		var codePushEvent CodePushEventModel
 		if contentType == "application/json" {
@@ -265,6 +312,15 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 			}
 		}
 		return transformCodePushEvent(codePushEvent)
+	} else if eventID == tagPushEventID {
+		// tag push
+		var tagPushEvent TagPushEventModel
+		if contentType == "application/json" {
+			if err := json.NewDecoder(r.Body).Decode(&tagPushEvent); err != nil {
+				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: %s", err)}
+			}
+		}
+		return transformTagPushEvent(tagPushEvent)
 	} else if eventID == mergeRequestEventID {
 		var mergeRequestEvent MergeRequestEventModel
 		if err := json.NewDecoder(r.Body).Decode(&mergeRequestEvent); err != nil {
