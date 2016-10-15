@@ -12,6 +12,50 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const sampleCodePushData = `{
+"object_kind": "push",
+"ref": "refs/heads/develop",
+"checkout_sha": "1606d3dd4c4dc83ee8fed8d3cfd911da851bf740",
+"commits": [
+	{
+		"id": "29da60ce2c47a6696bc82f2e6ec4a075695eb7c3",
+		"message": "first commit message"
+	},
+	{
+		"id": "1606d3dd4c4dc83ee8fed8d3cfd911da851bf740",
+		"message": "second commit message"
+	}
+]
+}`
+
+const sampleMergeRequestData = `{
+"object_kind": "merge_request",
+"object_attributes": {
+	"target_branch": "develop",
+	"source_branch": "feature/github-pr",
+	"title": "PR test",
+	"merge_status": "unchecked",
+	"iid": 12,
+	"description": "PR text body",
+	"merge_error": null,
+	"merge_commit_sha": null,
+	"source": {
+		"git_ssh_url": "git@gitlab.com:bitrise-io/bitrise-webhooks.git",
+		"git_http_url": "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+		"visibility_level": 20
+	},
+	"target": {
+		"git_ssh_url": "git@gitlab.com:bitrise-io/bitrise-webhooks.git",
+		"git_http_url": "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+		"visibility_level": 20
+	},
+	"last_commit": {
+		"id": "da966425f32973b6290dcff6a443103c7ff2a8cb"
+	},
+	"action": "update",
+	"state": "opened"
+}}`
+
 func Test_detectContentTypeAndEventID(t *testing.T) {
 	t.Log("Code Push event")
 	{
@@ -171,90 +215,6 @@ func Test_transformCodePushEvent(t *testing.T) {
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Ref (refs/not/head) is not a head ref")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
-	}
-}
-
-func Test_HookProvider_TransformRequest(t *testing.T) {
-	provider := HookProvider{}
-
-	const sampleCodePushData = `{
-  "object_kind": "push",
-  "ref": "refs/heads/develop",
-  "checkout_sha": "1606d3dd4c4dc83ee8fed8d3cfd911da851bf740",
-  "commits": [
-    {
-      "id": "29da60ce2c47a6696bc82f2e6ec4a075695eb7c3",
-      "message": "first commit message"
-    },
-    {
-      "id": "1606d3dd4c4dc83ee8fed8d3cfd911da851bf740",
-      "message": "second commit message"
-    }
-  ]
-}`
-
-	t.Log("Code Push - should be handled")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"X-Gitlab-Event": {"Push Hook"},
-				"Content-Type":   {"application/json"},
-			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
-		}
-		hookTransformResult := provider.TransformRequest(&request)
-		require.NoError(t, hookTransformResult.Error)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "1606d3dd4c4dc83ee8fed8d3cfd911da851bf740",
-					CommitMessage: "second commit message",
-					Branch:        "develop",
-				},
-			},
-		}, hookTransformResult.TriggerAPIParams)
-	}
-
-	t.Log("Unsuported Content-Type")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"X-Gitlab-Event": {"Push Hook"},
-				"Content-Type":   {"not/supported"},
-			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
-		}
-		hookTransformResult := provider.TransformRequest(&request)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Content-Type is not supported: not/supported")
-	}
-
-	t.Log("Unsupported event type - should error")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"X-Gitlab-Event": {"Tag Push Hook"},
-				"Content-Type":   {"application/json"},
-			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
-		}
-		hookTransformResult := provider.TransformRequest(&request)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Unsupported Webhook event: Tag Push Hook")
-	}
-
-	t.Log("No Request Body")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"X-Gitlab-Event": {"Push Hook"},
-				"Content-Type":   {"application/json"},
-			},
-		}
-		hookTransformResult := provider.TransformRequest(&request)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
 	}
 }
 
@@ -453,5 +413,100 @@ func Test_getRepositoryURL(t *testing.T) {
 
 		t.Log(fmt.Sprintf(" Visibility: %d", branchInfoModel.VisibilityLevel))
 		require.Equal(t, "https://gitlab.com/test/test-repo.git", branchInfoModel.getRepositoryURL())
+	}
+}
+
+func Test_HookProvider_TransformRequest(t *testing.T) {
+	provider := HookProvider{}
+
+	t.Log("Code Push - should be handled")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Gitlab-Event": {"Push Hook"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    "1606d3dd4c4dc83ee8fed8d3cfd911da851bf740",
+					CommitMessage: "second commit message",
+					Branch:        "develop",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Merge Request - should be handled")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Gitlab-Event": {"Merge Request Hook"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleMergeRequestData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "da966425f32973b6290dcff6a443103c7ff2a8cb",
+					CommitMessage:            "PR test\n\nPR text body",
+					Branch:                   "feature/github-pr",
+					BranchDest:               "develop",
+					PullRequestID:            pointers.NewIntPtr(12),
+					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+					PullRequestHeadBranch:    "merge-requests/12/head",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Unsuported Content-Type")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Gitlab-Event": {"Push Hook"},
+				"Content-Type":   {"not/supported"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Content-Type is not supported: not/supported")
+	}
+
+	t.Log("Unsupported event type - should error")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Gitlab-Event": {"Tag Push Hook"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Unsupported Webhook event: Tag Push Hook")
+	}
+
+	t.Log("No Request Body")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Gitlab-Event": {"Push Hook"},
+				"Content-Type":   {"application/json"},
+			},
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
 	}
 }

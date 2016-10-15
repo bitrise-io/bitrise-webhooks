@@ -445,6 +445,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestID:            pointers.NewIntPtr(12),
 					PullRequestRepositoryURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
+					PullRequestHeadBranch:    "pull/12/head",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -492,6 +493,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestID:            pointers.NewIntPtr(12),
 					PullRequestRepositoryURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
+					PullRequestHeadBranch:    "pull/12/head",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -540,6 +542,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestID:            pointers.NewIntPtr(12),
 					PullRequestRepositoryURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
+					PullRequestHeadBranch:    "pull/12/head",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -634,6 +637,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestID:            pointers.NewIntPtr(12),
 					PullRequestRepositoryURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
+					PullRequestHeadBranch:    "pull/12/head",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -728,6 +732,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestID:            pointers.NewIntPtr(12),
 					PullRequestRepositoryURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
+					PullRequestHeadBranch:    "pull/12/head",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -903,6 +908,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestID:            pointers.NewIntPtr(12),
 					PullRequestRepositoryURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
+					PullRequestHeadBranch:    "pull/12/head",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -930,6 +936,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestID:            pointers.NewIntPtr(12),
 					PullRequestRepositoryURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
+					PullRequestHeadBranch:    "pull/12/head",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
