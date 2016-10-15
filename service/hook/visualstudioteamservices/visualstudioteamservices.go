@@ -23,7 +23,9 @@ type CommitsModel struct {
 
 // RefUpdatesModel ...
 type RefUpdatesModel struct {
-	Name string `json:"name"`
+	Name        string `json:"name"`
+	OldObjectID string `json:"oldObjectId"`
+	NewObjectID string `json:"newObjectId"`
 }
 
 // ResourceModel ...
@@ -32,8 +34,8 @@ type ResourceModel struct {
 	RefUpdates []RefUpdatesModel `json:"refUpdates"`
 }
 
-// CodePushEventModel ...
-type CodePushEventModel struct {
+// PushEventModel ...
+type PushEventModel struct {
 	SubscriptionID string        `json:"subscriptionId"`
 	EventType      string        `json:"eventType"`
 	PublisherID    string        `json:"publisherId"`
@@ -55,60 +57,88 @@ func detectContentType(header http.Header) (string, error) {
 	return contentType, nil
 }
 
-// transformCodePushEvent ...
-func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
-	if codePushEvent.PublisherID != "tfs" {
+// transformPushEvent ...
+func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
+	if pushEvent.PublisherID != "tfs" {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Not a Team Foundation Server notification, can't start a build."),
 		}
 	}
 
-	if codePushEvent.EventType != "git.push" {
+	if pushEvent.EventType != "git.push" {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Not a code push event, can't start a build."),
+			Error: fmt.Errorf("Not a push event, can't start a build."),
 		}
 	}
 
-	if codePushEvent.SubscriptionID == "00000000-0000-0000-0000-000000000000" {
+	if pushEvent.SubscriptionID == "00000000-0000-0000-0000-000000000000" {
 		return hookCommon.TransformResultModel{
 			Error:      fmt.Errorf("Initial (test) event detected, skipping."),
 			ShouldSkip: true,
 		}
 	}
 
-	if len(codePushEvent.Resource.RefUpdates) != 1 {
+	// VSO sends separate events for separate event (branches, tags, etc.)
+
+	if len(pushEvent.Resource.RefUpdates) != 1 {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Can't detect branch information (resource.refUpdates is empty), can't start a build."),
 		}
 	}
 
-	if !strings.HasPrefix(codePushEvent.Resource.RefUpdates[0].Name, "refs/heads/") {
-		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Badly formatted branch detected, can't start a build."),
-		}
-	}
-	branch := strings.TrimPrefix(codePushEvent.Resource.RefUpdates[0].Name, "refs/heads/")
+	headRefUpdate := pushEvent.Resource.RefUpdates[0]
+	pushRef := headRefUpdate.Name
+	if strings.HasPrefix(pushRef, "refs/heads/") {
+		// code push
+		branch := strings.TrimPrefix(pushRef, "refs/heads/")
 
-	if len(codePushEvent.Resource.Commits) < 1 {
-		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("No 'commits' included in the webhook, can't start a build."),
+		if len(pushEvent.Resource.Commits) < 1 {
+			return hookCommon.TransformResultModel{
+				Error: fmt.Errorf("No 'commits' included in the webhook, can't start a build."),
+			}
 		}
-	}
-	// VSO sends separate events for separate branches,
-	//  and commits are in ascending order, by commit date-time
-	aCommit := codePushEvent.Resource.Commits[0]
+		// Commits are in descending order, by commit date-time (first one is the latest)
+		headCommit := pushEvent.Resource.Commits[0]
 
-	return hookCommon.TransformResultModel{
-		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    aCommit.CommitID,
-					CommitMessage: aCommit.Comment,
-					Branch:        branch,
+		return hookCommon.TransformResultModel{
+			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+				{
+					BuildParams: bitriseapi.BuildParamsModel{
+						Branch:        branch,
+						CommitHash:    headCommit.CommitID,
+						CommitMessage: headCommit.Comment,
+					},
 				},
 			},
-		},
+		}
+	} else if strings.HasPrefix(pushRef, "refs/tags/") {
+		// tag push
+		tag := strings.TrimPrefix(pushRef, "refs/tags/")
+		commitHash := headRefUpdate.NewObjectID
+		if commitHash == "0000000000000000000000000000000000000000" {
+			// deleted
+			return hookCommon.TransformResultModel{
+				Error:      fmt.Errorf("Tag delete event - does not require a build"),
+				ShouldSkip: true,
+			}
+		}
+
+		return hookCommon.TransformResultModel{
+			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+				{
+					BuildParams: bitriseapi.BuildParamsModel{
+						Tag:        tag,
+						CommitHash: commitHash,
+					},
+				},
+			},
+		}
 	}
+
+	return hookCommon.TransformResultModel{
+		Error: fmt.Errorf("Unsupported refs/, can't start a build: %s", pushRef),
+	}
+
 }
 
 // TransformRequest ...
@@ -138,12 +168,12 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 	}
 
-	var codePushEvent CodePushEventModel
-	if err := json.NewDecoder(r.Body).Decode(&codePushEvent); err != nil {
+	var pushEvent PushEventModel
+	if err := json.NewDecoder(r.Body).Decode(&pushEvent); err != nil {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Failed to parse request body as JSON: %s", err),
 		}
 	}
 
-	return transformCodePushEvent(codePushEvent)
+	return transformPushEvent(pushEvent)
 }

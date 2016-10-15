@@ -69,6 +69,18 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 		require.Equal(t, "Push Hook", eventID)
 	}
 
+	t.Log("Tag Push event")
+	{
+		header := http.Header{
+			"X-Gitlab-Event": {"Tag Push Hook"},
+			"Content-Type":   {"application/json"},
+		}
+		contentType, eventID, err := detectContentTypeAndEventID(header)
+		require.NoError(t, err)
+		require.Equal(t, "application/json", contentType)
+		require.Equal(t, "Tag Push Hook", eventID)
+	}
+
 	t.Log("Merge Request event - should handle")
 	{
 		header := http.Header{
@@ -81,16 +93,16 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 		require.Equal(t, "Merge Request Hook", glEvent)
 	}
 
-	t.Log("Unsupported event - will be handled in Transform")
+	t.Log("Unsupported event - will be handled (rejected) in Transform")
 	{
 		header := http.Header{
-			"X-Gitlab-Event": {"Tag Push Hook"},
+			"X-Gitlab-Event": {"Unsupported Hook"},
 			"Content-Type":   {"application/json"},
 		}
 		contentType, eventID, err := detectContentTypeAndEventID(header)
 		require.NoError(t, err)
 		require.Equal(t, "application/json", contentType)
-		require.Equal(t, "Tag Push Hook", eventID)
+		require.Equal(t, "Unsupported Hook", eventID)
 	}
 
 	t.Log("Missing X-Gitlab-Event header")
@@ -214,6 +226,67 @@ func Test_transformCodePushEvent(t *testing.T) {
 		hookTransformResult := transformCodePushEvent(codePush)
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Ref (refs/not/head) is not a head ref")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+	}
+}
+
+func Test_transformTagPushEvent(t *testing.T) {
+	t.Log("Do Transform")
+	{
+		tagPush := TagPushEventModel{
+			ObjectKind:  "tag_push",
+			Ref:         "refs/tags/v0.0.2",
+			CheckoutSHA: "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b",
+		}
+		hookTransformResult := transformTagPushEvent(tagPush)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Tag:        "v0.0.2",
+					CommitHash: "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("No CheckoutSHA (tag delete)")
+	{
+		tagPush := TagPushEventModel{
+			ObjectKind:  "tag_push",
+			Ref:         "refs/tags/v0.0.2",
+			CheckoutSHA: "",
+		}
+		hookTransformResult := transformTagPushEvent(tagPush)
+		require.EqualError(t, hookTransformResult.Error, "This is a Tag Deleted event, no build is required")
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Not a tags ref")
+	{
+		tagPush := TagPushEventModel{
+			ObjectKind:  "tag_push",
+			Ref:         "refs/not/a/tag",
+			CheckoutSHA: "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b",
+		}
+		hookTransformResult := transformTagPushEvent(tagPush)
+		require.EqualError(t, hookTransformResult.Error, "Ref (refs/not/a/tag) is not a tags ref")
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Not a tag_push object")
+	{
+		tagPush := TagPushEventModel{
+			ObjectKind:  "not-a-tag_push",
+			Ref:         "refs/tags/v0.0.2",
+			CheckoutSHA: "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b",
+		}
+		hookTransformResult := transformTagPushEvent(tagPush)
+		require.EqualError(t, hookTransformResult.Error, "Not a Tag Push object: not-a-tag_push")
+		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 }
@@ -361,7 +434,9 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 func Test_isAcceptEventType(t *testing.T) {
 	t.Log("Accept")
 	{
-		for _, anEvent := range []string{"Push Hook", "Merge Request Hook"} {
+		for _, anEvent := range []string{
+			"Push Hook", "Merge Request Hook", "Tag Push Hook",
+		} {
 			t.Log(" * " + anEvent)
 			require.Equal(t, true, isAcceptEventType(anEvent))
 		}
@@ -442,6 +517,51 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
+	t.Log("Push: Tag (create)")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Gitlab-Event": {"Tag Push Hook"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "object_kind": "tag_push",
+  "ref": "refs/tags/v0.0.2",
+  "checkout_sha": "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b"
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Tag:        "v0.0.2",
+					CommitHash: "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Push: Tag Delete")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Gitlab-Event": {"Tag Push Hook"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "object_kind": "tag_push",
+  "ref": "refs/tags/v0.0.2",
+  "checkout_sha": null
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.EqualError(t, hookTransformResult.Error, "This is a Tag Deleted event, no build is required")
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+	}
+
 	t.Log("Merge Request - should be handled")
 	{
 		request := http.Request{
@@ -487,14 +607,14 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 	{
 		request := http.Request{
 			Header: http.Header{
-				"X-Gitlab-Event": {"Tag Push Hook"},
+				"X-Gitlab-Event": {"Unsupported Hook"},
 				"Content-Type":   {"application/json"},
 			},
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Unsupported Webhook event: Tag Push Hook")
+		require.EqualError(t, hookTransformResult.Error, "Unsupported Webhook event: Unsupported Hook")
 	}
 
 	t.Log("No Request Body")
