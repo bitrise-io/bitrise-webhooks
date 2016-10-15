@@ -79,8 +79,9 @@ a [GitLab](https://gitlab.com) *project*.
 3. Select `Web Hooks`
 4. Specify the `bitrise-webhooks` URL (`.../h/gitlab/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `URL` field
 5. In the *Trigger* section select:
-  * Push events
-  * Merge Request events
+  * `Push events`
+  * `Tag push events`
+  * `Merge Request events`
 6. Click `Add Web Hook`
 
 That's all, the next time you push code (into your repository) a build will be triggered.
