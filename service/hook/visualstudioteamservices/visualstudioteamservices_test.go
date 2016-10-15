@@ -443,7 +443,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
-	t.Log("Git.push - Tag")
+	t.Log("Git.push - Tag (create)")
 	{
 		request := http.Request{
 			Header: http.Header{
@@ -462,5 +462,19 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Git.push - Tag Delete")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleTagDelete)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.EqualError(t, hookTransformResult.Error, "Tag delete does not require a build")
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 }
