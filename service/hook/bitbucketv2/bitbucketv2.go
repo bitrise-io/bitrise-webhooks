@@ -38,8 +38,8 @@ type PushInfoModel struct {
 	Changes []ChangeInfoModel `json:"changes"`
 }
 
-// CodePushEventModel ...
-type CodePushEventModel struct {
+// PushEventModel ...
+type PushEventModel struct {
 	PushInfo PushInfoModel `json:"push"`
 }
 
@@ -115,8 +115,8 @@ func detectContentTypeAttemptNumberAndEventKey(header http.Header) (string, stri
 	return contentType, attemptNum, eventKey, nil
 }
 
-func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
-	if len(codePushEvent.PushInfo.Changes) < 1 {
+func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
+	if len(pushEvent.PushInfo.Changes) < 1 {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("No 'changes' included in the webhook, can't start a build."),
 		}
@@ -124,25 +124,37 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 
 	triggerAPIParams := []bitriseapi.TriggerAPIParamsModel{}
 	errs := []string{}
-	for _, aChnage := range codePushEvent.PushInfo.Changes {
+	for _, aChnage := range pushEvent.PushInfo.Changes {
 		aNewItm := aChnage.ChangeNewItem
-		if aNewItm.Type != "branch" {
-			errs = append(errs, fmt.Sprintf("Not a type=branch change. Type was: %s", aNewItm.Type))
-			continue
+		if aNewItm.Type == "branch" {
+			if aNewItm.Target.Type != "commit" {
+				errs = append(errs, fmt.Sprintf("Target was not a type=commit change. Type was: %s", aNewItm.Target.Type))
+				continue
+			}
+			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch:        aNewItm.Name,
+					CommitHash:    aNewItm.Target.CommitHash,
+					CommitMessage: aNewItm.Target.CommitMessage,
+				},
+			}
+			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
+		} else if aNewItm.Type == "tag" {
+			if aNewItm.Target.Type != "commit" {
+				errs = append(errs, fmt.Sprintf("Target was not a type=commit change. Type was: %s", aNewItm.Target.Type))
+				continue
+			}
+			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Tag:           aNewItm.Name,
+					CommitHash:    aNewItm.Target.CommitHash,
+					CommitMessage: aNewItm.Target.CommitMessage,
+				},
+			}
+			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
+		} else {
+			errs = append(errs, fmt.Sprintf("Not a type=branch nor type=tag change. Change.Type was: %s", aNewItm.Type))
 		}
-		if aNewItm.Target.Type != "commit" {
-			errs = append(errs, fmt.Sprintf("Target: Not a type=commit change. Type was: %s", aNewItm.Target.Type))
-			continue
-		}
-
-		aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
-			BuildParams: bitriseapi.BuildParamsModel{
-				CommitHash:    aNewItm.Target.CommitHash,
-				CommitMessage: aNewItm.Target.CommitMessage,
-				Branch:        aNewItm.Name,
-			},
-		}
-		triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 	}
 	if len(triggerAPIParams) < 1 {
 		return hookCommon.TransformResultModel{
@@ -250,14 +262,14 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	}
 
 	if eventKey == "repo:push" {
-		var codePushEvent CodePushEventModel
-		if err := json.NewDecoder(r.Body).Decode(&codePushEvent); err != nil {
+		var pushEvent PushEventModel
+		if err := json.NewDecoder(r.Body).Decode(&pushEvent); err != nil {
 			return hookCommon.TransformResultModel{
 				Error: fmt.Errorf("Failed to parse request body as JSON: %s", err),
 			}
 		}
 
-		return transformCodePushEvent(codePushEvent)
+		return transformPushEvent(pushEvent)
 	} else if eventKey == "pullrequest:created" || eventKey == "pullrequest:updated" {
 		var pullRequestEvent PullRequestEventModel
 		if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {

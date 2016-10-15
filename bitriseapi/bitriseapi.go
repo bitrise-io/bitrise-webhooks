@@ -37,6 +37,8 @@ type BuildParamsModel struct {
 	PullRequestRepositoryURL string `json:"pull_request_repository_url,omitempty"`
 	// pre-merged branch if the provider supports it, exposed for pull requests
 	PullRequestMergeBranch string `json:"pull_request_merge_branch,omitempty"`
+	// source branch mapped to the original repository if the provider supports it, exposed for pull requests
+	PullRequestHeadBranch string `json:"pull_request_head_branch,omitempty"`
 	// workflow id to run
 	WorkflowID string `json:"workflow_id,omitempty"`
 	// additional environment variables
@@ -62,8 +64,8 @@ type TriggerAPIResponseModel struct {
 
 // Validate ...
 func (triggerParams TriggerAPIParamsModel) Validate() error {
-	if triggerParams.BuildParams.Branch == "" && triggerParams.BuildParams.WorkflowID == "" {
-		return errors.New("Missing Branch and WorkflowID parameters - at least one of these is required")
+	if triggerParams.BuildParams.Branch == "" && triggerParams.BuildParams.WorkflowID == "" && triggerParams.BuildParams.Tag == "" {
+		return errors.New("Missing Branch, Tag and WorkflowID parameters - at least one of these is required")
 	}
 	return nil
 }

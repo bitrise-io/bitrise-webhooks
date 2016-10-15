@@ -78,9 +78,9 @@ a [GitLab](https://gitlab.com) *project*.
 2. Go to `Settings` of the *project*
 3. Select `Web Hooks`
 4. Specify the `bitrise-webhooks` URL (`.../h/gitlab/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `URL` field
-5. In the *Triggers* section select `Push events`
-  * Right now `bitrise-webhooks` only supports the *Push events* trigger for
-    GitLab Webhooks.
+5. In the *Trigger* section select:
+  * Push events
+  * Merge Request events
 6. Click `Add Web Hook`
 
 That's all, the next time you push code (into your repository) a build will be triggered.
@@ -172,8 +172,7 @@ An example with all parameters included: `workflow: primary|b: master|tag: v1.0|
 
 Start the server:
 
-* Compile the `Go` code with `godep go install`
-  * If you don't have [godep](https://github.com/tools/godep) yet, you can get it with: `go get github.com/tools/godep`
+* Compile the `Go` code `go install`
 * Run it with: `bitrise-webhooks -port=4000`
 
 Alternatively, with [bitrise CLI](https://www.bitrise.io/cli):
