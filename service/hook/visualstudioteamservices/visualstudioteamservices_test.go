@@ -229,36 +229,6 @@ const (
       ]
     }
   }`
-
-	sampleTagPush = `{
-  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
-  "eventType": "git.push",
-  "publisherId": "tfs",
-  "resource": {
-    "refUpdates": [
-      {
-        "name": "refs/tags/v0.0.2",
-        "oldObjectId": "0000000000000000000000000000000000000000",
-        "newObjectId": "7c0d90dc542b86747e42ac8f03f794a96ecfc68a"
-      }
-    ]
-  }
-}`
-
-	sampleTagDelete = `{
-  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
-  "eventType": "git.push",
-  "publisherId": "tfs",
-  "resource": {
-    "refUpdates": [
-      {
-        "name": "refs/tags/v0.0.9",
-        "oldObjectId": "7c0d90dc542b86747e42ac8f03f794a96ecfc68a",
-        "newObjectId": "0000000000000000000000000000000000000000"
-      }
-    ]
-  }
-}`
 )
 
 func Test_detectContentType(t *testing.T) {
@@ -352,7 +322,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushBadEventType)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Not a code push event, can't start a build.")
+		require.EqualError(t, hookTransformResult.Error, "Not a push event, can't start a build.")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
@@ -449,7 +419,20 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Header: http.Header{
 				"Content-Type": {"application/json; charset=utf-8"},
 			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleTagPush)),
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.push",
+  "publisherId": "tfs",
+  "resource": {
+    "refUpdates": [
+      {
+        "name": "refs/tags/v0.0.2",
+        "oldObjectId": "0000000000000000000000000000000000000000",
+        "newObjectId": "7c0d90dc542b86747e42ac8f03f794a96ecfc68a"
+      }
+    ]
+  }
+}`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.NoError(t, hookTransformResult.Error)
@@ -470,10 +453,23 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Header: http.Header{
 				"Content-Type": {"application/json; charset=utf-8"},
 			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleTagDelete)),
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.push",
+  "publisherId": "tfs",
+  "resource": {
+    "refUpdates": [
+      {
+        "name": "refs/tags/v0.0.2",
+        "oldObjectId": "7c0d90dc542b86747e42ac8f03f794a96ecfc68a",
+        "newObjectId": "0000000000000000000000000000000000000000"
+      }
+    ]
+  }
+}`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Tag delete does not require a build")
+		require.EqualError(t, hookTransformResult.Error, "Tag delete event - does not require a build")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}

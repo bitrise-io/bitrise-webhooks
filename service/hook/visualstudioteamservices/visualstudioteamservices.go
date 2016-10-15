@@ -67,7 +67,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 	if pushEvent.EventType != "git.push" {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Not a code push event, can't start a build."),
+			Error: fmt.Errorf("Not a push event, can't start a build."),
 		}
 	}
 
@@ -78,39 +78,67 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		}
 	}
 
+	// VSO sends separate events for separate event (branches, tags, etc.)
+
 	if len(pushEvent.Resource.RefUpdates) != 1 {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Can't detect branch information (resource.refUpdates is empty), can't start a build."),
 		}
 	}
 
-	if !strings.HasPrefix(pushEvent.Resource.RefUpdates[0].Name, "refs/heads/") {
-		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Unsupported refs/, can't start a build: %s", pushEvent.Resource.RefUpdates[0].Name),
-		}
-	}
-	branch := strings.TrimPrefix(pushEvent.Resource.RefUpdates[0].Name, "refs/heads/")
+	headRefUpdate := pushEvent.Resource.RefUpdates[0]
+	pushRef := headRefUpdate.Name
+	if strings.HasPrefix(pushRef, "refs/heads/") {
+		// code push
+		branch := strings.TrimPrefix(pushRef, "refs/heads/")
 
-	if len(pushEvent.Resource.Commits) < 1 {
-		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("No 'commits' included in the webhook, can't start a build."),
+		if len(pushEvent.Resource.Commits) < 1 {
+			return hookCommon.TransformResultModel{
+				Error: fmt.Errorf("No 'commits' included in the webhook, can't start a build."),
+			}
 		}
-	}
-	// VSO sends separate events for separate branches,
-	//  and commits are in ascending order, by commit date-time
-	headCommit := pushEvent.Resource.Commits[0]
+		// Commits are in descending order, by commit date-time (first one is the latest)
+		headCommit := pushEvent.Resource.Commits[0]
 
-	return hookCommon.TransformResultModel{
-		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					Branch:        branch,
-					CommitHash:    headCommit.CommitID,
-					CommitMessage: headCommit.Comment,
+		return hookCommon.TransformResultModel{
+			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+				{
+					BuildParams: bitriseapi.BuildParamsModel{
+						Branch:        branch,
+						CommitHash:    headCommit.CommitID,
+						CommitMessage: headCommit.Comment,
+					},
 				},
 			},
-		},
+		}
+	} else if strings.HasPrefix(pushRef, "refs/tags/") {
+		// tag push
+		tag := strings.TrimPrefix(pushRef, "refs/tags/")
+		commitHash := headRefUpdate.NewObjectID
+		if commitHash == "0000000000000000000000000000000000000000" {
+			// deleted
+			return hookCommon.TransformResultModel{
+				Error:      fmt.Errorf("Tag delete event - does not require a build"),
+				ShouldSkip: true,
+			}
+		}
+
+		return hookCommon.TransformResultModel{
+			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+				{
+					BuildParams: bitriseapi.BuildParamsModel{
+						Tag:        tag,
+						CommitHash: commitHash,
+					},
+				},
+			},
+		}
 	}
+
+	return hookCommon.TransformResultModel{
+		Error: fmt.Errorf("Unsupported refs/, can't start a build: %s", pushRef),
+	}
+
 }
 
 // TransformRequest ...
