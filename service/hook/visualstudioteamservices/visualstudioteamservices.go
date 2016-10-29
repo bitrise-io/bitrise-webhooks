@@ -12,6 +12,10 @@ import (
 	"github.com/bitrise-io/go-utils/httputil"
 )
 
+const (
+	emptyCommitHash = "0000000000000000000000000000000000000000"
+)
+
 // --------------------------
 // --- Webhook Data Model ---
 
@@ -94,11 +98,27 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 		if len(pushEvent.Resource.Commits) < 1 {
 			commitHash := headRefUpdate.NewObjectID
-			if commitHash == "0000000000000000000000000000000000000000" {
-				// deleted
+			if commitHash == emptyCommitHash {
+				// no commits and the (new) commit hash is empty -> this is a delete event,
+				// the branch was deleted
 				return hookCommon.TransformResultModel{
 					Error:      fmt.Errorf("Branch delete event - does not require a build"),
 					ShouldSkip: true,
+				}
+			}
+			if headRefUpdate.OldObjectID == emptyCommitHash {
+				// (new) commit hash was not empty, but old one is -> this is a create event,
+				// without any commits pushed, just the branch created
+				return hookCommon.TransformResultModel{
+					TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+						{
+							BuildParams: bitriseapi.BuildParamsModel{
+								Branch:        branch,
+								CommitHash:    commitHash,
+								CommitMessage: "Branch created",
+							},
+						},
+					},
 				}
 			}
 
@@ -124,7 +144,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		// tag push
 		tag := strings.TrimPrefix(pushRef, "refs/tags/")
 		commitHash := headRefUpdate.NewObjectID
-		if commitHash == "0000000000000000000000000000000000000000" {
+		if commitHash == emptyCommitHash {
 			// deleted
 			return hookCommon.TransformResultModel{
 				Error:      fmt.Errorf("Tag delete event - does not require a build"),
