@@ -8,23 +8,23 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/builtinutil",
-			"Rev": "915cadec690f55a7c65911069fccc7b68c9803a9"
+			"Rev": "f9155f8d01013ec098cba431327cbeb063dacea7"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/httputil",
-			"Rev": "915cadec690f55a7c65911069fccc7b68c9803a9"
+			"Rev": "f9155f8d01013ec098cba431327cbeb063dacea7"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/pointers",
-			"Rev": "915cadec690f55a7c65911069fccc7b68c9803a9"
+			"Rev": "f9155f8d01013ec098cba431327cbeb063dacea7"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/sliceutil",
-			"Rev": "915cadec690f55a7c65911069fccc7b68c9803a9"
+			"Rev": "f9155f8d01013ec098cba431327cbeb063dacea7"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/testutil",
-			"Rev": "915cadec690f55a7c65911069fccc7b68c9803a9"
+			"Rev": "f9155f8d01013ec098cba431327cbeb063dacea7"
 		},
 		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",
