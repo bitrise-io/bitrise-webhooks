@@ -473,4 +473,31 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
+
+	t.Log("Git.push - Branch Delete")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.push",
+  "publisherId": "tfs",
+  "resource": {
+    "refUpdates": [
+      {
+        "name": "refs/heads/test-branch",
+        "oldObjectId": "7c0d90dc542b86747e42ac8f03f794a96ecfc68a",
+        "newObjectId": "0000000000000000000000000000000000000000"
+      }
+    ]
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.EqualError(t, hookTransformResult.Error, "Branch delete event - does not require a build")
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+	}
 }

@@ -93,6 +93,15 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		branch := strings.TrimPrefix(pushRef, "refs/heads/")
 
 		if len(pushEvent.Resource.Commits) < 1 {
+			commitHash := headRefUpdate.NewObjectID
+			if commitHash == "0000000000000000000000000000000000000000" {
+				// deleted
+				return hookCommon.TransformResultModel{
+					Error:      fmt.Errorf("Branch delete event - does not require a build"),
+					ShouldSkip: true,
+				}
+			}
+
 			return hookCommon.TransformResultModel{
 				Error: fmt.Errorf("No 'commits' included in the webhook, can't start a build."),
 			}
