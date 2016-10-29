@@ -3,13 +3,15 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
   envs:
-  - GO15VENDOREXPERIMENT: "1"
   - GO_PROJECT_PATH: github.com/bitrise-io/bitrise-webhooks
   - PORT: "4000"
   # if set to "yes" we'll use github.com/codegangsta/gin to live-reload the code on change
   - IS_USE_GIN: "yes"
   # optionally, define these in your .bitrise.secrets.yml
   - SEND_REQUEST_TO: $SEND_REQUEST_TO
+  # 
+  - RELEASE_START_BRANCH: 'master'
+  - RELEASE_DESTINATION_BRANCH: 'prod'
 
 workflows:
   start:
@@ -18,13 +20,11 @@ workflows:
         inputs:
         - content: |-
             #!/bin/bash
-            set -e
-            set -x
-            go get github.com/tools/godep
-            godep go install $GO_PROJECT_PATH
+            set -ex
+            go install $GO_PROJECT_PATH
             if [ "$IS_USE_GIN" == "yes" ] ; then
               go get github.com/codegangsta/gin
-              gin --godep --port $PORT
+              gin --port $PORT
             else
               bitrise-webhooks -port $PORT
             fi
@@ -32,27 +32,11 @@ workflows:
   _install_test_tools:
     steps:
     - script:
-        title: "TMP: install Go 1.6.0"
-        run_if: .IsCI
-        inputs:
-        - content: |-
-            set -x
-            set -e
-            wget -q https://storage.googleapis.com/golang/go1.6.linux-amd64.tar.gz -O go-bins.tar.gz
-            rm -rf /usr/local/go
-            tar -C /usr/local -xvzf go-bins.tar.gz
-            rm go-bins.tar.gz
-    - script:
         title: Install required testing tools
-        run_if: .IsCI
         inputs:
         - content: |-
             #!/bin/bash
-            set -e
-            set -x
-
-            # Install dependencies
-            go get -u github.com/tools/godep
+            set -ex
 
             # Check for unhandled errors
             go get -u github.com/kisielk/errcheck
@@ -69,13 +53,11 @@ workflows:
         - content: |-
             set -x
             go version
-            echo $GO15VENDOREXPERIMENT
     - script:
         title: GOLIST_WITHOUT_VENDOR
         inputs:
         - content: |-
-            set -e
-            set -x
+            set -ex
             no_vendor_paths="$(go list ./... | grep -v vendor)"
             envman add --key GOLIST_WITHOUT_VENDOR --value "$no_vendor_paths"
     - script:
@@ -106,15 +88,24 @@ workflows:
                 exit 1
               fi
             done <<< "$GOLIST_WITHOUT_VENDOR"
+
   godeps-update:
     steps:
     - script:
         inputs:
         - content: |-
             #!/bin/bash
-            set -e
-            set -x
+            set -ex
+            go get -u -v github.com/tools/godep
+            #
+            rm -rf ./Godeps
+            rm -rf ./vendor
+            #
+            go get -t -d ./...
+            go get github.com/davecgh/go-spew/spew
+            go get github.com/pmezard/go-difflib/difflib
             godep save ./...
+
   create-release:
     steps:
     - ensure-clean-git:
@@ -134,11 +125,9 @@ workflows:
 
             set -x
             version_file_path="./version/version.go"
-            release_start_branch='master'
-            release_destination_branch='prod'
             current_branch="$(git symbolic-ref --short HEAD)"
-            if [[ "$current_branch" != "${release_start_branch}" ]] ; then
-              echo " [!] You have to be on the ${release_start_branch} branch to create a release!"
+            if [[ "$current_branch" != "${RELEASE_START_BRANCH}" ]] ; then
+              echo " [!] You have to be on the ${RELEASE_START_BRANCH} branch to create a release!"
               exit 1
             fi
 
@@ -149,10 +138,40 @@ workflows:
 
             git add "$version_file_path"
             git commit -m "v${bumped_version}"
+            echo
+            echo '------------'
+            git show
+            echo '------------'
+            echo
 
-            git checkout ${release_destination_branch}
-            # git merge ${release_start_branch} --no-ff -m "Merge ${release_start_branch} into ${release_destination_branch}, release: v${bumped_version}"
-            git merge ${release_start_branch} -m "Merge ${release_start_branch} into ${release_destination_branch}, release: v${bumped_version}"
+            git checkout ${RELEASE_DESTINATION_BRANCH}
+            git merge ${RELEASE_START_BRANCH} --no-ff -m "Merge ${RELEASE_START_BRANCH} into ${RELEASE_DESTINATION_BRANCH}, release: v${bumped_version}"
             git tag "${bumped_version}"
+            echo
+            echo '------------'
+            git show
+            echo '------------'
+            echo
 
-            git checkout ${release_start_branch}
+            git checkout ${RELEASE_START_BRANCH}
+
+  publish-release:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            current_branch="$(git symbolic-ref --short HEAD)"
+            if [[ "$current_branch" != "${RELEASE_START_BRANCH}" ]] ; then
+              echo " [!] You have to be on the ${RELEASE_START_BRANCH} branch to create a release!"
+              exit 1
+            fi
+            git push
+            git push --tags
+            # 
+            git checkout ${RELEASE_DESTINATION_BRANCH}
+            git push
+            git push --tags
+            #
+            git checkout ${RELEASE_START_BRANCH} 

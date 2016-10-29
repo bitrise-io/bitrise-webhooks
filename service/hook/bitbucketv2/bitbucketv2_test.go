@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
+	"github.com/bitrise-io/go-utils/pointers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,6 +40,69 @@ const (
 	]
 }
 }`
+
+	sampleTagPushData = `{
+"push": {
+	"changes": [
+		{
+			"new": {
+				"type": "tag",
+				"name": "v0.0.2",
+				"target": {
+					"type": "commit",
+					"message": "auto-test",
+					"hash": "966d0bfe79b80f97268c2f6bb45e65e79ef09b31"
+				}
+			}
+		},
+		{
+			"new": {
+				"type": "tag",
+				"name": "v0.0.1",
+				"target": {
+					"type": "commit",
+					"message": "auto-test 2",
+					"hash": "19934139a2cf799bbd0f5061ab02e4760902e93f"
+				}
+			}
+		}
+	]
+}
+}`
+
+	samplePullRequestData = `{
+"pullrequest":{
+  "description":"",
+  "type":"pullrequest",
+  "destination":{
+    "commit":{
+      "hash":"7b3172ca0cf8"
+    },
+    "branch":{
+      "name":"master"
+    },
+    "repository":{
+      "name":"prtest",
+      "full_name":"birmacher/prtest"
+    }
+  },
+  "title":"change",
+  "id":1,
+  "state":"OPEN",
+  "source":{
+    "commit":{
+      "hash":"6a3451888d91"
+    },
+    "branch":{
+      "name":"feature/test"
+    },
+    "repository":{
+      "name":"prtest",
+      "full_name":"birmacher/prtest"
+    }
+  }
+}
+}`
 )
 
 func Test_detectContentTypeAttemptNumberAndEventKey(t *testing.T) {
@@ -53,6 +117,34 @@ func Test_detectContentTypeAttemptNumberAndEventKey(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "application/json", contentType)
 		require.Equal(t, "repo:push", eventKey)
+		require.Equal(t, "1", attemptNum)
+	}
+
+	t.Log("Pull Request create event - should handle")
+	{
+		header := http.Header{
+			"X-Event-Key":      {"pullrequest:create"},
+			"Content-Type":     {"application/json"},
+			"X-Attempt-Number": {"1"},
+		}
+		contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(header)
+		require.NoError(t, err)
+		require.Equal(t, "application/json", contentType)
+		require.Equal(t, "pullrequest:create", eventKey)
+		require.Equal(t, "1", attemptNum)
+	}
+
+	t.Log("Pull Request update event - should handle")
+	{
+		header := http.Header{
+			"X-Event-Key":      {"pullrequest:update"},
+			"Content-Type":     {"application/json"},
+			"X-Attempt-Number": {"1"},
+		}
+		contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(header)
+		require.NoError(t, err)
+		require.Equal(t, "application/json", contentType)
+		require.Equal(t, "pullrequest:update", eventKey)
 		require.Equal(t, "1", attemptNum)
 	}
 
@@ -110,10 +202,10 @@ func Test_detectContentTypeAttemptNumberAndEventKey(t *testing.T) {
 	}
 }
 
-func Test_transformCodePushEvent(t *testing.T) {
-	t.Log("Do Transform - single change")
+func Test_transformPushEvent(t *testing.T) {
+	t.Log("Do Transform - single change - code push")
 	{
-		codePush := CodePushEventModel{
+		pushEvent := PushEventModel{
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
 					{
@@ -130,7 +222,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := transformPushEvent(pushEvent)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -144,66 +236,48 @@ func Test_transformCodePushEvent(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
-	t.Log("Do Transform - multiple changes")
+	t.Log("Do Transform - single change - tag")
 	{
-		codePush := CodePushEventModel{
-			PushInfo: PushInfoModel{
-				Changes: []ChangeInfoModel{
-					{
-						ChangeNewItem: ChangeItemModel{
-							Type: "branch",
-							Name: "master",
-							Target: ChangeItemTargetModel{
-								Type:          "commit",
-								CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
-								CommitMessage: "auto-test",
-							},
-						},
-					},
-					{
-						ChangeNewItem: ChangeItemModel{
-							Type: "branch",
-							Name: "test",
-							Target: ChangeItemTargetModel{
-								Type:          "commit",
-								CommitHash:    "178de4f94efbfa99abede5cf0f1868924222839e",
-								CommitMessage: "auto-test 2",
-							},
-						},
-					},
-				},
-			},
-		}
-		hookTransformResult := transformCodePushEvent(codePush)
-		require.NoError(t, hookTransformResult.Error)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
-					CommitMessage: "auto-test",
-					Branch:        "master",
-				},
-			},
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "178de4f94efbfa99abede5cf0f1868924222839e",
-					CommitMessage: "auto-test 2",
-					Branch:        "test",
-				},
-			},
-		}, hookTransformResult.TriggerAPIParams)
-	}
-
-	t.Log("One of the changes is not a type=branch change")
-	{
-		codePush := CodePushEventModel{
+		tagPushEvent := PushEventModel{
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
 					{
 						ChangeNewItem: ChangeItemModel{
 							Type: "tag",
-							Name: "1.0.0",
+							Name: "v0.0.2",
+							Target: ChangeItemTargetModel{
+								Type:          "commit",
+								CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+								CommitMessage: "auto-test",
+							},
+						},
+					},
+				},
+			},
+		}
+		hookTransformResult := transformPushEvent(tagPushEvent)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Tag:           "v0.0.2",
+					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					CommitMessage: "auto-test",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Do Transform - multiple changes - code push")
+	{
+		pushEvent := PushEventModel{
+			PushInfo: PushInfoModel{
+				Changes: []ChangeInfoModel{
+					{
+						ChangeNewItem: ChangeItemModel{
+							Type: "branch",
+							Name: "master",
 							Target: ChangeItemTargetModel{
 								Type:          "commit",
 								CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
@@ -225,7 +299,109 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := transformPushEvent(pushEvent)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					CommitMessage: "auto-test",
+					Branch:        "master",
+				},
+			},
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    "178de4f94efbfa99abede5cf0f1868924222839e",
+					CommitMessage: "auto-test 2",
+					Branch:        "test",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Do Transform - multiple changes - tag push")
+	{
+		pushEvent := PushEventModel{
+			PushInfo: PushInfoModel{
+				Changes: []ChangeInfoModel{
+					{
+						ChangeNewItem: ChangeItemModel{
+							Type: "tag",
+							Name: "v0.0.2",
+							Target: ChangeItemTargetModel{
+								Type:          "commit",
+								CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+								CommitMessage: "auto-test",
+							},
+						},
+					},
+					{
+						ChangeNewItem: ChangeItemModel{
+							Type: "tag",
+							Name: "v0.0.1",
+							Target: ChangeItemTargetModel{
+								Type:          "commit",
+								CommitHash:    "178de4f94efbfa99abede5cf0f1868924222839e",
+								CommitMessage: "auto-test 2",
+							},
+						},
+					},
+				},
+			},
+		}
+		hookTransformResult := transformPushEvent(pushEvent)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Tag:           "v0.0.2",
+					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					CommitMessage: "auto-test",
+				},
+			},
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Tag:           "v0.0.1",
+					CommitHash:    "178de4f94efbfa99abede5cf0f1868924222839e",
+					CommitMessage: "auto-test 2",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Multiple changes, one of the changes is a not supported (type) change")
+	{
+		pushEvent := PushEventModel{
+			PushInfo: PushInfoModel{
+				Changes: []ChangeInfoModel{
+					{
+						ChangeNewItem: ChangeItemModel{
+							Type: "not-branch-nor-tag",
+							Name: "name-something",
+							Target: ChangeItemTargetModel{
+								Type:          "commit",
+								CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+								CommitMessage: "auto-test",
+							},
+						},
+					},
+					{
+						ChangeNewItem: ChangeItemModel{
+							Type: "branch",
+							Name: "test",
+							Target: ChangeItemTargetModel{
+								Type:          "commit",
+								CommitHash:    "178de4f94efbfa99abede5cf0f1868924222839e",
+								CommitMessage: "auto-test 2",
+							},
+						},
+					},
+				},
+			},
+		}
+		hookTransformResult := transformPushEvent(pushEvent)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -239,9 +415,9 @@ func Test_transformCodePushEvent(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
-	t.Log("One of the changes is not a type=commit change")
+	t.Log("One of the changes.Target is not a type=commit change")
 	{
-		codePush := CodePushEventModel{
+		pushEvent := PushEventModel{
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
 					{
@@ -269,7 +445,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := transformPushEvent(pushEvent)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -283,29 +459,29 @@ func Test_transformCodePushEvent(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
-	t.Log("Not a Branch code push event")
+	t.Log("Not a Branch nor Tag push event")
 	{
-		codePush := CodePushEventModel{
+		pushEvent := PushEventModel{
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
 					{
 						ChangeNewItem: ChangeItemModel{
-							Type: "tag",
-							Name: "1.0.0",
+							Type: "not-branch-nor-tag",
+							Name: "name-something",
 						},
 					},
 				},
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
-		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Not a type=branch change. Type was: tag]")
+		hookTransformResult := transformPushEvent(pushEvent)
+		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Not a type=branch nor type=tag change. Change.Type was: not-branch-nor-tag]")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 
 	t.Log("Not a 'Commit' type change")
 	{
-		codePush := CodePushEventModel{
+		pushEvent := PushEventModel{
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
 					{
@@ -320,10 +496,185 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
-		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Target: Not a type=commit change. Type was: unsupported-type]")
+		hookTransformResult := transformPushEvent(pushEvent)
+		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Target was not a type=commit change. Type was: unsupported-type]")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+	}
+}
+
+func Test_transformPullRequestEvent(t *testing.T) {
+	t.Log("Empty Pull Request action")
+	{
+		pullRequest := PullRequestEventModel{}
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Pull Request type is not supported: ")
+	}
+
+	t.Log("Invalid type")
+	{
+		pullRequest := PullRequestEventModel{
+			PullRequestInfo: PullRequestInfoModel{
+				Type: "Issue",
+			},
+		}
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Pull Request type is not supported: Issue")
+	}
+
+	t.Log("Already Merged")
+	{
+		pullRequest := PullRequestEventModel{
+			PullRequestInfo: PullRequestInfoModel{
+				Type:  "pullrequest",
+				State: "MERGED",
+			},
+		}
+
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Pull Request state doesn't require a build: MERGED")
+	}
+
+	t.Log("Already Declined")
+	{
+		pullRequest := PullRequestEventModel{
+			PullRequestInfo: PullRequestInfoModel{
+				Type:  "pullrequest",
+				State: "DECLINED",
+			},
+		}
+
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Pull Request state doesn't require a build: DECLINED")
+	}
+
+	t.Log("Open")
+	{
+		pullRequest := PullRequestEventModel{
+			PullRequestInfo: PullRequestInfoModel{
+				ID:    1,
+				Type:  "pullrequest",
+				Title: "Title of pull request",
+				State: "OPEN",
+				SourceInfo: PullRequestBranchInfoModel{
+					BranchInfo: BranchInfoModel{
+						Name: "branch2",
+					},
+					CommitInfo: CommitInfoModel{
+						CommitHash: "d3022fc0ca3d",
+					},
+					RepositoryInfo: RepositoryInfoModel{
+						FullName: "foo/myrepo",
+					},
+				},
+				DestinationInfo: PullRequestBranchInfoModel{
+					BranchInfo: BranchInfoModel{
+						Name: "master",
+					},
+					CommitInfo: CommitInfoModel{
+						CommitHash: "ce5965ddd289",
+					},
+					RepositoryInfo: RepositoryInfoModel{
+						FullName: "foo/myrepo",
+					},
+				},
+			},
+		}
+
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "d3022fc0ca3d",
+					CommitMessage:            "Title of pull request",
+					Branch:                   "branch2",
+					BranchDest:               "master",
+					PullRequestID:            pointers.NewIntPtr(1),
+					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Pull Request - Title & Body")
+	{
+		pullRequest := PullRequestEventModel{
+			PullRequestInfo: PullRequestInfoModel{
+				ID:          1,
+				Type:        "pullrequest",
+				Title:       "Title of pull request",
+				Description: "Description of pull request",
+				State:       "OPEN",
+				SourceInfo: PullRequestBranchInfoModel{
+					BranchInfo: BranchInfoModel{
+						Name: "branch2",
+					},
+					CommitInfo: CommitInfoModel{
+						CommitHash: "d3022fc0ca3d",
+					},
+					RepositoryInfo: RepositoryInfoModel{
+						FullName: "foo/myrepo",
+					},
+				},
+				DestinationInfo: PullRequestBranchInfoModel{
+					BranchInfo: BranchInfoModel{
+						Name: "master",
+					},
+					CommitInfo: CommitInfoModel{
+						CommitHash: "ce5965ddd289",
+					},
+					RepositoryInfo: RepositoryInfoModel{
+						FullName: "foo/myrepo",
+					},
+				},
+			},
+		}
+
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "d3022fc0ca3d",
+					CommitMessage:            "Title of pull request\n\nDescription of pull request",
+					Branch:                   "branch2",
+					BranchDest:               "master",
+					PullRequestID:            pointers.NewIntPtr(1),
+					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+}
+
+func Test_isAcceptEventType(t *testing.T) {
+	t.Log("Accept")
+	{
+		for _, anAction := range []string{"repo:push",
+			"pullrequest:created", "pullrequest:updated",
+		} {
+			t.Log(" * " + anAction)
+			require.Equal(t, true, isAcceptEventType(anAction))
+		}
+	}
+
+	t.Log("Don't accept")
+	{
+		for _, anAction := range []string{"",
+			"a", "not-an-action",
+			"pullrequest:approved", "pullrequest:unapproved", "pullrequest:fulfilled", "pullrequest:rejected",
+			"pullrequest:comment_created", "pullrequest:comment_updated", "pull_request:comment_deleted",
+		} {
+			t.Log(" * " + anAction)
+			require.Equal(t, false, isAcceptEventType(anAction))
+		}
 	}
 }
 
@@ -413,6 +764,64 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitHash:    "19934139a2cf799bbd0f5061ab02e4760902e93f",
 					CommitMessage: "auto-test 2",
 					Branch:        "test",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Test with Sample Tag Push data")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":      {"repo:push"},
+				"Content-Type":     {"application/json"},
+				"X-Attempt-Number": {"1"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleTagPushData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Tag:           "v0.0.2",
+					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					CommitMessage: "auto-test",
+				},
+			},
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Tag:           "v0.0.1",
+					CommitHash:    "19934139a2cf799bbd0f5061ab02e4760902e93f",
+					CommitMessage: "auto-test 2",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Test with Sample Pull Request data")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":      {"pullrequest:created"},
+				"Content-Type":     {"application/json"},
+				"X-Attempt-Number": {"1"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "6a3451888d91",
+					CommitMessage:            "change",
+					Branch:                   "feature/test",
+					BranchDest:               "master",
+					PullRequestID:            pointers.NewIntPtr(1),
+					PullRequestRepositoryURL: "https://bitbucket.org/birmacher/prtest.git",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)

@@ -10,6 +10,11 @@ and calls it to start a build.
 For more information check the *How to add support for a new Provider* section.
 
 
+## CI Skip
+ 
+If the (commit) message includes `[skip ci]` or `[ci skip]` no build will be triggered.
+
+
 ## Supported webhooks / providers
 
 * [GitHub](https://github.com)
@@ -41,8 +46,8 @@ a [GitHub](https://github.com) *repository*.
     every other webhook (triggered by another event) will be ignored.
 7. Click `Add webhook`
 
-That's all, the next time you push code or create a pull request (if you enabled the related event(s))
-a build will be triggered.
+That's all! The next time you __push code__, __push a new tag__ or __create/update a pull request__
+a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 
 ### Bitbucket (V2) Webhooks - setup & usage:
@@ -55,12 +60,14 @@ a [Bitbucket](https://bitbucket.org) *repository*.
 3. Select `Webhooks`
 4. Click on `Add webhook`
 5. Specify the `bitrise-webhooks` URL (`.../h/bitbucket-v2/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `URL` field
-6. In the *Triggers* section select `Repository push`
-  * Right now `bitrise-webhooks` only supports the *Repository push* trigger for
-    Bitbucket Webhooks.
+6. In the *Triggers* section select `Choose from a full list of triggers` and the following properties:
+  * Repository > Push
+  * Pull Request > Created
+  * Pull Request > Updated
 7. Click `Save`
 
-That's all, the next time you push code (into your repository) a build will be triggered.
+That's all! The next time you __push code__, __push a new tag__ or __create/update a pull request__
+a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 
 ### GitLab - setup & usage:
@@ -72,12 +79,14 @@ a [GitLab](https://gitlab.com) *project*.
 2. Go to `Settings` of the *project*
 3. Select `Web Hooks`
 4. Specify the `bitrise-webhooks` URL (`.../h/gitlab/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `URL` field
-5. In the *Triggers* section select `Push events`
-  * Right now `bitrise-webhooks` only supports the *Push events* trigger for
-    GitLab Webhooks.
+5. In the *Trigger* section select:
+  * `Push events`
+  * `Tag push events`
+  * `Merge Request events`
 6. Click `Add Web Hook`
 
-That's all, the next time you push code (into your repository) a build will be triggered.
+That's all! The next time you __push code__, __push a new tag__ or __create/update a merge request__
+a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 
 ### Gogs - setup & usage:
@@ -93,7 +102,8 @@ All you have to do is register your `bitrise-webhooks` URL as a Webhook in your 
 1. Set the trigger to be fired on `Just the push event`
 1. Save the Webhook.
 
-That's all, the next time you push code (into your repository) a build will be triggered.
+That's all! The next time you __push code__
+a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 
 ### Visual Studio Online / Visual Studio Team Services - setup & usage:
@@ -119,7 +129,8 @@ A short step-by-step guide:
   * You can leave every other option on default
 7. Click `Finish`
 
-That's all, the next time you push code (into your repository) a build will be triggered.
+That's all! The next time you __push code__ or __push a new tag__
+a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 
 ### Slack - setup & usage:
@@ -151,7 +162,9 @@ Other, optional parameters:
 **NOTE**: at least either `branch` or `workflow` have to be specified, and of course
 you can specify both if you want to. You're free to specify any number of optional parameters.
 
-An example with all parameters included: `workflow: primary|b: master|tag: v1.0|commit:eee55509f16e7715bdb43308bb55e8736da4e21e|m: start my build!`
+You can also send environment variables that will be available in your workflow with the format: `env[KEY1]:value1|ENV[KEY2]:value2`
+
+An example with all parameters included: `workflow: primary|b: master|tag: v1.0|commit:eee55509f16e7715bdb43308bb55e8736da4e21e|m: start my build!|ENV[DEVICE_NAME]:iPhone 6S|ENV[DEVICE_UDID]:82667b4079914d4aabed9c216620da5dedab630a`
 
 
 ## How to compile & run the server
@@ -164,8 +177,7 @@ An example with all parameters included: `workflow: primary|b: master|tag: v1.0|
 
 Start the server:
 
-* Compile the `Go` code with `godep go install`
-  * If you don't have [godep](https://github.com/tools/godep) yet, you can get it with: `go get github.com/tools/godep`
+* Compile the `Go` code `go install`
 * Run it with: `bitrise-webhooks -port=4000`
 
 Alternatively, with [bitrise CLI](https://www.bitrise.io/cli):
@@ -356,4 +368,6 @@ response provider will be used.
 ## Contributors
 
 * [The Bitrise Team](https://github.com/bitrise-io)
-* [Chad Robinson](https://github.com/crrobinson14)
+* [Chad Robinson](https://github.com/crrobinson14) - `Gogs` support
+* [Rafael Nobre](https://github.com/nobre84) - Environment variables support in `Slack` commands
+* [Tuomas Peippo](https://github.com/tume)- Skip CI feature

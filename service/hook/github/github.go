@@ -23,33 +23,59 @@ type CommitModel struct {
 	CommitMessage string `json:"message"`
 }
 
-// CodePushEventModel ...
-type CodePushEventModel struct {
+// PushEventModel ...
+type PushEventModel struct {
 	Ref        string      `json:"ref"`
 	Deleted    bool        `json:"deleted"`
 	HeadCommit CommitModel `json:"head_commit"`
 }
 
+// RepoInfoModel ...
+type RepoInfoModel struct {
+	Private bool `json:"private"`
+	// Private git clone URL, used with SSH key
+	SSHURL string `json:"ssh_url"`
+	// Public git clone url
+	CloneURL string `json:"clone_url"`
+}
+
 // BranchInfoModel ...
 type BranchInfoModel struct {
-	Ref        string `json:"ref"`
-	CommitHash string `json:"sha"`
+	Ref        string        `json:"ref"`
+	CommitHash string        `json:"sha"`
+	Repo       RepoInfoModel `json:"repo"`
 }
 
 // PullRequestInfoModel ...
 type PullRequestInfoModel struct {
-	BranchInfo BranchInfoModel `json:"head"`
-	Title      string          `json:"title"`
-	Body       string          `json:"body"`
-	Merged     bool            `json:"merged"`
-	Mergeable  *bool           `json:"mergeable"`
+	// source brach for the pull request
+	HeadBranchInfo BranchInfoModel `json:"head"`
+	// destination brach for the pull request
+	BaseBranchInfo BranchInfoModel `json:"base"`
+	Title          string          `json:"title"`
+	Body           string          `json:"body"`
+	Merged         bool            `json:"merged"`
+	Mergeable      *bool           `json:"mergeable"`
+}
+
+// PullRequestChangeFromItemModel ...
+type PullRequestChangeFromItemModel struct {
+	From string `json:"from"`
+}
+
+// PullRequestChangesInfoModel ...
+type PullRequestChangesInfoModel struct {
+	Title PullRequestChangeFromItemModel `json:"title"`
+	Body  PullRequestChangeFromItemModel `json:"body"`
+	Base  interface{}                    `json:"base"`
 }
 
 // PullRequestEventModel ...
 type PullRequestEventModel struct {
-	Action          string               `json:"action"`
-	PullRequestID   int                  `json:"number"`
-	PullRequestInfo PullRequestInfoModel `json:"pull_request"`
+	Action          string                      `json:"action"`
+	PullRequestID   int                         `json:"number"`
+	PullRequestInfo PullRequestInfoModel        `json:"pull_request"`
+	Changes         PullRequestChangesInfoModel `json:"changes"`
 }
 
 // ---------------------------------------
@@ -58,41 +84,68 @@ type PullRequestEventModel struct {
 // HookProvider ...
 type HookProvider struct{}
 
-func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
-	if codePushEvent.Deleted {
+func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
+	if pushEvent.Deleted {
 		return hookCommon.TransformResultModel{
 			Error:      errors.New("This is a 'Deleted' event, no build can be started"),
 			ShouldSkip: true,
 		}
 	}
 
-	headCommit := codePushEvent.HeadCommit
+	headCommit := pushEvent.HeadCommit
 
-	if !strings.HasPrefix(codePushEvent.Ref, "refs/heads/") {
-		return hookCommon.TransformResultModel{
-			Error:      fmt.Errorf("Ref (%s) is not a head ref", codePushEvent.Ref),
-			ShouldSkip: true,
+	if strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
+		// code push
+		branch := strings.TrimPrefix(pushEvent.Ref, "refs/heads/")
+
+		if len(headCommit.CommitHash) == 0 {
+			return hookCommon.TransformResultModel{
+				Error: fmt.Errorf("Missing commit hash"),
+			}
 		}
-	}
-	branch := strings.TrimPrefix(codePushEvent.Ref, "refs/heads/")
 
-	if len(headCommit.CommitHash) == 0 {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Missing commit hash"),
+			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+				{
+					BuildParams: bitriseapi.BuildParamsModel{
+						Branch:        branch,
+						CommitHash:    headCommit.CommitHash,
+						CommitMessage: headCommit.CommitMessage,
+					},
+				},
+			},
+		}
+	} else if strings.HasPrefix(pushEvent.Ref, "refs/tags/") {
+		// tag push
+		tag := strings.TrimPrefix(pushEvent.Ref, "refs/tags/")
+
+		if len(headCommit.CommitHash) == 0 {
+			return hookCommon.TransformResultModel{
+				Error: fmt.Errorf("Missing commit hash"),
+			}
+		}
+
+		return hookCommon.TransformResultModel{
+			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+				{
+					BuildParams: bitriseapi.BuildParamsModel{
+						Tag:           tag,
+						CommitHash:    headCommit.CommitHash,
+						CommitMessage: headCommit.CommitMessage,
+					},
+				},
+			},
 		}
 	}
 
 	return hookCommon.TransformResultModel{
-		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    headCommit.CommitHash,
-					CommitMessage: headCommit.CommitMessage,
-					Branch:        branch,
-				},
-			},
-		},
+		Error:      fmt.Errorf("Ref (%s) is not a head nor a tag ref", pushEvent.Ref),
+		ShouldSkip: true,
 	}
+}
+
+func isAcceptPullRequestAction(prAction string) bool {
+	return sliceutil.IsStringInSlice(prAction, []string{"opened", "reopened", "synchronize", "edited"})
 }
 
 func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.TransformResultModel {
@@ -102,10 +155,21 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 			ShouldSkip: true,
 		}
 	}
-	if !sliceutil.IsStringInSlice(pullRequest.Action, []string{"opened", "reopened", "synchronize"}) {
+	if !isAcceptPullRequestAction(pullRequest.Action) {
 		return hookCommon.TransformResultModel{
 			Error:      fmt.Errorf("Pull Request action doesn't require a build: %s", pullRequest.Action),
 			ShouldSkip: true,
+		}
+	}
+	if pullRequest.Action == "edited" {
+		// skip it if only title / description changed, and the previous pattern did not include a [skip ci] pattern
+		if pullRequest.Changes.Base == nil {
+			if !hookCommon.IsSkipBuildByCommitMessage(pullRequest.Changes.Title.From) && !hookCommon.IsSkipBuildByCommitMessage(pullRequest.Changes.Body.From) {
+				return hookCommon.TransformResultModel{
+					Error:      errors.New("Pull Request edit doesn't require a build: only title and/or description was changed, and previous one was not skipped"),
+					ShouldSkip: true,
+				}
+			}
 		}
 	}
 	if pullRequest.PullRequestInfo.Merged {
@@ -130,10 +194,14 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    pullRequest.PullRequestInfo.BranchInfo.CommitHash,
-					CommitMessage: commitMsg,
-					Branch:        pullRequest.PullRequestInfo.BranchInfo.Ref,
-					PullRequestID: &pullRequest.PullRequestID,
+					CommitMessage:            commitMsg,
+					CommitHash:               pullRequest.PullRequestInfo.HeadBranchInfo.CommitHash,
+					Branch:                   pullRequest.PullRequestInfo.HeadBranchInfo.Ref,
+					BranchDest:               pullRequest.PullRequestInfo.BaseBranchInfo.Ref,
+					PullRequestID:            &pullRequest.PullRequestID,
+					PullRequestRepositoryURL: pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
+					PullRequestMergeBranch:   fmt.Sprintf("pull/%d/merge", pullRequest.PullRequestID),
+					PullRequestHeadBranch:    fmt.Sprintf("pull/%d/head", pullRequest.PullRequestID),
 				},
 			},
 		},
@@ -163,7 +231,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 	}
 
-	if contentType != "application/json" && contentType != "application/x-www-form-urlencoded" {
+	if contentType != hookCommon.ContentTypeApplicationJSON && contentType != hookCommon.ContentTypeApplicationXWWWFormURLEncoded {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Content-Type is not supported: %s", contentType),
 		}
@@ -189,18 +257,18 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	}
 
 	if ghEvent == "push" {
-		// code push
-		var codePushEvent CodePushEventModel
-		if contentType == "application/json" {
-			if err := json.NewDecoder(r.Body).Decode(&codePushEvent); err != nil {
+		// push (code & tag)
+		var pushEvent PushEventModel
+		if contentType == hookCommon.ContentTypeApplicationJSON {
+			if err := json.NewDecoder(r.Body).Decode(&pushEvent); err != nil {
 				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: %s", err)}
 			}
-		} else if contentType == "application/x-www-form-urlencoded" {
+		} else if contentType == hookCommon.ContentTypeApplicationXWWWFormURLEncoded {
 			payloadValue := r.PostFormValue("payload")
 			if payloadValue == "" {
 				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: empty payload")}
 			}
-			if err := json.NewDecoder(strings.NewReader(payloadValue)).Decode(&codePushEvent); err != nil {
+			if err := json.NewDecoder(strings.NewReader(payloadValue)).Decode(&pushEvent); err != nil {
 				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse payload: %s", err)}
 			}
 		} else {
@@ -208,15 +276,15 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 				Error: fmt.Errorf("Unsupported Content-Type: %s", contentType),
 			}
 		}
-		return transformCodePushEvent(codePushEvent)
+		return transformPushEvent(pushEvent)
 
 	} else if ghEvent == "pull_request" {
 		var pullRequestEvent PullRequestEventModel
-		if contentType == "application/json" {
+		if contentType == hookCommon.ContentTypeApplicationJSON {
 			if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
 				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body as JSON: %s", err)}
 			}
-		} else if contentType == "application/x-www-form-urlencoded" {
+		} else if contentType == hookCommon.ContentTypeApplicationXWWWFormURLEncoded {
 			payloadValue := r.PostFormValue("payload")
 			if payloadValue == "" {
 				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: empty payload")}
@@ -235,4 +303,12 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	return hookCommon.TransformResultModel{
 		Error: fmt.Errorf("Unsupported GitHub event type: %s", ghEvent),
 	}
+}
+
+// returns the repository clone URL depending on the publicity of the project
+func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
+	if branchInfoModel.Repo.Private {
+		return branchInfoModel.Repo.SSHURL
+	}
+	return branchInfoModel.Repo.CloneURL
 }
