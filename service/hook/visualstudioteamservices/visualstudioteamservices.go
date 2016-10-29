@@ -38,12 +38,18 @@ type ResourceModel struct {
 	RefUpdates []RefUpdatesModel `json:"refUpdates"`
 }
 
+// EventMessage ...
+type EventMessage struct {
+	Text string `json:"text"`
+}
+
 // PushEventModel ...
 type PushEventModel struct {
-	SubscriptionID string        `json:"subscriptionId"`
-	EventType      string        `json:"eventType"`
-	PublisherID    string        `json:"publisherId"`
-	Resource       ResourceModel `json:"resource"`
+	SubscriptionID  string        `json:"subscriptionId"`
+	EventType       string        `json:"eventType"`
+	PublisherID     string        `json:"publisherId"`
+	Resource        ResourceModel `json:"resource"`
+	DetailedMessage EventMessage  `json:"detailedMessage"`
 }
 
 // ---------------------------------------
@@ -122,6 +128,28 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 				}
 			}
 
+			if commitHash != "" && headRefUpdate.OldObjectID != "" {
+				// Both old and new commit hash defined in the head ref update,
+				// but no "commits" info - this happens right now when you merge
+				// a Pull Request on visualstudio.com
+				// It will generate a commit and webhook, you can see the commit in
+				// `git log`, but it does not include it in the hook event,
+				// only the head ref change.
+				// So, for now, we'll use the event's detailed message as the commit message.
+				return hookCommon.TransformResultModel{
+					TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+						{
+							BuildParams: bitriseapi.BuildParamsModel{
+								Branch:        branch,
+								CommitHash:    commitHash,
+								CommitMessage: pushEvent.DetailedMessage.Text,
+							},
+						},
+					},
+				}
+			}
+
+			// in every other case:
 			return hookCommon.TransformResultModel{
 				Error: fmt.Errorf("No 'commits' included in the webhook, can't start a build."),
 			}

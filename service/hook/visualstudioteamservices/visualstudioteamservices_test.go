@@ -35,24 +35,6 @@ const (
 		"publisherId": "-"
 	}`
 
-	sampleCodeGitPushWithNoChanges = `{
-	  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
-	  "notificationId": 10,
-	  "id": "03c164c2-8912-4d5e-8009-3707d5f83734",
-	  "eventType": "git.push",
-	  "publisherId": "tfs",
-	  "resource": {
-	    "commits": [],
-	    "refUpdates": [
-	      {
-	        "name": "refs/heads/master",
-	        "oldObjectId": "aad331d8d3b131fa9ae03cf5e53965b51942618a",
-	        "newObjectId": "33b55f7cb7e7e245323987634f960cf4a6e6bc74"
-	      }
-	    ]
-	  }
-	}`
-
 	sampleCodeGitPushWithNoBranchInformation = `{
 	  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
 	  "notificationId": 10,
@@ -327,13 +309,27 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 
-	t.Log("Empty commit list")
+	t.Log("Empty commits & no refUpdates")
 	{
 		request := http.Request{
 			Header: http.Header{
 				"Content-Type": {"application/json; charset=utf-8"},
 			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushWithNoChanges)),
+			Body: ioutil.NopCloser(strings.NewReader(`{
+	  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+	  "notificationId": 10,
+	  "id": "03c164c2-8912-4d5e-8009-3707d5f83734",
+	  "eventType": "git.push",
+	  "publisherId": "tfs",
+	  "resource": {
+	    "commits": [],
+	    "refUpdates": [
+	      {
+	        "name": "refs/heads/master"
+	      }
+	    ]
+	  }
+	}`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.EqualError(t, hookTransformResult.Error, "No 'commits' included in the webhook, can't start a build.")
@@ -531,6 +527,49 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					Branch:        "test-branch",
 					CommitHash:    "7c0d90dc542b86747e42ac8f03f794a96ecfc68a",
 					CommitMessage: "Branch created",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Git.push - Pull Request merged (no commit!?!?)")
+	{
+		// Yep, when you merge a pull request on visualstudio.com
+		// it will send a hook without any commit info, although
+		// you can see the merge commit in `git log`
+		// The commit hash in refUpdates is correct, but the right
+		// message is not included anywhere.
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.push",
+  "publisherId": "tfs",
+  "detailedMessage": {
+    "text": "Author Name pushed 4 commits to branch master of test project\r\n - PR 3: Merge feature/new-branch-test to master 293d9ead ..."
+  },
+  "resource": {
+    "refUpdates": [
+      {
+        "name": "refs/heads/master",
+        "oldObjectId": "6c0d90dc542b86747e42ac8f03f794a96ecfc68a",
+        "newObjectId": "7c0d90dc542b86747e42ac8f03f794a96ecfc68a"
+      }
+    ]
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch:        "master",
+					CommitHash:    "7c0d90dc542b86747e42ac8f03f794a96ecfc68a",
+					CommitMessage: "Author Name pushed 4 commits to branch master of test project\r\n - PR 3: Merge feature/new-branch-test to master 293d9ead ...",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
