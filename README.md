@@ -38,7 +38,7 @@ a [GitHub](https://github.com) *repository*.
 
 1. Open your *repository* on [GitHub.com](https://github.com)
 2. Go to `Settings` of the *repository*
-3. Select `Webhooks & services`
+3. Select `Webhooks`
 4. Click on `Add webhook`
 5. Specify the `bitrise-webhooks` URL (`.../h/github/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `Payload URL` field
 6. Select the *events* you want to trigger a webhook for
