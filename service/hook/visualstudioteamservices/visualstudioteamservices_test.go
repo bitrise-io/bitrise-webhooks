@@ -276,7 +276,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodeEmptySubscriptionID)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Initial (test) event detected, skipping.")
+		require.EqualError(t, hookTransformResult.Error, "Initial (test) event detected, skipping")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
@@ -290,7 +290,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushBadPublisherID)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Not a Team Foundation Server notification, can't start a build.")
+		require.EqualError(t, hookTransformResult.Error, "Not a Team Foundation Server notification, can't start a build")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
@@ -304,7 +304,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushBadEventType)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Not a push event, can't start a build.")
+		require.EqualError(t, hookTransformResult.Error, "Not a push event, can't start a build")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
@@ -332,7 +332,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 	}`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "No 'commits' included in the webhook, can't start a build.")
+		require.EqualError(t, hookTransformResult.Error, "No 'commits' included in the webhook, can't start a build")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
@@ -346,7 +346,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushWithNoBranchInformation)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Can't detect branch information (resource.refUpdates is empty), can't start a build.")
+		require.EqualError(t, hookTransformResult.Error, "Can't detect branch information (resource.refUpdates is empty), can't start a build")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
