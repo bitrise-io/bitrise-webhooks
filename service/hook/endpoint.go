@@ -11,6 +11,7 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/metrics"
 	"github.com/bitrise-io/bitrise-webhooks/service"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/bitbucketv2"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/deveo"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/github"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/gitlab"
@@ -22,6 +23,7 @@ import (
 
 func supportedProviders() map[string]hookCommon.Provider {
 	return map[string]hookCommon.Provider{
+		"deveo":        deveo.HookProvider{},
 		"github":       github.HookProvider{},
 		"bitbucket-v2": bitbucketv2.HookProvider{},
 		"slack":        slack.HookProvider{},
