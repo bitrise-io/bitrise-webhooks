@@ -71,19 +71,19 @@ func detectContentType(header http.Header) (string, error) {
 func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
 	if pushEvent.PublisherID != "tfs" {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Not a Team Foundation Server notification, can't start a build."),
+			Error: fmt.Errorf("Not a Team Foundation Server notification, can't start a build"),
 		}
 	}
 
 	if pushEvent.EventType != "git.push" {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Not a push event, can't start a build."),
+			Error: fmt.Errorf("Not a push event, can't start a build"),
 		}
 	}
 
 	if pushEvent.SubscriptionID == "00000000-0000-0000-0000-000000000000" {
 		return hookCommon.TransformResultModel{
-			Error:      fmt.Errorf("Initial (test) event detected, skipping."),
+			Error:      fmt.Errorf("Initial (test) event detected, skipping"),
 			ShouldSkip: true,
 		}
 	}
@@ -92,7 +92,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 	if len(pushEvent.Resource.RefUpdates) != 1 {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Can't detect branch information (resource.refUpdates is empty), can't start a build."),
+			Error: fmt.Errorf("Can't detect branch information (resource.refUpdates is empty), can't start a build"),
 		}
 	}
 
@@ -151,7 +151,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 			// in every other case:
 			return hookCommon.TransformResultModel{
-				Error: fmt.Errorf("No 'commits' included in the webhook, can't start a build."),
+				Error: fmt.Errorf("No 'commits' included in the webhook, can't start a build"),
 			}
 		}
 		// Commits are in descending order, by commit date-time (first one is the latest)

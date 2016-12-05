@@ -118,7 +118,7 @@ func detectContentTypeAttemptNumberAndEventKey(header http.Header) (string, stri
 func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
 	if len(pushEvent.PushInfo.Changes) < 1 {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("No 'changes' included in the webhook, can't start a build."),
+			Error: fmt.Errorf("No 'changes' included in the webhook, can't start a build"),
 		}
 	}
 
