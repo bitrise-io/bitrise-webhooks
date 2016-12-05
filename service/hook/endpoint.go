@@ -12,6 +12,7 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/service"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/bitbucketv2"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/deveo"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/github"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/gitlab"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/gogs"
@@ -28,6 +29,7 @@ func supportedProviders() map[string]hookCommon.Provider {
 		"visualstudio": visualstudioteamservices.HookProvider{},
 		"gitlab":       gitlab.HookProvider{},
 		"gogs":         gogs.HookProvider{},
+		"deveo":        deveo.HookProvider{},
 	}
 }
 
