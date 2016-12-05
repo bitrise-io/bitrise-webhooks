@@ -11,7 +11,7 @@ import (
 )
 
 const (
-  sampleCodePushData = `{
+	sampleCodePushData = `{
   "ref": "refs/heads/master",
   "deleted": false,
   "commits": [{
@@ -30,7 +30,6 @@ const (
     "message": "generalize Push Event (previously Code Push)\n\nwe'll handle the Tag Push too, so related codes are changed to reflect this (removed code from CodePush - e.g. CodePushEventModel -> PushEventModel)"
   }]
 }`
-
 )
 
 func Test_detectContentTypeAndEventID(t *testing.T) {
@@ -38,7 +37,7 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 	{
 		header := http.Header{
 			"X-Deveo-Event": {"push"},
-			"Content-Type":   {"application/json"},
+			"Content-Type":  {"application/json"},
 		}
 		contentType, deveoEvent, err := detectContentTypeAndEventID(header)
 		require.NoError(t, err)
@@ -46,12 +45,11 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 		require.Equal(t, "push", deveoEvent)
 	}
 
-
 	t.Log("Unsupported Deveo event - will be handled in Transform")
 	{
 		header := http.Header{
 			"X-Deveo-Event": {"label"},
-			"Content-Type":   {"application/json"},
+			"Content-Type":  {"application/json"},
 		}
 		contentType, deveoEvent, err := detectContentTypeAndEventID(header)
 		require.NoError(t, err)
@@ -89,10 +87,10 @@ func Test_transformPushEvent(t *testing.T) {
 			Ref: "refs/heads/master",
 			Commits: []CommitModel{
 				CommitModel{
-				  Distinct:      true,
-				  CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-				  CommitMessage: "re-structuring Hook Providers, with added tests",
-			  },
+					Distinct:      true,
+					CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					CommitMessage: "re-structuring Hook Providers, with added tests",
+				},
 			},
 		}
 		hookTransformResult := transformPushEvent(codePush)
@@ -285,7 +283,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 	{
 		request := http.Request{
 			Header: http.Header{
-				"Content-Type":   {"not/supported"},
+				"Content-Type":  {"not/supported"},
 				"X-Deveo-Event": {"ping"},
 			},
 		}
@@ -298,7 +296,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 	{
 		request := http.Request{
 			Header: http.Header{
-				"Content-Type":   {"application/json"},
+				"Content-Type":  {"application/json"},
 				"X-Deveo-Event": {"label"},
 			},
 		}
@@ -311,7 +309,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 	{
 		request := http.Request{
 			Header: http.Header{
-				"Content-Type":   {"application/json"},
+				"Content-Type":  {"application/json"},
 				"X-Deveo-Event": {"push"},
 			},
 		}
@@ -324,7 +322,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 	{
 		request := http.Request{
 			Header: http.Header{
-				"Content-Type":   {"application/json"},
+				"Content-Type":  {"application/json"},
 				"X-Deveo-Event": {"push"},
 			},
 		}
@@ -338,7 +336,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		request := http.Request{
 			Header: http.Header{
 				"X-Deveo-Event": {"push"},
-				"Content-Type":   {"application/json"},
+				"Content-Type":  {"application/json"},
 			},
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
 		}
@@ -361,7 +359,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		request := http.Request{
 			Header: http.Header{
 				"X-Deveo-Event": {"push"},
-				"Content-Type":   {"application/json"},
+				"Content-Type":  {"application/json"},
 			},
 			Body: ioutil.NopCloser(strings.NewReader(sampleTagPushData)),
 		}
