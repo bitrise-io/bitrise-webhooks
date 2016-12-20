@@ -2,6 +2,7 @@ package visualstudioteamservices
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/go-utils/httputil"
 )
 
 const (
@@ -59,9 +59,9 @@ type PushEventModel struct {
 type HookProvider struct{}
 
 func detectContentType(header http.Header) (string, error) {
-	contentType, err := httputil.GetSingleValueFromHeader("Content-Type", header)
-	if err != nil {
-		return "", fmt.Errorf("Issue with Content-Type Header: %s", err)
+	contentType := header.Get("Content-Type")
+	if contentType == "" {
+		return "", errors.New("No Content-Type Header found")
 	}
 
 	return contentType, nil
