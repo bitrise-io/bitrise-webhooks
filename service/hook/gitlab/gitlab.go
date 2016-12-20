@@ -44,7 +44,6 @@ import (
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/go-utils/httputil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 )
 
@@ -118,14 +117,14 @@ type MergeRequestEventModel struct {
 type HookProvider struct{}
 
 func detectContentTypeAndEventID(header http.Header) (string, string, error) {
-	contentType, err := httputil.GetSingleValueFromHeader("Content-Type", header)
-	if err != nil {
-		return "", "", fmt.Errorf("Issue with Content-Type Header: %s", err)
+	contentType := header.Get("Content-Type")
+	if contentType == "" {
+		return "", "", errors.New("No Content-Type Header found")
 	}
 
-	eventID, err := httputil.GetSingleValueFromHeader("X-Gitlab-Event", header)
-	if err != nil {
-		return "", "", fmt.Errorf("Issue with X-Gitlab-Event Header: %s", err)
+	eventID := header.Get("X-Gitlab-Event")
+	if eventID == "" {
+		return "", "", errors.New("No X-Gitlab-Event Header found")
 	}
 
 	return contentType, eventID, nil

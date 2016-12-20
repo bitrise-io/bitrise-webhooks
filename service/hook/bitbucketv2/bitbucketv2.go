@@ -2,12 +2,12 @@ package bitbucketv2
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/go-utils/httputil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 )
 
@@ -97,19 +97,19 @@ type PullRequestEventModel struct {
 type HookProvider struct{}
 
 func detectContentTypeAttemptNumberAndEventKey(header http.Header) (string, string, string, error) {
-	contentType, err := httputil.GetSingleValueFromHeader("Content-Type", header)
-	if err != nil {
-		return "", "", "", fmt.Errorf("Issue with Content-Type Header: %s", err)
+	contentType := header.Get("Content-Type")
+	if contentType == "" {
+		return "", "", "", errors.New("No Content-Type Header found")
 	}
 
-	eventKey, err := httputil.GetSingleValueFromHeader("X-Event-Key", header)
-	if err != nil {
-		return "", "", "", fmt.Errorf("Issue with X-Event-Key Header: %s", err)
+	eventKey := header.Get("X-Event-Key")
+	if eventKey == "" {
+		return "", "", "", errors.New("No X-Event-Key Header found")
 	}
 
-	attemptNum, err := httputil.GetSingleValueFromHeader("X-Attempt-Number", header)
-	if err != nil {
-		return "", "", "", fmt.Errorf("Issue with X-Attempt-Number Header: %s", err)
+	attemptNum := header.Get("X-Attempt-Number")
+	if attemptNum == "" {
+		return "", "", "", errors.New("No X-Attempt-Number Header found")
 	}
 
 	return contentType, attemptNum, eventKey, nil

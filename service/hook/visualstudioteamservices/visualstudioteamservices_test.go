@@ -227,7 +227,7 @@ func Test_detectContentType(t *testing.T) {
 	{
 		header := http.Header{}
 		contentType, err := detectContentType(header)
-		require.EqualError(t, err, "Issue with Content-Type Header: No value found in HEADER for the key: Content-Type")
+		require.EqualError(t, err, "No Content-Type Header found")
 		require.Equal(t, "", contentType)
 	}
 }
@@ -253,7 +253,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Issue with Content-Type Header: No value found in HEADER for the key: Content-Type")
+		require.EqualError(t, hookTransformResult.Error, "No Content-Type Header found")
 	}
 
 	t.Log("No Request Body")

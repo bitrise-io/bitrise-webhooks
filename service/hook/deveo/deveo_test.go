@@ -63,7 +63,7 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 			"Content-Type": {"application/json"},
 		}
 		contentType, deveoEvent, err := detectContentTypeAndEventID(header)
-		require.EqualError(t, err, "Issue with X-Deveo-Event Header: No value found in HEADER for the key: X-Deveo-Event")
+		require.EqualError(t, err, "No X-Deveo-Event Header found")
 		require.Equal(t, "", contentType)
 		require.Equal(t, "", deveoEvent)
 	}
@@ -74,7 +74,7 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 			"X-Deveo-Event": {"push"},
 		}
 		contentType, deveoEvent, err := detectContentTypeAndEventID(header)
-		require.EqualError(t, err, "Issue with Content-Type Header: No value found in HEADER for the key: Content-Type")
+		require.EqualError(t, err, "No Content-Type Header found")
 		require.Equal(t, "", contentType)
 		require.Equal(t, "", deveoEvent)
 	}

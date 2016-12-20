@@ -169,7 +169,7 @@ func Test_detectContentTypeAttemptNumberAndEventKey(t *testing.T) {
 			"X-Attempt-Number": {"1"},
 		}
 		contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(header)
-		require.EqualError(t, err, "Issue with X-Event-Key Header: No value found in HEADER for the key: X-Event-Key")
+		require.EqualError(t, err, "No X-Event-Key Header found")
 		require.Equal(t, "", contentType)
 		require.Equal(t, "", eventKey)
 		require.Equal(t, "", attemptNum)
@@ -182,7 +182,7 @@ func Test_detectContentTypeAttemptNumberAndEventKey(t *testing.T) {
 			"X-Attempt-Number": {"1"},
 		}
 		contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(header)
-		require.EqualError(t, err, "Issue with Content-Type Header: No value found in HEADER for the key: Content-Type")
+		require.EqualError(t, err, "No Content-Type Header found")
 		require.Equal(t, "", contentType)
 		require.Equal(t, "", eventKey)
 		require.Equal(t, "", attemptNum)
@@ -195,7 +195,7 @@ func Test_detectContentTypeAttemptNumberAndEventKey(t *testing.T) {
 			"Content-Type": {"application/json"},
 		}
 		contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(header)
-		require.EqualError(t, err, "Issue with X-Attempt-Number Header: No value found in HEADER for the key: X-Attempt-Number")
+		require.EqualError(t, err, "No X-Attempt-Number Header found")
 		require.Equal(t, "", contentType)
 		require.Equal(t, "", eventKey)
 		require.Equal(t, "", attemptNum)
