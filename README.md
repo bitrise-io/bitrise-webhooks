@@ -29,7 +29,8 @@ If the (commit) message includes `[skip ci]` or `[ci skip]` no build will be tri
   * handled on the path: `/h/gitlab/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * [Gogs](https://gogs.io)
   * handled on the path: `/h/gogs/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
-
+* [Deveo](https://deveo.com)
+  * handled on the path: `/h/deveo/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 
 ### GitHub - setup & usage:
 
@@ -38,7 +39,7 @@ a [GitHub](https://github.com) *repository*.
 
 1. Open your *repository* on [GitHub.com](https://github.com)
 2. Go to `Settings` of the *repository*
-3. Select `Webhooks & services`
+3. Select `Webhooks`
 4. Click on `Add webhook`
 5. Specify the `bitrise-webhooks` URL (`.../h/github/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `Payload URL` field
 6. Select the *events* you want to trigger a webhook for
@@ -46,8 +47,8 @@ a [GitHub](https://github.com) *repository*.
     every other webhook (triggered by another event) will be ignored.
 7. Click `Add webhook`
 
-That's all, the next time you push code or create a pull request (if you enabled the related event(s))
-a build will be triggered.
+That's all! The next time you __push code__, __push a new tag__ or __create/update a pull request__
+a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 
 ### Bitbucket (V2) Webhooks - setup & usage:
@@ -66,7 +67,8 @@ a [Bitbucket](https://bitbucket.org) *repository*.
   * Pull Request > Updated
 7. Click `Save`
 
-That's all, the next time you push code (into your repository) a build will be triggered.
+That's all! The next time you __push code__, __push a new tag__ or __create/update a pull request__
+a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 
 ### GitLab - setup & usage:
@@ -84,7 +86,8 @@ a [GitLab](https://gitlab.com) *project*.
   * `Merge Request events`
 6. Click `Add Web Hook`
 
-That's all, the next time you push code (into your repository) a build will be triggered.
+That's all! The next time you __push code__, __push a new tag__ or __create/update a merge request__
+a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 
 ### Gogs - setup & usage:
@@ -100,7 +103,8 @@ All you have to do is register your `bitrise-webhooks` URL as a Webhook in your 
 1. Set the trigger to be fired on `Just the push event`
 1. Save the Webhook.
 
-That's all, the next time you push code (into your repository) a build will be triggered.
+That's all! The next time you __push code__
+a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 
 ### Visual Studio Online / Visual Studio Team Services - setup & usage:
@@ -126,8 +130,24 @@ A short step-by-step guide:
   * You can leave every other option on default
 7. Click `Finish`
 
-That's all, the next time you push code (into your repository) a build will be triggered.
+That's all! The next time you __push code__ or __push a new tag__
+a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
+### Deveo - setup & usage:
+
+All you have to do is register your `bitrise-webhooks` URL for
+a [Deveo](https://deveo.com) *repository*.
+
+1. Open your *repository* on [app.deveo.com](https://app.deveo.com)
+2. Go to `Hooks` of the *project*
+3. Add new hook to the *repository*
+4. Select the hook type as `webhook`
+5. Specify the `bitrise-webhooks` URL (`.../h/deveo/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `Url` field
+6. Type `json` in the `Content type` field
+6. Click `Save hook`
+
+That's all! The next time you __push code__ or __push a new tag__ 
+a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 ### Slack - setup & usage:
 

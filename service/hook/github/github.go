@@ -9,7 +9,6 @@ import (
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/go-utils/httputil"
 	"github.com/bitrise-io/go-utils/sliceutil"
 )
 
@@ -209,14 +208,14 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 }
 
 func detectContentTypeAndEventID(header http.Header) (string, string, error) {
-	contentType, err := httputil.GetSingleValueFromHeader("Content-Type", header)
-	if err != nil {
-		return "", "", fmt.Errorf("Issue with Content-Type Header: %s", err)
+	contentType := header.Get("Content-Type")
+	if contentType == "" {
+		return "", "", errors.New("No Content-Type Header found")
 	}
 
-	ghEvent, err := httputil.GetSingleValueFromHeader("X-Github-Event", header)
-	if err != nil {
-		return "", "", fmt.Errorf("Issue with X-Github-Event Header: %s", err)
+	ghEvent := header.Get("X-Github-Event")
+	if ghEvent == "" {
+		return "", "", errors.New("No X-Github-Event Header found")
 	}
 
 	return contentType, ghEvent, nil

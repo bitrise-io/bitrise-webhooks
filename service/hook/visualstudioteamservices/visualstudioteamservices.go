@@ -2,6 +2,7 @@ package visualstudioteamservices
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -9,7 +10,10 @@ import (
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/go-utils/httputil"
+)
+
+const (
+	emptyCommitHash = "0000000000000000000000000000000000000000"
 )
 
 // --------------------------
@@ -34,12 +38,18 @@ type ResourceModel struct {
 	RefUpdates []RefUpdatesModel `json:"refUpdates"`
 }
 
+// EventMessage ...
+type EventMessage struct {
+	Text string `json:"text"`
+}
+
 // PushEventModel ...
 type PushEventModel struct {
-	SubscriptionID string        `json:"subscriptionId"`
-	EventType      string        `json:"eventType"`
-	PublisherID    string        `json:"publisherId"`
-	Resource       ResourceModel `json:"resource"`
+	SubscriptionID  string        `json:"subscriptionId"`
+	EventType       string        `json:"eventType"`
+	PublisherID     string        `json:"publisherId"`
+	Resource        ResourceModel `json:"resource"`
+	DetailedMessage EventMessage  `json:"detailedMessage"`
 }
 
 // ---------------------------------------
@@ -49,9 +59,9 @@ type PushEventModel struct {
 type HookProvider struct{}
 
 func detectContentType(header http.Header) (string, error) {
-	contentType, err := httputil.GetSingleValueFromHeader("Content-Type", header)
-	if err != nil {
-		return "", fmt.Errorf("Issue with Content-Type Header: %s", err)
+	contentType := header.Get("Content-Type")
+	if contentType == "" {
+		return "", errors.New("No Content-Type Header found")
 	}
 
 	return contentType, nil
@@ -61,19 +71,19 @@ func detectContentType(header http.Header) (string, error) {
 func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
 	if pushEvent.PublisherID != "tfs" {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Not a Team Foundation Server notification, can't start a build."),
+			Error: fmt.Errorf("Not a Team Foundation Server notification, can't start a build"),
 		}
 	}
 
 	if pushEvent.EventType != "git.push" {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Not a push event, can't start a build."),
+			Error: fmt.Errorf("Not a push event, can't start a build"),
 		}
 	}
 
 	if pushEvent.SubscriptionID == "00000000-0000-0000-0000-000000000000" {
 		return hookCommon.TransformResultModel{
-			Error:      fmt.Errorf("Initial (test) event detected, skipping."),
+			Error:      fmt.Errorf("Initial (test) event detected, skipping"),
 			ShouldSkip: true,
 		}
 	}
@@ -82,7 +92,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 	if len(pushEvent.Resource.RefUpdates) != 1 {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Can't detect branch information (resource.refUpdates is empty), can't start a build."),
+			Error: fmt.Errorf("Can't detect branch information (resource.refUpdates is empty), can't start a build"),
 		}
 	}
 
@@ -93,8 +103,55 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		branch := strings.TrimPrefix(pushRef, "refs/heads/")
 
 		if len(pushEvent.Resource.Commits) < 1 {
+			commitHash := headRefUpdate.NewObjectID
+			if commitHash == emptyCommitHash {
+				// no commits and the (new) commit hash is empty -> this is a delete event,
+				// the branch was deleted
+				return hookCommon.TransformResultModel{
+					Error:      fmt.Errorf("Branch delete event - does not require a build"),
+					ShouldSkip: true,
+				}
+			}
+			if headRefUpdate.OldObjectID == emptyCommitHash {
+				// (new) commit hash was not empty, but old one is -> this is a create event,
+				// without any commits pushed, just the branch created
+				return hookCommon.TransformResultModel{
+					TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+						{
+							BuildParams: bitriseapi.BuildParamsModel{
+								Branch:        branch,
+								CommitHash:    commitHash,
+								CommitMessage: "Branch created",
+							},
+						},
+					},
+				}
+			}
+
+			if commitHash != "" && headRefUpdate.OldObjectID != "" {
+				// Both old and new commit hash defined in the head ref update,
+				// but no "commits" info - this happens right now when you merge
+				// a Pull Request on visualstudio.com
+				// It will generate a commit and webhook, you can see the commit in
+				// `git log`, but it does not include it in the hook event,
+				// only the head ref change.
+				// So, for now, we'll use the event's detailed message as the commit message.
+				return hookCommon.TransformResultModel{
+					TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+						{
+							BuildParams: bitriseapi.BuildParamsModel{
+								Branch:        branch,
+								CommitHash:    commitHash,
+								CommitMessage: pushEvent.DetailedMessage.Text,
+							},
+						},
+					},
+				}
+			}
+
+			// in every other case:
 			return hookCommon.TransformResultModel{
-				Error: fmt.Errorf("No 'commits' included in the webhook, can't start a build."),
+				Error: fmt.Errorf("No 'commits' included in the webhook, can't start a build"),
 			}
 		}
 		// Commits are in descending order, by commit date-time (first one is the latest)
@@ -115,7 +172,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		// tag push
 		tag := strings.TrimPrefix(pushRef, "refs/tags/")
 		commitHash := headRefUpdate.NewObjectID
-		if commitHash == "0000000000000000000000000000000000000000" {
+		if commitHash == emptyCommitHash {
 			// deleted
 			return hookCommon.TransformResultModel{
 				Error:      fmt.Errorf("Tag delete event - does not require a build"),

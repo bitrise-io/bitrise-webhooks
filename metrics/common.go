@@ -4,24 +4,14 @@ import (
 	"log"
 	"net/http"
 	"time"
-
-	"github.com/bitrise-io/go-utils/httputil"
 )
-
-func getContentTypeFromHeader(header http.Header) string {
-	contentType, err := httputil.GetSingleValueFromHeader("Content-Type", header)
-	if err != nil {
-		return ""
-	}
-	return contentType
-}
 
 // WrapHandlerFunc ...
 func WrapHandlerFunc(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	requestWrap := func(w http.ResponseWriter, req *http.Request) {
 		startTime := time.Now()
 		h(w, req)
-		log.Printf(" => %s: %s - %s (%s)", req.Method, req.RequestURI, time.Since(startTime), getContentTypeFromHeader(req.Header))
+		log.Printf(" => %s: %s - %s (%s)", req.Method, req.RequestURI, time.Since(startTime), req.Header.Get("Content-Type"))
 	}
 	return requestWrap
 	// if newRelicAgent == nil {

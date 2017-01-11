@@ -35,24 +35,6 @@ const (
 		"publisherId": "-"
 	}`
 
-	sampleCodeGitPushWithNoChanges = `{
-	  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
-	  "notificationId": 10,
-	  "id": "03c164c2-8912-4d5e-8009-3707d5f83734",
-	  "eventType": "git.push",
-	  "publisherId": "tfs",
-	  "resource": {
-	    "commits": [],
-	    "refUpdates": [
-	      {
-	        "name": "refs/heads/master",
-	        "oldObjectId": "aad331d8d3b131fa9ae03cf5e53965b51942618a",
-	        "newObjectId": "33b55f7cb7e7e245323987634f960cf4a6e6bc74"
-	      }
-	    ]
-	  }
-	}`
-
 	sampleCodeGitPushWithNoBranchInformation = `{
 	  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
 	  "notificationId": 10,
@@ -245,7 +227,7 @@ func Test_detectContentType(t *testing.T) {
 	{
 		header := http.Header{}
 		contentType, err := detectContentType(header)
-		require.EqualError(t, err, "Issue with Content-Type Header: No value found in HEADER for the key: Content-Type")
+		require.EqualError(t, err, "No Content-Type Header found")
 		require.Equal(t, "", contentType)
 	}
 }
@@ -271,7 +253,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Issue with Content-Type Header: No value found in HEADER for the key: Content-Type")
+		require.EqualError(t, hookTransformResult.Error, "No Content-Type Header found")
 	}
 
 	t.Log("No Request Body")
@@ -294,7 +276,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodeEmptySubscriptionID)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Initial (test) event detected, skipping.")
+		require.EqualError(t, hookTransformResult.Error, "Initial (test) event detected, skipping")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
@@ -308,7 +290,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushBadPublisherID)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Not a Team Foundation Server notification, can't start a build.")
+		require.EqualError(t, hookTransformResult.Error, "Not a Team Foundation Server notification, can't start a build")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
@@ -322,21 +304,35 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushBadEventType)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Not a push event, can't start a build.")
+		require.EqualError(t, hookTransformResult.Error, "Not a push event, can't start a build")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 
-	t.Log("Empty commit list")
+	t.Log("Empty commits & no refUpdates")
 	{
 		request := http.Request{
 			Header: http.Header{
 				"Content-Type": {"application/json; charset=utf-8"},
 			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushWithNoChanges)),
+			Body: ioutil.NopCloser(strings.NewReader(`{
+	  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+	  "notificationId": 10,
+	  "id": "03c164c2-8912-4d5e-8009-3707d5f83734",
+	  "eventType": "git.push",
+	  "publisherId": "tfs",
+	  "resource": {
+	    "commits": [],
+	    "refUpdates": [
+	      {
+	        "name": "refs/heads/master"
+	      }
+	    ]
+	  }
+	}`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "No 'commits' included in the webhook, can't start a build.")
+		require.EqualError(t, hookTransformResult.Error, "No 'commits' included in the webhook, can't start a build")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
@@ -350,7 +346,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushWithNoBranchInformation)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Can't detect branch information (resource.refUpdates is empty), can't start a build.")
+		require.EqualError(t, hookTransformResult.Error, "Can't detect branch information (resource.refUpdates is empty), can't start a build")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
@@ -472,5 +468,110 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Tag delete event - does not require a build")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Git.push - Branch Delete")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.push",
+  "publisherId": "tfs",
+  "resource": {
+    "refUpdates": [
+      {
+        "name": "refs/heads/test-branch",
+        "oldObjectId": "7c0d90dc542b86747e42ac8f03f794a96ecfc68a",
+        "newObjectId": "0000000000000000000000000000000000000000"
+      }
+    ]
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.EqualError(t, hookTransformResult.Error, "Branch delete event - does not require a build")
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Git.push - Branch Created")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.push",
+  "publisherId": "tfs",
+  "resource": {
+    "refUpdates": [
+      {
+        "name": "refs/heads/test-branch",
+        "oldObjectId": "0000000000000000000000000000000000000000",
+        "newObjectId": "7c0d90dc542b86747e42ac8f03f794a96ecfc68a"
+      }
+    ]
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch:        "test-branch",
+					CommitHash:    "7c0d90dc542b86747e42ac8f03f794a96ecfc68a",
+					CommitMessage: "Branch created",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Git.push - Pull Request merged (no commit!?!?)")
+	{
+		// Yep, when you merge a pull request on visualstudio.com
+		// it will send a hook without any commit info, although
+		// you can see the merge commit in `git log`
+		// The commit hash in refUpdates is correct, but the right
+		// message is not included anywhere.
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.push",
+  "publisherId": "tfs",
+  "detailedMessage": {
+    "text": "Author Name pushed 4 commits to branch master of test project\r\n - PR 3: Merge feature/new-branch-test to master 293d9ead ..."
+  },
+  "resource": {
+    "refUpdates": [
+      {
+        "name": "refs/heads/master",
+        "oldObjectId": "6c0d90dc542b86747e42ac8f03f794a96ecfc68a",
+        "newObjectId": "7c0d90dc542b86747e42ac8f03f794a96ecfc68a"
+      }
+    ]
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Branch:        "master",
+					CommitHash:    "7c0d90dc542b86747e42ac8f03f794a96ecfc68a",
+					CommitMessage: "Author Name pushed 4 commits to branch master of test project\r\n - PR 3: Merge feature/new-branch-test to master 293d9ead ...",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
 	}
 }
