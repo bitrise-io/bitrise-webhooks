@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/bitrise-io/bitrise-webhooks",
 	"GoVersion": "go1.7",
-	"GodepVersion": "v75",
+	"GodepVersion": "v76",
 	"Packages": [
 		"./..."
 	],
