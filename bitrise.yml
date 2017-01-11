@@ -9,7 +9,7 @@ app:
   - IS_USE_GIN: "yes"
   # optionally, define these in your .bitrise.secrets.yml
   - SEND_REQUEST_TO: $SEND_REQUEST_TO
-  # 
+  #
   - RELEASE_START_BRANCH: 'master'
   - RELEASE_DESTINATION_BRANCH: 'prod'
 
@@ -145,6 +145,7 @@ workflows:
             echo
 
             git checkout ${RELEASE_DESTINATION_BRANCH}
+            git pull
             git merge ${RELEASE_START_BRANCH} --no-ff -m "Merge ${RELEASE_START_BRANCH} into ${RELEASE_DESTINATION_BRANCH}, release: v${bumped_version}"
             git tag "${bumped_version}"
             echo
@@ -169,9 +170,9 @@ workflows:
             fi
             git push
             git push --tags
-            # 
+            #
             git checkout ${RELEASE_DESTINATION_BRANCH}
             git push
             git push --tags
             #
-            git checkout ${RELEASE_START_BRANCH} 
+            git checkout ${RELEASE_START_BRANCH}
