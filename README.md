@@ -27,7 +27,7 @@ If the (commit) message includes `[skip ci]` or `[ci skip]` no build will be tri
   * handled on the path: `/h/visualstudio/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * [GitLab](https://gitlab.com)
   * handled on the path: `/h/gitlab/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
-* [Gogs](https://gogs.io)
+* [Gogs](https://gogs.io) or [Gitea](https://gitea.io)
   * handled on the path: `/h/gogs/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * [Deveo](https://deveo.com)
   * handled on the path: `/h/deveo/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
@@ -92,7 +92,8 @@ a build will be triggered (if you have Trigger mapping defined for the event(s) 
 
 ### Gogs - setup & usage:
 
-All you have to do is register your `bitrise-webhooks` URL as a Webhook in your [Gogs](https://gogs.io) repository.
+All you have to do is register your `bitrise-webhooks` URL as a Webhook in your [Gogs](https://gogs.io)
+or [Gitea](https://gitea.io) repository. (Both repositories use the same Webhook format.)
 
 1. Open your *project* on your repository's hosting URL.
 1. Go to `Settings` of the *project*
@@ -100,7 +101,8 @@ All you have to do is register your `bitrise-webhooks` URL as a Webhook in your 
 1. Specify the `bitrise-webhooks` URL (`.../h/gogs/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `Payload URL` field.
 1. Set the `Content Type` to `application/json`.
 1. A Secret is not required at this time.
-1. Set the trigger to be fired on `Just the push event`
+1. Set the trigger to be fired on either `Just the push event` or `Let me choose what I need` and select
+`Create` and `Push`. (Pull request triggers are not supported at this time.)
 1. Save the Webhook.
 
 That's all! The next time you __push code__
