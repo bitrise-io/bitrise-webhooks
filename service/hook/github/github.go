@@ -88,7 +88,8 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		return hookCommon.TransformResultModel{
 			Error: errors.New("This is a 'Deleted' event, no build can be started"),
 			// ShouldSkip because there's no reason to respond with a "red" / 4xx error for this event,
-			// but this event should never start a build either.
+			// but this event should never start a build either, so we mark this with `ShouldSkip`
+			// to return with the error message (above), but with a "green" / 2xx http code.
 			ShouldSkip: true,
 		}
 	}
