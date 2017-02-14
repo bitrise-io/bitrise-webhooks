@@ -15,7 +15,8 @@
     },
     "SEND_REQUEST_TO": {
       "description": "DEBUG: set a specific URL, where every request will be sent by the server, instead of sending the trigger requests to bitrise.io",
-      "value": ""
+      "value": "",
+      "required": false
     }
   }
 }
