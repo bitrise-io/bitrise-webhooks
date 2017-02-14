@@ -86,7 +86,9 @@ type HookProvider struct{}
 func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
 	if pushEvent.Deleted {
 		return hookCommon.TransformResultModel{
-			Error:      errors.New("This is a 'Deleted' event, no build can be started"),
+			Error: errors.New("This is a 'Deleted' event, no build can be started"),
+			// ShouldSkip because there's no reason to respond with a "red" / 4xx error for this event,
+			// but this event should never start a build either.
 			ShouldSkip: true,
 		}
 	}
@@ -150,9 +152,7 @@ func isAcceptPullRequestAction(prAction string) bool {
 func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.TransformResultModel {
 	if pullRequest.Action == "" {
 		return hookCommon.TransformResultModel{
-			Error: errors.New("No Pull Request action specified"),
-			// ShouldSkip because there's no reason to respond with a "red" / 4xx error for this event,
-			// but this event should never start a build either.
+			Error:      errors.New("No Pull Request action specified"),
 			ShouldSkip: true,
 		}
 	}
