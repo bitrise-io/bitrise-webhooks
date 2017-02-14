@@ -1,0 +1,21 @@
+{
+  "name": "Bitrise Webhooks Processor",
+  "description": "Transforms various webhooks (GitHub, Bitbucket, Slack, ...) to bitrise.io's Build Trigger API format, and calls it to start a build.",
+  "keywords": [
+    "bitrise",
+    "bitrise.io"
+  ],
+  "repository": "https://github.com/bitrise-team/bitrise-api",
+  "logo": "https://bitrise-public-content-production.s3.amazonaws.com/slack/bitrise-slack-icon-128.png",
+  "website": "https://www.bitrise.io",
+  "env": {
+    "SEND_REQUEST_TO": {
+      "description": "DEBUG: set a specific URL, where every request will be sent by the server, instead of sending the trigger requests to bitrise.io",
+      "value": ""
+    },
+    "RACK_ENV": {
+      "description": "To DEBUG / if you want to use SEND_REQUEST_TO set this to: development. Otherwise, if you want to send the trigger requests to bitrise.io, set/keep this as: production",
+      "value": "production"
+    }
+  }
+}
