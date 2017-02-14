@@ -24,8 +24,8 @@ import (
 // --- Webhook Data Model ---
 
 const (
-	pushEventID = "push"
-	tagEventID  = "create"
+	pushEventID   = "push"
+	createEventID = "create"
 )
 
 // CommitModel ...
@@ -42,8 +42,8 @@ type PushEventModel struct {
 	Commits     []CommitModel `json:"commits"`
 }
 
-// TagEventModel ...
-type TagEventModel struct {
+// CreateEventModel ...
+type CreateEventModel struct {
 	Secret  string `json:"secret"`
 	Ref     string `json:"ref"`
 	RefType string `json:"ref_type"`
@@ -82,15 +82,13 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 	if !isLastCommitFound {
 		return hookCommon.TransformResultModel{
-			Error:      errors.New("The commit specified by 'after' was not included in the 'commits' array - no match found"),
-			ShouldSkip: true,
+			Error: errors.New("The commit specified by 'after' was not included in the 'commits' array - no match found"),
 		}
 	}
 
 	if len(lastCommit.CommitHash) == 0 {
 		return hookCommon.TransformResultModel{
-			Error:      fmt.Errorf("Missing commit hash"),
-			ShouldSkip: true,
+			Error: fmt.Errorf("Missing commit hash"),
 		}
 	}
 
@@ -109,12 +107,22 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 	}
 }
 
-func transformTagEvent(tagEvent TagEventModel) hookCommon.TransformResultModel {
+func transformCreateEvent(createEvent CreateEventModel) hookCommon.TransformResultModel {
+	// Currently, we only support tag creation, not branches. Even if we wanted branch creation
+	// to trigger a build we would have to wait for https://github.com/go-gitea/gitea/issues/286
+	// to be in both Gogs and Gitea core, and well adopted/distributed.
+	if createEvent.RefType != "tag" {
+		return hookCommon.TransformResultModel{
+			Error:      errors.New("Ignoring branch-create request"),
+			ShouldSkip: true,
+		}
+	}
+
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag: tagEvent.Ref,
+					Tag: createEvent.Ref,
 				},
 			},
 		},
@@ -126,8 +134,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	contentType, eventID, err := detectContentTypeAndEventID(r.Header)
 	if err != nil {
 		return hookCommon.TransformResultModel{
-			Error:      fmt.Errorf("Issue with Headers: %s", err),
-			ShouldSkip: true,
+			Error: fmt.Errorf("Issue with Headers: %s", err),
 		}
 	}
 
@@ -151,19 +158,17 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 
 		return transformPushEvent(pushEvent)
 
-	} else if eventID == tagEventID {
-		var tagEvent TagEventModel
-		if err := json.NewDecoder(r.Body).Decode(&tagEvent); err != nil {
+	} else if eventID == createEventID {
+		var createEvent CreateEventModel
+		if err := json.NewDecoder(r.Body).Decode(&createEvent); err != nil {
 			return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: %s", err)}
 		}
 
-		return transformTagEvent(tagEvent)
-
+		return transformCreateEvent(createEvent)
 	}
 
 	// Unsupported Event
 	return hookCommon.TransformResultModel{
-		Error:      fmt.Errorf("Unsupported Webhook event: %s", eventID),
-		ShouldSkip: true,
+		Error: fmt.Errorf("Unsupported Webhook event: %s", eventID),
 	}
 }
