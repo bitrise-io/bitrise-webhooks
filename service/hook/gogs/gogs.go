@@ -42,6 +42,7 @@ type PushEventModel struct {
 	Commits     []CommitModel `json:"commits"`
 }
 
+// TagEventModel ...
 type TagEventModel struct {
 	Secret  string `json:"secret"`
 	Ref     string `json:"ref"`
