@@ -145,7 +145,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 			},
 		}
 		hookTransformResult := transformCodePushEvent(codePush)
-		require.True(t, hookTransformResult.ShouldSkip)
+		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
@@ -174,6 +174,12 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
   "secret": "",
   "ref": "v1.12",
   "ref_type": "tag"
+}`
+
+	const sampleBranchCreatePushData = `{
+  "secret": "",
+  "ref": "mybranch",
+  "ref_type": "branch"
 }`
 
 	t.Log("Code Push - should be handled")
@@ -219,6 +225,21 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Branch Create - should be ignored")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Gogs-Event": {"create"},
+				"Content-Type": {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleBranchCreatePushData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Ignoring branch-create request")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 
 	t.Log("Unsupported Content-Type")
