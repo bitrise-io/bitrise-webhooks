@@ -262,6 +262,9 @@ it to [bitrise.io](https://www.bitrise.io).
 * `git push heroku master`
 * `heroku ps:scale web=1`
 
+Alternatively you can use this Heroku deploy button, if you prefer the web UI
+over the heroku CLI: [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+
 Done. Your Bitrise Webhooks server is now running on Heroku.
 
 You can open it with `heroku open` - opening the root URL of the server
