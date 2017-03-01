@@ -808,13 +808,6 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					Branch:        "master",
 				},
 			},
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "19934139a2cf799bbd0f5061ab02e4760902e93f",
-					CommitMessage: "auto-test 2",
-					Branch:        "test",
-				},
-			},
 		}, hookTransformResult.TriggerAPIParams)
 	}
 	t.Log("Test with Sample Tag Push data")
