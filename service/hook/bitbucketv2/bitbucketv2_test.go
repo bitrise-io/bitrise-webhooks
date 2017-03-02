@@ -41,6 +41,35 @@ const (
 }
 }`
 
+	sampleMercurialCodePushData = `{
+"push": {
+	"changes": [
+		{
+			"new": {
+				"name": "master",
+				"type": "named_branch",
+				"target": {
+					"type": "commit",
+					"message": "auto-test",
+					"hash": "966d0bfe79b80f97268c2f6bb45e65e79ef09b31"
+				}
+			}
+		},
+		{
+			"new": {
+				"name": "test",
+				"type": "named_branch",
+				"target": {
+					"type": "commit",
+					"message": "auto-test 2",
+					"hash": "19934139a2cf799bbd0f5061ab02e4760902e93f"
+				}
+			}
+		}
+	]
+}
+}`
+
 	sampleTagPushData = `{
 "push": {
 	"changes": [
@@ -769,6 +798,36 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
+	t.Log("Test with Sample Mercurial Code Push data")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":      {"repo:push"},
+				"Content-Type":     {"application/json"},
+				"X-Attempt-Number": {"1"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleMercurialCodePushData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					CommitMessage: "auto-test",
+					Branch:        "master",
+				},
+			},
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    "19934139a2cf799bbd0f5061ab02e4760902e93f",
+					CommitMessage: "auto-test 2",
+					Branch:        "test",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
 	t.Log("Test with Sample Tag Push data")
 	{
 		request := http.Request{
