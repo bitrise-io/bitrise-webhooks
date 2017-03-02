@@ -126,7 +126,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 	errs := []string{}
 	for _, aChnage := range pushEvent.PushInfo.Changes {
 		aNewItm := aChnage.ChangeNewItem
-		if aNewItm.Type == "branch" {
+		if aNewItm.Type == "branch" || aNewItm.Type == "named_branch" {
 			if aNewItm.Target.Type != "commit" {
 				errs = append(errs, fmt.Sprintf("Target was not a type=commit change. Type was: %s", aNewItm.Target.Type))
 				continue
