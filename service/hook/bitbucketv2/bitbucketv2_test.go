@@ -38,6 +38,13 @@ const (
 			}
 		}
 	]
+},
+"repository": {
+  "owner": {},
+  "full_name": "test/testrepo",
+  "is_private": true,
+  "type": "repository",
+  "scm": "git"
 }
 }`
 
@@ -67,6 +74,13 @@ const (
 			}
 		}
 	]
+},
+"repository": {
+  "owner": {},
+  "full_name": "test/hg-testrepo",
+  "is_private": true,
+  "type": "repository",
+  "scm": "hg"
 }
 }`
 
@@ -96,6 +110,13 @@ const (
 			}
 		}
 	]
+},
+"repository": {
+  "owner": {},
+  "full_name": "test/testrepo",
+  "is_private": true,
+  "type": "repository",
+  "scm": "git"
 }
 }`
 
@@ -250,19 +271,35 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
-		}
-		hookTransformResult := transformPushEvent(pushEvent)
-		require.NoError(t, hookTransformResult.Error)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
-					CommitMessage: "auto-test",
-					Branch:        "master",
-				},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
 			},
-		}, hookTransformResult.TriggerAPIParams)
+		}
+
+		// OK
+		{
+			hookTransformResult := transformPushEvent(pushEvent)
+			require.NoError(t, hookTransformResult.Error)
+			require.False(t, hookTransformResult.ShouldSkip)
+			require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+				{
+					BuildParams: bitriseapi.BuildParamsModel{
+						CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+						CommitMessage: "auto-test",
+						Branch:        "master",
+					},
+				},
+			}, hookTransformResult.TriggerAPIParams)
+		}
+
+		// no Scm info
+		pushEvent.RepositoryInfo.Scm = "invalid-scm-or-empty"
+		{
+			hookTransformResult := transformPushEvent(pushEvent)
+			require.EqualError(t, hookTransformResult.Error, "Unsupported repository / source control type (SCM): invalid-scm-or-empty")
+			require.False(t, hookTransformResult.ShouldSkip)
+			require.Nil(t, hookTransformResult.TriggerAPIParams)
+		}
 	}
 
 	t.Log("Do Transform - single change - tag")
@@ -282,6 +319,9 @@ func Test_transformPushEvent(t *testing.T) {
 						},
 					},
 				},
+			},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
 			},
 		}
 		hookTransformResult := transformPushEvent(tagPushEvent)
@@ -326,6 +366,9 @@ func Test_transformPushEvent(t *testing.T) {
 						},
 					},
 				},
+			},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
 			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
@@ -378,6 +421,9 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
+			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
 		require.NoError(t, hookTransformResult.Error)
@@ -429,6 +475,9 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
+			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
 		require.NoError(t, hookTransformResult.Error)
@@ -473,6 +522,9 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
+			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
 		require.NoError(t, hookTransformResult.Error)
@@ -501,6 +553,9 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
+			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
 		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Not a type=branch nor type=tag change. Change.Type was: not-branch-nor-tag]")
@@ -523,6 +578,9 @@ func Test_transformPushEvent(t *testing.T) {
 						},
 					},
 				},
+			},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
 			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
