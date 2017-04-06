@@ -3,7 +3,7 @@
 Bitrise Webhooks processor.
 
 Transforms various webhooks (GitHub, Bitbucket, Slack, ...) to [bitrise.io](https://www.bitrise.io)'s
-[Build Trigger API format](http://devcenter.bitrise.io/docs/build-trigger-api),
+[Build Trigger API format](http://devcenter.bitrise.io/api/build-trigger/),
 and calls it to start a build.
 
 **Feel free to add your own webhook transform provider to this project!**
