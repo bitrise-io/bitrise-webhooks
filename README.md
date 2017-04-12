@@ -9,6 +9,8 @@ and calls it to start a build.
 **Feel free to add your own webhook transform provider to this project!**
 For more information check the *How to add support for a new Provider* section.
 
+[![Build Status](https://www.bitrise.io/app/8497e83cdf562ebb.svg?token=wuCyk-mqTVE0LTnjgiY82Q&branch=master)](https://www.bitrise.io/app/8497e83cdf562ebb)
+
 
 ## CI Skip
  
