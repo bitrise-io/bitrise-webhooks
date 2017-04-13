@@ -49,7 +49,7 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 func Test_transformCodePushEvent(t *testing.T) {
 	t.Log("Do Transform - single commit")
 	{
-		codePush := CodePushEventModel{
+		codePush := PushEventModel{
 			Secret:      "",
 			Ref:         "refs/heads/master",
 			CheckoutSHA: "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
@@ -60,7 +60,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := transformPushEvent(codePush)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -76,7 +76,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 
 	t.Log("Do Transform - multiple commits - CheckoutSHA match should trigger the build")
 	{
-		codePush := CodePushEventModel{
+		codePush := PushEventModel{
 			Secret:      "",
 			Ref:         "refs/heads/master",
 			CheckoutSHA: "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
@@ -95,7 +95,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := transformPushEvent(codePush)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -111,7 +111,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 
 	t.Log("No commit matches CheckoutSHA")
 	{
-		codePush := CodePushEventModel{
+		codePush := PushEventModel{
 			Secret:      "",
 			Ref:         "refs/heads/master",
 			CheckoutSHA: "checkout-sha",
@@ -122,28 +122,9 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := transformPushEvent(codePush)
 		require.EqualError(t, hookTransformResult.Error, "The commit specified by 'after' was not included in the 'commits' array - no match found")
 		require.False(t, hookTransformResult.ShouldSkip)
-		require.Nil(t, hookTransformResult.TriggerAPIParams)
-	}
-
-	t.Log("Not a head ref")
-	{
-		codePush := CodePushEventModel{
-			Secret:      "",
-			Ref:         "refs/not/head",
-			CheckoutSHA: "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
-			Commits: []CommitModel{
-				{
-					CommitHash:    "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
-					CommitMessage: `Response: omit the "failed_responses" array if empty`,
-				},
-			},
-		}
-		hookTransformResult := transformCodePushEvent(codePush)
-		require.True(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Ref (refs/not/head) is not a head ref")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 }
@@ -165,6 +146,18 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
       "message": "second commit message"
     }
   ]
+}`
+
+	const sampleTagPushData = `{
+  "secret": "",
+  "ref": "v1.12",
+  "ref_type": "tag"
+}`
+
+	const sampleBranchCreatePushData = `{
+  "secret": "",
+  "ref": "mybranch",
+  "ref_type": "branch"
 }`
 
 	t.Log("Code Push - should be handled")
@@ -190,7 +183,43 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 	}
 
-	t.Log("Unsuported Content-Type")
+	t.Log("Tag Push - should be handled")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Gogs-Event": {"create"},
+				"Content-Type": {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleTagPushData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Tag: "v1.12",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Branch Create - should be ignored")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Gogs-Event": {"create"},
+				"Content-Type": {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleBranchCreatePushData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Ignoring branch-create request")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+	}
+
+	t.Log("Unsupported Content-Type")
 	{
 		request := http.Request{
 			Header: http.Header{
