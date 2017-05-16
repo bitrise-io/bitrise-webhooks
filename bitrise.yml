@@ -1,34 +1,20 @@
-format_version: 1.1.0
+format_version: 3
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
-
 app:
   envs:
   - GO_PROJECT_PATH: github.com/bitrise-io/bitrise-webhooks
   - PORT: "4000"
-  # if set to "yes" we'll use github.com/codegangsta/gin to live-reload the code on change
   - IS_USE_GIN: "yes"
-  # optionally, define these in your .bitrise.secrets.yml
+    opts:
+      description: |
+        If set to "yes" we'll use github.com/codegangsta/gin to live-reload the code on change.
   - SEND_REQUEST_TO: $SEND_REQUEST_TO
-  #
-  - RELEASE_START_BRANCH: 'master'
-  - RELEASE_DESTINATION_BRANCH: 'prod'
-
+    opts:
+      description: |
+        Optionally, define this in your .bitrise.secrets.yml, to send requests to the specified URL.
+  - RELEASE_START_BRANCH: master
+  - RELEASE_DESTINATION_BRANCH: prod
 workflows:
-  start:
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            go install $GO_PROJECT_PATH
-            if [ "$IS_USE_GIN" == "yes" ] ; then
-              go get github.com/codegangsta/gin
-              gin --port $PORT
-            else
-              bitrise-webhooks -port $PORT
-            fi
-
   _install_test_tools:
     steps:
     - script:
@@ -43,73 +29,12 @@ workflows:
 
             # Go lint
             go get -u github.com/golang/lint/golint
-  test:
-    before_run:
-    - _install_test_tools
-    steps:
-    - script:
-        title: Print infos for the test
-        inputs:
-        - content: |-
-            set -x
-            go version
-    - script:
-        title: GOLIST_WITHOUT_VENDOR
-        inputs:
-        - content: |-
-            set -ex
-            no_vendor_paths="$(go list ./... | grep -v vendor)"
-            envman add --key GOLIST_WITHOUT_VENDOR --value "$no_vendor_paths"
-    - script:
-        title: Go Test
-        inputs:
-        - content: go test ./...
-    - script:
-        title: Go Vet
-        inputs:
-        - content: go vet ./...
-    - script:
-        title: Err check
-        inputs:
-        - content: errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
-    - script:
-        title: Go Lint
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -e
-
-            while read -r line; do
-              echo "-> Linting: $line"
-              golint_out="$(golint $line)"
-              if [[ "${golint_out}" != "" ]] ; then
-                echo "=> Golint issues found:"
-                echo "${golint_out}"
-                exit 1
-              fi
-            done <<< "$GOLIST_WITHOUT_VENDOR"
-
-  godeps-update:
-    steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            go get -u -v github.com/tools/godep
-            #
-            rm -rf ./Godeps
-            rm -rf ./vendor
-            #
-            go get -t -d ./...
-            go get github.com/davecgh/go-spew/spew
-            go get github.com/pmezard/go-difflib/difflib
-            godep save ./...
-
   create-release:
     steps:
-    - ensure-clean-git:
+    - ensure-clean-git: {}
     - script:
+        title: bump version number, then merge into 'prod' branch, tag & commit &
+          push
         inputs:
         - content: |-
             #!/bin/bash
@@ -155,10 +80,26 @@ workflows:
             echo
 
             git checkout ${RELEASE_START_BRANCH}
-
+  godeps-update:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            go get -u -v github.com/tools/godep
+            #
+            rm -rf ./Godeps
+            rm -rf ./vendor
+            #
+            go get -t -d ./...
+            go get github.com/davecgh/go-spew/spew
+            go get github.com/pmezard/go-difflib/difflib
+            godep save ./...
   publish-release:
     steps:
     - script:
+        title: git push both 'master' and 'prod' as well as the tags
         inputs:
         - content: |-
             #!/bin/bash
@@ -176,3 +117,62 @@ workflows:
             git push --tags
             #
             git checkout ${RELEASE_START_BRANCH}
+  start:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            go install $GO_PROJECT_PATH
+            if [ "$IS_USE_GIN" == "yes" ] ; then
+              go get github.com/codegangsta/gin
+              gin --port $PORT
+            else
+              bitrise-webhooks -port $PORT
+            fi
+  test:
+    before_run:
+    - _install_test_tools
+    steps:
+    - script:
+        title: Print infos for the test
+        inputs:
+        - content: |-
+            set -x
+            go version
+    - script:
+        title: GOLIST_WITHOUT_VENDOR
+        inputs:
+        - content: |-
+            set -ex
+            no_vendor_paths="$(go list ./... | grep -v vendor)"
+            envman add --key GOLIST_WITHOUT_VENDOR --value "$no_vendor_paths"
+    - script:
+        title: Go Test
+        inputs:
+        - content: go test ./...
+    - script:
+        title: Go Vet
+        inputs:
+        - content: go vet ./...
+    - script:
+        title: Err check
+        inputs:
+        - content: errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
+    - script:
+        title: Go Lint
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -e
+
+            while read -r line; do
+              echo "-> Linting: $line"
+              golint_out="$(golint $line)"
+              if [[ "${golint_out}" != "" ]] ; then
+                echo "=> Golint issues found:"
+                echo "${golint_out}"
+                exit 1
+              fi
+            done <<< "$GOLIST_WITHOUT_VENDOR"
