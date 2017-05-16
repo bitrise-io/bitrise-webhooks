@@ -308,6 +308,8 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 		hookTransformResult := transformMergeRequestEvent(mergeRequest)
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Not a Merge Request object")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Empty Merge Request state")
@@ -319,6 +321,8 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 		hookTransformResult := transformMergeRequestEvent(mergeRequest)
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "No Merge Request state specified")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Already Merged")
@@ -333,6 +337,8 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 		hookTransformResult := transformMergeRequestEvent(mergeRequest)
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Merge Request already merged")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Merge error")
@@ -347,6 +353,8 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 		hookTransformResult := transformMergeRequestEvent(mergeRequest)
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Merge Request is not mergeable")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Not yet merged")
