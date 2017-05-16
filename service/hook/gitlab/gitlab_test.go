@@ -154,6 +154,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Do Transform - multiple commits - CheckoutSHA match should trigger the build")
@@ -189,6 +190,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("No commit matches CheckoutSHA")
@@ -208,6 +210,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "The commit specified by 'checkout_sha' was not included in the 'commits' array - no match found")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Not a head ref")
@@ -227,6 +230,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Ref (refs/not/head) is not a head ref")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
 
@@ -249,6 +253,7 @@ func Test_transformTagPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("No CheckoutSHA (tag delete)")
@@ -262,6 +267,7 @@ func Test_transformTagPushEvent(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "This is a Tag Deleted event, no build is required")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Not a tags ref")
@@ -275,6 +281,7 @@ func Test_transformTagPushEvent(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Ref (refs/not/a/tag) is not a tags ref")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Not a tag_push object")
@@ -288,6 +295,7 @@ func Test_transformTagPushEvent(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Not a Tag Push object: not-a-tag_push")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
 
@@ -300,6 +308,8 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 		hookTransformResult := transformMergeRequestEvent(mergeRequest)
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Not a Merge Request object")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Empty Merge Request state")
@@ -311,6 +321,8 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 		hookTransformResult := transformMergeRequestEvent(mergeRequest)
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "No Merge Request state specified")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Already Merged")
@@ -325,6 +337,8 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 		hookTransformResult := transformMergeRequestEvent(mergeRequest)
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Merge Request already merged")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Merge error")
@@ -339,6 +353,8 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 		hookTransformResult := transformMergeRequestEvent(mergeRequest)
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Merge Request is not mergeable")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Not yet merged")
@@ -383,6 +399,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Pull Request - Title & Body")
@@ -428,6 +445,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
 
@@ -515,6 +533,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Push: Tag (create)")
@@ -541,6 +560,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Push: Tag Delete")
@@ -560,6 +580,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "This is a Tag Deleted event, no build is required")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Merge Request - should be handled")
@@ -587,6 +608,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Unsuported Content-Type")

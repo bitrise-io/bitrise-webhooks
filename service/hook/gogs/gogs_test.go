@@ -72,6 +72,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Do Transform - multiple commits - CheckoutSHA match should trigger the build")
@@ -107,6 +108,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("No commit matches CheckoutSHA")
@@ -126,6 +128,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "The commit specified by 'after' was not included in the 'commits' array - no match found")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Not a head ref")
@@ -145,6 +148,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Ref (refs/not/head) is not a head ref")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
 
@@ -188,6 +192,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Unsuported Content-Type")

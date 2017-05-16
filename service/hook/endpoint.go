@@ -171,10 +171,11 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWith := hookCommon.TransformResponseInputModel{
-		Errors:                  []string{},
-		SuccessTriggerResponses: []bitriseapi.TriggerAPIResponseModel{},
-		SkippedTriggerResponses: []hookCommon.SkipAPIResponseModel{},
-		FailedTriggerResponses:  []bitriseapi.TriggerAPIResponseModel{},
+		Errors:                       []string{},
+		SuccessTriggerResponses:      []bitriseapi.TriggerAPIResponseModel{},
+		SkippedTriggerResponses:      []hookCommon.SkipAPIResponseModel{},
+		FailedTriggerResponses:       []bitriseapi.TriggerAPIResponseModel{},
+		DidNotWaitForTriggerResponse: false,
 	}
 	metrics.Trace("Hook: Trigger Builds", func() {
 		for _, aBuildTriggerParam := range hookTransformResult.TriggerAPIParams {
@@ -190,12 +191,23 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			if triggerResp, isSuccess, err := triggerBuild(triggerURL, apiToken, aBuildTriggerParam); err != nil {
-				respondWith.Errors = append(respondWith.Errors, fmt.Sprintf("Failed to Trigger Build: %s", err))
-			} else if isSuccess {
-				respondWith.SuccessTriggerResponses = append(respondWith.SuccessTriggerResponses, triggerResp)
+			triggerBuildAndPrepareRespondWith := func() {
+				if triggerResp, isSuccess, err := triggerBuild(triggerURL, apiToken, aBuildTriggerParam); err != nil {
+					respondWith.Errors = append(respondWith.Errors, fmt.Sprintf("Failed to Trigger Build: %s", err))
+				} else if isSuccess {
+					respondWith.SuccessTriggerResponses = append(respondWith.SuccessTriggerResponses, triggerResp)
+				} else {
+					respondWith.FailedTriggerResponses = append(respondWith.FailedTriggerResponses, triggerResp)
+				}
+			}
+
+			if hookTransformResult.DontWaitForTriggerResponse {
+				// send it, but don't wait for response
+				go triggerBuildAndPrepareRespondWith()
+				respondWith.DidNotWaitForTriggerResponse = true
 			} else {
-				respondWith.FailedTriggerResponses = append(respondWith.FailedTriggerResponses, triggerResp)
+				// send and wait
+				triggerBuildAndPrepareRespondWith()
 			}
 		}
 	})

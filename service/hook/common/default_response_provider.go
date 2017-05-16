@@ -20,15 +20,20 @@ type SuccessRespModel struct {
 
 // DefaultTransformResponseModel ...
 type DefaultTransformResponseModel struct {
-	Errors                  []string                             `json:"errors,omitempty"`
-	SuccessTriggerResponses []bitriseapi.TriggerAPIResponseModel `json:"success_responses"`
-	FailedTriggerResponses  []bitriseapi.TriggerAPIResponseModel `json:"failed_responses,omitempty"`
-	SkippedTriggerResponses []SkipAPIResponseModel               `json:"skipped_responses,omitempty"`
+	Errors                       []string                             `json:"errors,omitempty"`
+	DidNotWaitForTriggerResponse bool                                 `json:"did_not_wait_for_trigger_response,omitempty"`
+	SuccessTriggerResponses      []bitriseapi.TriggerAPIResponseModel `json:"success_responses"`
+	FailedTriggerResponses       []bitriseapi.TriggerAPIResponseModel `json:"failed_responses,omitempty"`
+	SkippedTriggerResponses      []SkipAPIResponseModel               `json:"skipped_responses,omitempty"`
 }
 
 // TransformResponse ...
 func (hp DefaultResponseProvider) TransformResponse(input TransformResponseInputModel) TransformResponseModel {
 	httpStatusCode := 201
+
+	if input.DidNotWaitForTriggerResponse {
+		httpStatusCode = 200
+	}
 
 	if len(input.SuccessTriggerResponses) == 0 && len(input.SkippedTriggerResponses) > 0 {
 		httpStatusCode = 200
@@ -40,10 +45,11 @@ func (hp DefaultResponseProvider) TransformResponse(input TransformResponseInput
 
 	return TransformResponseModel{
 		Data: DefaultTransformResponseModel{
-			Errors:                  input.Errors,
-			SuccessTriggerResponses: input.SuccessTriggerResponses,
-			FailedTriggerResponses:  input.FailedTriggerResponses,
-			SkippedTriggerResponses: input.SkippedTriggerResponses,
+			Errors: input.Errors,
+			DidNotWaitForTriggerResponse: input.DidNotWaitForTriggerResponse,
+			SuccessTriggerResponses:      input.SuccessTriggerResponses,
+			FailedTriggerResponses:       input.FailedTriggerResponses,
+			SkippedTriggerResponses:      input.SkippedTriggerResponses,
 		},
 		HTTPStatusCode: httpStatusCode,
 	}
