@@ -148,6 +148,7 @@ func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
 func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
 	if !strings.HasPrefix(codePushEvent.Ref, "refs/heads/") {
 		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
 			Error:      fmt.Errorf("Ref (%s) is not a head ref", codePushEvent.Ref),
 			ShouldSkip: true,
 		}
@@ -166,11 +167,13 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 
 	if !isLastCommitFound {
 		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
 			Error: errors.New("The commit specified by 'checkout_sha' was not included in the 'commits' array - no match found"),
 		}
 	}
 
 	return hookCommon.TransformResultModel{
+		DontWaitForTriggerResponse: true,
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
@@ -186,12 +189,14 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 func transformTagPushEvent(tagPushEvent TagPushEventModel) hookCommon.TransformResultModel {
 	if tagPushEvent.ObjectKind != "tag_push" {
 		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
 			Error: fmt.Errorf("Not a Tag Push object: %s", tagPushEvent.ObjectKind),
 		}
 	}
 
 	if !strings.HasPrefix(tagPushEvent.Ref, "refs/tags/") {
 		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
 			Error: fmt.Errorf("Ref (%s) is not a tags ref", tagPushEvent.Ref),
 		}
 	}
@@ -199,12 +204,14 @@ func transformTagPushEvent(tagPushEvent TagPushEventModel) hookCommon.TransformR
 
 	if len(tagPushEvent.CheckoutSHA) < 1 {
 		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
 			Error:      errors.New("This is a Tag Deleted event, no build is required"),
 			ShouldSkip: true,
 		}
 	}
 
 	return hookCommon.TransformResultModel{
+		DontWaitForTriggerResponse: true,
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
@@ -219,6 +226,7 @@ func transformTagPushEvent(tagPushEvent TagPushEventModel) hookCommon.TransformR
 func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.TransformResultModel {
 	if mergeRequest.ObjectKind != "merge_request" {
 		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
 			Error:      errors.New("Not a Merge Request object"),
 			ShouldSkip: true,
 		}
@@ -226,6 +234,7 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 
 	if mergeRequest.ObjectAttributes.State == "" {
 		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
 			Error:      errors.New("No Merge Request state specified"),
 			ShouldSkip: true,
 		}
@@ -233,6 +242,7 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 
 	if mergeRequest.ObjectAttributes.MergeCommitSHA != "" {
 		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
 			Error:      errors.New("Merge Request already merged"),
 			ShouldSkip: true,
 		}
@@ -240,6 +250,7 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 
 	if !isAcceptMergeRequestState(mergeRequest.ObjectAttributes.State) {
 		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
 			Error:      fmt.Errorf("Merge Request state doesn't require a build: %s", mergeRequest.ObjectAttributes.State),
 			ShouldSkip: true,
 		}
@@ -247,6 +258,7 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 
 	if mergeRequest.ObjectAttributes.MergeError != "" {
 		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
 			Error:      errors.New("Merge Request is not mergeable"),
 			ShouldSkip: true,
 		}
@@ -258,6 +270,7 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 	}
 
 	return hookCommon.TransformResultModel{
+		DontWaitForTriggerResponse: true,
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
@@ -279,12 +292,14 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	contentType, eventID, err := detectContentTypeAndEventID(r.Header)
 	if err != nil {
 		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
 			Error: fmt.Errorf("Issue with Headers: %s", err),
 		}
 	}
 
 	if contentType != "application/json" {
 		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
 			Error: fmt.Errorf("Content-Type is not supported: %s", contentType),
 		}
 	}
@@ -292,12 +307,14 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	if !isAcceptEventType(eventID) {
 		// Unsupported Event
 		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
 			Error: fmt.Errorf("Unsupported Webhook event: %s", eventID),
 		}
 	}
 
 	if r.Body == nil {
 		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
 			Error: fmt.Errorf("Failed to read content of request body: no or empty request body"),
 		}
 	}
@@ -307,7 +324,9 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		var codePushEvent CodePushEventModel
 		if contentType == "application/json" {
 			if err := json.NewDecoder(r.Body).Decode(&codePushEvent); err != nil {
-				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: %s", err)}
+				return hookCommon.TransformResultModel{
+					DontWaitForTriggerResponse: true,
+					Error: fmt.Errorf("Failed to parse request body: %s", err)}
 			}
 		}
 		return transformCodePushEvent(codePushEvent)
@@ -316,20 +335,25 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		var tagPushEvent TagPushEventModel
 		if contentType == "application/json" {
 			if err := json.NewDecoder(r.Body).Decode(&tagPushEvent); err != nil {
-				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: %s", err)}
+				return hookCommon.TransformResultModel{
+					DontWaitForTriggerResponse: true,
+					Error: fmt.Errorf("Failed to parse request body: %s", err)}
 			}
 		}
 		return transformTagPushEvent(tagPushEvent)
 	} else if eventID == mergeRequestEventID {
 		var mergeRequestEvent MergeRequestEventModel
 		if err := json.NewDecoder(r.Body).Decode(&mergeRequestEvent); err != nil {
-			return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body as JSON: %s", err)}
+			return hookCommon.TransformResultModel{
+				DontWaitForTriggerResponse: true,
+				Error: fmt.Errorf("Failed to parse request body as JSON: %s", err)}
 		}
 
 		return transformMergeRequestEvent(mergeRequestEvent)
 	}
 
 	return hookCommon.TransformResultModel{
+		DontWaitForTriggerResponse: true,
 		Error: fmt.Errorf("Unsupported GitLab event type: %s", eventID),
 	}
 }
