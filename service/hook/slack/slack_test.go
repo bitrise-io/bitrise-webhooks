@@ -203,6 +203,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Should be OK - space between param key&value")
@@ -220,6 +221,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Empty parameter component")
@@ -237,6 +239,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Message parameter")
@@ -255,6 +258,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Commit parameter")
@@ -273,6 +277,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Tag parameter")
@@ -291,6 +296,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Workflow parameter")
@@ -308,6 +314,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Single environment parameter")
@@ -327,6 +334,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Multiple environment parameters, interleaved and spaced keys")
@@ -347,6 +355,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("All parameters - long form")
@@ -368,6 +377,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("All parameters - short form")
@@ -389,6 +399,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Missing branch parameter")
@@ -399,6 +410,7 @@ func Test_transformOutgoingWebhookMessage(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Missing 'branch' and 'workflow' parameters - at least one of these is required")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
 
@@ -428,6 +440,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Unsupported Event Type")

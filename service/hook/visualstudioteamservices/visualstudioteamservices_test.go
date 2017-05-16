@@ -279,6 +279,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Initial (test) event detected, skipping")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Bad publisher id")
@@ -293,6 +294,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Not a Team Foundation Server notification, can't start a build")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Bad event type")
@@ -307,6 +309,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Not a push event, can't start a build")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Empty commits & no refUpdates")
@@ -335,6 +338,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "No 'commits' included in the webhook, can't start a build")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Empty branch information")
@@ -349,6 +353,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Can't detect branch information (resource.refUpdates is empty), can't start a build")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Badly formatted branch information")
@@ -363,6 +368,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Unsupported refs/, can't start a build: refs/invalid")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Git.push with one commit")
@@ -385,6 +391,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Git.push with multiple commits - only the first one (latest commit) should be picked")
@@ -407,6 +414,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Git.push - Tag (create)")
@@ -441,6 +449,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Git.push - Tag Delete")
@@ -468,6 +477,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Tag delete event - does not require a build")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Git.push - Branch Delete")
@@ -495,6 +505,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Branch delete event - does not require a build")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Git.push - Branch Created")
@@ -530,6 +541,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Git.push - Pull Request merged (no commit!?!?)")
@@ -573,5 +585,6 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
