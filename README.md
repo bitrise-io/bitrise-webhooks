@@ -13,7 +13,7 @@ For more information check the *How to add support for a new Provider* section.
 
 
 ## CI Skip
- 
+
 If the (commit) message includes `[skip ci]` or `[ci skip]` no build will be triggered.
 
 
@@ -148,7 +148,7 @@ a [Deveo](https://deveo.com) *repository*.
 6. Type `json` in the `Content type` field
 6. Click `Save hook`
 
-That's all! The next time you __push code__ or __push a new tag__ 
+That's all! The next time you __push code__ or __push a new tag__
 a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 ### Slack - setup & usage:
@@ -370,13 +370,22 @@ response provider will be used.
   declared as a success, instead of an error) then a `{"message": "..."}` response
   will be generated (with HTTP status code `200`).
 * If at least one Bitrise Trigger call was initiated:
-  * All the received responses will be included as a `"success_responses": []`
-    and `"failed_responses": []` JSON arrays
-  * And all the errors (where the response was not available / call timed out, etc.)
-    as a `"errors": []` JSON array (if any)
-  * If at least one call fails or the response is an error response
-    the HTTP status code will be `400`
-  * If all trigger calls succeed the status code will be `201`
+    * All the received responses will be included as a `"success_responses": []`
+      and `"failed_responses": []` JSON arrays
+    * And all the errors (where the response was not available / call timed out, etc.)
+      as a `"errors": []` JSON array (if any)
+    * If at least one call fails or the response is an error response
+      the HTTP status code will be `400`
+    * If all trigger calls succeed the status code will be `201`
+* If the provider declares that it does not want to wait for the Trigger API response,
+  then a response will be returned immediately after triggering a build (calling the Trigger API),
+  and in the response there will be no information about the Trigger API call's response.
+  In this case the response is `{"did_not_wait_for_trigger_response": true}` with
+  a HTTP `200` code.
+    * An example is the GitLab hook processor/provider, where GitLab does not store the returned
+      response, there's no history for webhook calls, and it does retry the webhook call
+      if the response is too slow. So in case of GitLab we don't wait for the response of the Trigger API,
+      we just return the did not wait response.
 
 
 ## TODO
