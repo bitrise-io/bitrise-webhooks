@@ -290,6 +290,7 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			}, hookTransformResult.TriggerAPIParams)
+			require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 		}
 
 		// no Scm info
@@ -299,6 +300,7 @@ func Test_transformPushEvent(t *testing.T) {
 			require.EqualError(t, hookTransformResult.Error, "Unsupported repository / source control type (SCM): invalid-scm-or-empty")
 			require.False(t, hookTransformResult.ShouldSkip)
 			require.Nil(t, hookTransformResult.TriggerAPIParams)
+			require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 		}
 	}
 
@@ -336,6 +338,7 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Do Transform - multiple changes - code push")
@@ -390,6 +393,7 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Do Transform - multiple changes - tag push")
@@ -444,6 +448,7 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Multiple changes, one of the changes is a not supported (type) change")
@@ -491,6 +496,7 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("One of the changes.Target is not a type=commit change")
@@ -538,6 +544,7 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Not a Branch nor Tag push event")
@@ -561,6 +568,7 @@ func Test_transformPushEvent(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Not a type=branch nor type=tag change. Change.Type was: not-branch-nor-tag]")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Not a 'Commit' type change")
@@ -587,6 +595,7 @@ func Test_transformPushEvent(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Target was not a type=commit change. Type was: unsupported-type]")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
 
@@ -687,6 +696,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Pull Request - Title & Body")
@@ -738,6 +748,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
 
@@ -781,6 +792,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "No retry is supported (X-Attempt-Number: 2)")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Unsupported Event Type")
@@ -854,6 +866,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Test with Sample Mercurial Code Push data")
@@ -885,6 +898,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 	t.Log("Test with Sample Tag Push data")
 	{
@@ -915,6 +929,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Test with Sample Pull Request data")
@@ -942,6 +957,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("X-Attempt-Number=1 - OK")
@@ -973,6 +989,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("X-Attempt-Number=2 - SKIP")
@@ -989,5 +1006,6 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "No retry is supported (X-Attempt-Number: 2)")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
