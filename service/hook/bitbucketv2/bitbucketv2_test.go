@@ -38,6 +38,49 @@ const (
 			}
 		}
 	]
+},
+"repository": {
+  "owner": {},
+  "full_name": "test/testrepo",
+  "is_private": true,
+  "type": "repository",
+  "scm": "git"
+}
+}`
+
+	sampleMercurialCodePushData = `{
+"push": {
+	"changes": [
+		{
+			"new": {
+				"name": "master",
+				"type": "named_branch",
+				"target": {
+					"type": "commit",
+					"message": "auto-test",
+					"hash": "966d0bfe79b80f97268c2f6bb45e65e79ef09b31"
+				}
+			}
+		},
+		{
+			"new": {
+				"name": "test",
+				"type": "named_branch",
+				"target": {
+					"type": "commit",
+					"message": "auto-test 2",
+					"hash": "19934139a2cf799bbd0f5061ab02e4760902e93f"
+				}
+			}
+		}
+	]
+},
+"repository": {
+  "owner": {},
+  "full_name": "test/hg-testrepo",
+  "is_private": true,
+  "type": "repository",
+  "scm": "hg"
 }
 }`
 
@@ -67,6 +110,13 @@ const (
 			}
 		}
 	]
+},
+"repository": {
+  "owner": {},
+  "full_name": "test/testrepo",
+  "is_private": true,
+  "type": "repository",
+  "scm": "git"
 }
 }`
 
@@ -221,19 +271,37 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
-		}
-		hookTransformResult := transformPushEvent(pushEvent)
-		require.NoError(t, hookTransformResult.Error)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
-					CommitMessage: "auto-test",
-					Branch:        "master",
-				},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
 			},
-		}, hookTransformResult.TriggerAPIParams)
+		}
+
+		// OK
+		{
+			hookTransformResult := transformPushEvent(pushEvent)
+			require.NoError(t, hookTransformResult.Error)
+			require.False(t, hookTransformResult.ShouldSkip)
+			require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+				{
+					BuildParams: bitriseapi.BuildParamsModel{
+						CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+						CommitMessage: "auto-test",
+						Branch:        "master",
+					},
+				},
+			}, hookTransformResult.TriggerAPIParams)
+			require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+		}
+
+		// no Scm info
+		pushEvent.RepositoryInfo.Scm = "invalid-scm-or-empty"
+		{
+			hookTransformResult := transformPushEvent(pushEvent)
+			require.EqualError(t, hookTransformResult.Error, "Unsupported repository / source control type (SCM): invalid-scm-or-empty")
+			require.False(t, hookTransformResult.ShouldSkip)
+			require.Nil(t, hookTransformResult.TriggerAPIParams)
+			require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+		}
 	}
 
 	t.Log("Do Transform - single change - tag")
@@ -254,6 +322,9 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
+			},
 		}
 		hookTransformResult := transformPushEvent(tagPushEvent)
 		require.NoError(t, hookTransformResult.Error)
@@ -267,6 +338,7 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Do Transform - multiple changes - code push")
@@ -298,6 +370,9 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
+			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
 		require.NoError(t, hookTransformResult.Error)
@@ -318,6 +393,7 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Do Transform - multiple changes - tag push")
@@ -349,6 +425,9 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
+			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
 		require.NoError(t, hookTransformResult.Error)
@@ -369,6 +448,7 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Multiple changes, one of the changes is a not supported (type) change")
@@ -400,6 +480,9 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
+			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
 		require.NoError(t, hookTransformResult.Error)
@@ -413,6 +496,7 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("One of the changes.Target is not a type=commit change")
@@ -444,6 +528,9 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
+			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
 		require.NoError(t, hookTransformResult.Error)
@@ -457,6 +544,7 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Not a Branch nor Tag push event")
@@ -472,11 +560,15 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
+			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
 		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Not a type=branch nor type=tag change. Change.Type was: not-branch-nor-tag]")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Not a 'Commit' type change")
@@ -495,11 +587,15 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
+			RepositoryInfo: RepositoryInfoModel{
+				Scm: "git",
+			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
 		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Target was not a type=commit change. Type was: unsupported-type]")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
 
@@ -600,6 +696,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Pull Request - Title & Body")
@@ -651,6 +748,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
 
@@ -694,6 +792,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "No retry is supported (X-Attempt-Number: 2)")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Unsupported Event Type")
@@ -767,8 +866,40 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
+	t.Log("Test with Sample Mercurial Code Push data")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":      {"repo:push"},
+				"Content-Type":     {"application/json"},
+				"X-Attempt-Number": {"1"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleMercurialCodePushData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					CommitMessage: "auto-test",
+					Branch:        "master",
+				},
+			},
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    "19934139a2cf799bbd0f5061ab02e4760902e93f",
+					CommitMessage: "auto-test 2",
+					Branch:        "test",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
 	t.Log("Test with Sample Tag Push data")
 	{
 		request := http.Request{
@@ -798,6 +929,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Test with Sample Pull Request data")
@@ -825,6 +957,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("X-Attempt-Number=1 - OK")
@@ -856,6 +989,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("X-Attempt-Number=2 - SKIP")
@@ -872,5 +1006,6 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "No retry is supported (X-Attempt-Number: 2)")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }

@@ -1,5 +1,9 @@
 package bitbucketv2
 
+//
+// Docs: https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html
+//
+
 import (
 	"encoding/json"
 	"errors"
@@ -9,6 +13,11 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/bitrise-io/go-utils/sliceutil"
+)
+
+const (
+	scmGit       = "git"
+	scmMercurial = "hg"
 )
 
 // --------------------------
@@ -40,7 +49,8 @@ type PushInfoModel struct {
 
 // PushEventModel ...
 type PushEventModel struct {
-	PushInfo PushInfoModel `json:"push"`
+	PushInfo       PushInfoModel       `json:"push"`
+	RepositoryInfo RepositoryInfoModel `json:"repository"`
 }
 
 // OwnerInfoModel ...
@@ -50,10 +60,11 @@ type OwnerInfoModel struct {
 
 // RepositoryInfoModel ...
 type RepositoryInfoModel struct {
-	FullName  string         `json:"full_name"`
-	IsPrivate bool           `json:"is_private"`
-	Scm       string         `json:"scm"`
-	Owner     OwnerInfoModel `json:"owner"`
+	FullName  string `json:"full_name"`
+	IsPrivate bool   `json:"is_private"`
+	// Scm - The type repository: Git (git) or Mercurial (hg).
+	Scm   string         `json:"scm"`
+	Owner OwnerInfoModel `json:"owner"`
 }
 
 // CommitInfoModel ...
@@ -122,11 +133,22 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		}
 	}
 
+	switch pushEvent.RepositoryInfo.Scm {
+	case scmGit, scmMercurial:
+	// supported
+	default:
+		// unsupported
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Unsupported repository / source control type (SCM): %s", pushEvent.RepositoryInfo.Scm),
+		}
+	}
+
 	triggerAPIParams := []bitriseapi.TriggerAPIParamsModel{}
 	errs := []string{}
 	for _, aChnage := range pushEvent.PushInfo.Changes {
 		aNewItm := aChnage.ChangeNewItem
-		if aNewItm.Type == "branch" {
+		if (pushEvent.RepositoryInfo.Scm == scmGit && aNewItm.Type == "branch") ||
+			(pushEvent.RepositoryInfo.Scm == scmMercurial && aNewItm.Type == "named_branch") {
 			if aNewItm.Target.Type != "commit" {
 				errs = append(errs, fmt.Sprintf("Target was not a type=commit change. Type was: %s", aNewItm.Target.Type))
 				continue

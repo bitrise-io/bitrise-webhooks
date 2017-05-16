@@ -23,6 +23,10 @@ type TransformResultModel struct {
 	// Error in transforming the hook. If ShouldSkip=true this is
 	//  the reason why the hook should be skipped.
 	Error error
+	// DontWaitForTriggerResponse if true the Trigger API request will be sent,
+	//  but the handler won't wait for the response from the Trigger API,
+	//  it'll respond immediately after calling the Trigger API
+	DontWaitForTriggerResponse bool
 }
 
 // Provider ...
@@ -58,6 +62,10 @@ type SkipAPIResponseModel struct {
 type TransformResponseInputModel struct {
 	// Errors include the errors if the build could not trigger
 	Errors []string
+
+	// DidNotWaitForTriggerResponse if true it means that the TriggerResponses were not populated,
+	//  as the provider requested to skip waiting for the Trigger API call's response/result.
+	DidNotWaitForTriggerResponse bool
 
 	// SuccessTriggerResponses include the successful trigger call responses
 	SuccessTriggerResponses []bitriseapi.TriggerAPIResponseModel

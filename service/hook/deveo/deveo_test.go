@@ -105,6 +105,7 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Do Transform - Tag Push")
@@ -131,6 +132,7 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Not Distinct Head Commit - should still trigger a build (e.g. this can happen if you rebase-merge a branch, without creating a merge commit)")
@@ -157,6 +159,7 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Tag - Not Distinct Head Commit - should still trigger a build")
@@ -183,6 +186,7 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Missing Commit Hash")
@@ -200,6 +204,7 @@ func Test_transformPushEvent(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Missing commit hash")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Missing Commit Hash - Tag")
@@ -217,6 +222,7 @@ func Test_transformPushEvent(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "Missing commit hash")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("This is a 'deleted' event")
@@ -236,6 +242,7 @@ func Test_transformPushEvent(t *testing.T) {
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "This is a 'Deleted' event, no build can be started")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("This is a 'deleted' event - Tag")
@@ -255,6 +262,7 @@ func Test_transformPushEvent(t *testing.T) {
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "This is a 'Deleted' event, no build can be started")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Not a head nor a tag ref")
@@ -273,6 +281,7 @@ func Test_transformPushEvent(t *testing.T) {
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Ref (refs/not/head) is not a head nor a tag ref")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
 
@@ -352,6 +361,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
 	t.Log("Tag Push - should be handled")
@@ -375,5 +385,6 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
