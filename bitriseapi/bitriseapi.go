@@ -48,6 +48,7 @@ type BuildParamsModel struct {
 // TriggerAPIParamsModel ...
 type TriggerAPIParamsModel struct {
 	BuildParams BuildParamsModel `json:"build_params"`
+	TriggeredBy string           `json:"triggered_by"`
 }
 
 // TriggerAPIResponseModel ...
@@ -93,6 +94,8 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	if err := params.Validate(); err != nil {
 		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: build trigger parameter invalid: %s", err)
 	}
+
+	params.TriggeredBy = "webhook"
 
 	jsonStr, err := json.Marshal(params)
 	if err != nil {
