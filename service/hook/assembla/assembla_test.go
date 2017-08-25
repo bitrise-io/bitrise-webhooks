@@ -26,7 +26,7 @@ func Test_transformPushEvent(t *testing.T) {
 	t.Log("Do Transform - code push")
 	{
 		pushEvent := PushEventModel{
-			AssemblaEventModel: AssemblaEventModel{
+			SpaceEventModel: SpaceEventModel{
 				Space: "Space name",
 				Action: "committed",
 				Object: "Changeset",
@@ -40,7 +40,7 @@ func Test_transformPushEvent(t *testing.T) {
 				RepositorySuffix: "origin",
 				RepositoryURL: "git@git.assembla.com:username/project.git",
 				Branch: "branchname",
-				CommitId: "sha1chars11",
+				CommitID: "sha1chars11",
 			},
 		}
 
@@ -69,7 +69,7 @@ func Test_incorrectPostOptions(t *testing.T) {
 	t.Log("Git Push update")
 	{
 		pushEvent := PushEventModel{
-			AssemblaEventModel: AssemblaEventModel{
+			SpaceEventModel: SpaceEventModel{
 				Space: "Space name",
 				Action: "committed",
 				Object: "Changeset",
@@ -83,7 +83,7 @@ func Test_incorrectPostOptions(t *testing.T) {
 				RepositorySuffix: "---",
 				RepositoryURL: "---",
 				Branch: "---",
-				CommitId: "---",
+				CommitID: "---",
 			},
 		}
 

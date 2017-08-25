@@ -17,8 +17,8 @@ import (
 // --------------------------
 // --- Webhook Data Model ---
 
-// AssemblaEventModel ...
-type AssemblaEventModel struct {
+// SpaceEventModel ...
+type SpaceEventModel struct {
 	Space	string	`json:"space"`
 	Action	string	`json:"action"`
 	Object	string	`json:"object"`
@@ -36,12 +36,12 @@ type GitEventModel struct {
 	RepositorySuffix	string      `json:"repository_suffix"`
 	RepositoryURL		string      `json:"repository_url"`
 	Branch				string      `json:"branch"`
-	CommitId			string      `json:"commit_id"`
+	CommitID			string      `json:"commit_id"`
 }
 
 // PushEventModel ...
 type PushEventModel struct {
-	AssemblaEventModel	AssemblaEventModel	`json:"assembla"`
+	SpaceEventModel	    SpaceEventModel		`json:"assembla"`
 	MessageEventModel	MessageEventModel	`json:"message"`
 	GitEventModel		GitEventModel		`json:"git"`
 }
@@ -62,7 +62,7 @@ func detectContentType(header http.Header) (string, error) {
 }
 
 func detectAssemblaData(pushEvent PushEventModel) error {
-	if (pushEvent.GitEventModel.CommitId == "---") ||
+	if (pushEvent.GitEventModel.CommitID == "---") ||
 		(pushEvent.GitEventModel.Branch == "---") ||
 		(pushEvent.GitEventModel.RepositoryURL == "---") ||
 		(pushEvent.GitEventModel.RepositorySuffix == "---")	{
@@ -73,9 +73,9 @@ func detectAssemblaData(pushEvent PushEventModel) error {
 }
 
 func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
-	if pushEvent.AssemblaEventModel.Action != "committed" {
+	if pushEvent.SpaceEventModel.Action != "committed" {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Action was not 'committed', was: %s", pushEvent.AssemblaEventModel.Action),
+			Error: fmt.Errorf("Action was not 'committed', was: %s", pushEvent.SpaceEventModel.Action),
 		}
 	}
 	if pushEvent.MessageEventModel.Body == "" {
