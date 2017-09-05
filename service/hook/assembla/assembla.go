@@ -62,6 +62,13 @@ func detectContentType(header http.Header) (string, error) {
 }
 
 func detectAssemblaData(pushEvent PushEventModel) error {
+	if (pushEvent.GitEventModel.CommitID == "") ||
+		(pushEvent.GitEventModel.Branch == "") ||
+		(pushEvent.GitEventModel.RepositoryURL == "") ||
+		(pushEvent.GitEventModel.RepositorySuffix == "")	{
+		return errors.New("Webhook is not correctly setup, make sure you post updates about 'Code commits' in Assembla")
+	}
+
 	if (pushEvent.GitEventModel.CommitID == "---") ||
 		(pushEvent.GitEventModel.Branch == "---") ||
 		(pushEvent.GitEventModel.RepositoryURL == "---") ||
@@ -93,12 +100,18 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			Error: fmt.Errorf("Git branch can't be empty"),
 		}
 	}
+	if pushEvent.GitEventModel.CommitID == "" {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Git commit id can't be empty"),
+		}
+	}
 
 	triggerAPIParams := []bitriseapi.TriggerAPIParamsModel{
 		{
 			BuildParams: bitriseapi.BuildParamsModel{
 				CommitMessage: pushEvent.MessageEventModel.Body,
 				Branch:        pushEvent.GitEventModel.Branch,
+				CommitHash:    pushEvent.GitEventModel.CommitID,
 			},
 			TriggeredBy: "webhook",
 		},
