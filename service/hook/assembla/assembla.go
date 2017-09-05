@@ -33,10 +33,10 @@ type MessageEventModel struct {
 
 // GitEventModel ...
 type GitEventModel struct {
-	RepositorySuffix	string      `json:"repository_suffix"`
-	RepositoryURL		string      `json:"repository_url"`
-	Branch				string      `json:"branch"`
-	CommitID			string      `json:"commit_id"`
+	RepositorySuffix    string      `json:"repository_suffix"`
+	RepositoryURL       string      `json:"repository_url"`
+	Branch              string      `json:"branch"`
+	CommitID            string      `json:"commit_id"`
 }
 
 // PushEventModel ...
