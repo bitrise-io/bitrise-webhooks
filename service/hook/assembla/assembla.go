@@ -100,7 +100,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 				CommitMessage: pushEvent.MessageEventModel.Body,
 				Branch:        pushEvent.GitEventModel.Branch,
 			},
-			TriggeredBy: pushEvent.MessageEventModel.Author,
+			TriggeredBy: "webhook",
 		},
 	}
 

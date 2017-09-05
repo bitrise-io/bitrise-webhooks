@@ -57,7 +57,7 @@ func Test_transformPushEvent(t *testing.T) {
 						CommitMessage: "ErikPoort pushed 1 commits [branchname]\n",
 						Branch:        "branchname",
 					},
-					TriggeredBy: "ErikPoort",
+					TriggeredBy: "webhook",
 				},
 			}, hookTransformResult.TriggerAPIParams)
 			require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -178,7 +178,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitMessage: "ErikPoort pushed 1 commits [branchname]\n",
 					Branch:        "branchname",
 				},
-				TriggeredBy: "ErikPoort",
+				TriggeredBy: "webhook",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
