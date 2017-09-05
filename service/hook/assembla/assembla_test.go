@@ -56,8 +56,9 @@ func Test_transformPushEvent(t *testing.T) {
 					BuildParams: bitriseapi.BuildParamsModel{
 						CommitMessage: "ErikPoort pushed 1 commits [branchname]\n",
 						Branch:        "branchname",
+						CommitHash:    "sha1chars11",
 					},
-					TriggeredBy: "ErikPoort",
+					TriggeredBy: "webhook",
 				},
 			}, hookTransformResult.TriggerAPIParams)
 			require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -84,6 +85,36 @@ func Test_incorrectPostOptions(t *testing.T) {
 				RepositoryURL: "---",
 				Branch: "---",
 				CommitID: "---",
+			},
+		}
+
+		// OK
+		{
+			err := detectAssemblaData(pushEvent)
+			require.EqualError(t, err, "Webhook is not correctly setup, make sure you post updates about 'Code commits' in Assembla")
+		}
+	}
+}
+
+func Test_emptyGitEventOptions(t *testing.T) {
+	t.Log("Git Push update")
+	{
+		pushEvent := PushEventModel{
+			SpaceEventModel: SpaceEventModel{
+				Space: "Space name",
+				Action: "committed",
+				Object: "Changeset",
+			},
+			MessageEventModel: MessageEventModel{
+				Title: "1 commits [branchname]",
+				Body: "ErikPoort pushed 1 commits [branchname]\n",
+				Author: "ErikPoort",
+			},
+			GitEventModel: GitEventModel{
+				RepositorySuffix: "",
+				RepositoryURL: "",
+				Branch: "",
+				CommitID: "",
 			},
 		}
 
@@ -177,8 +208,9 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitMessage: "ErikPoort pushed 1 commits [branchname]\n",
 					Branch:        "branchname",
+					CommitHash:    "sha1chars11",
 				},
-				TriggeredBy: "ErikPoort",
+				TriggeredBy: "webhook",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
