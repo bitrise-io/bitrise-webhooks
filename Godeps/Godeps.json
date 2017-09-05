@@ -8,29 +8,29 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/builtinutil",
-			"Rev": "2bf26e59ba80fe2a2fd27055b5a4db8e9ec4d1c2"
+			"Rev": "6eb582e08179a025ed2deb86ea6dffbd13ba1ff6"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/pointers",
-			"Rev": "2bf26e59ba80fe2a2fd27055b5a4db8e9ec4d1c2"
+			"Rev": "6eb582e08179a025ed2deb86ea6dffbd13ba1ff6"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/sliceutil",
-			"Rev": "2bf26e59ba80fe2a2fd27055b5a4db8e9ec4d1c2"
+			"Rev": "6eb582e08179a025ed2deb86ea6dffbd13ba1ff6"
 		},
 		{
 			"ImportPath": "github.com/bitrise-io/go-utils/testutil",
-			"Rev": "2bf26e59ba80fe2a2fd27055b5a4db8e9ec4d1c2"
+			"Rev": "6eb582e08179a025ed2deb86ea6dffbd13ba1ff6"
 		},
 		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",
-			"Comment": "v1.1.0-1-g782f496",
-			"Rev": "782f4967f2dc4564575ca782fe2d04090b5faca8"
+			"Comment": "v1.1.0-7-ga476722",
+			"Rev": "a476722483882dd40b8111f0eb64e1d7f43f56e4"
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",
-			"Comment": "v1.4.0-13-gac112f7",
-			"Rev": "ac112f7d75a0714af1bd86ab17749b31f7809640"
+			"Comment": "v1.4.0-15-gbb285ea",
+			"Rev": "bb285ea687c5c77bb6935fdb2402b121d8efcbec"
 		},
 		{
 			"ImportPath": "github.com/pmezard/go-difflib/difflib",
@@ -39,13 +39,13 @@
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/assert",
-			"Comment": "v1.1.4-66-gf6abca5",
-			"Rev": "f6abca593680b2315d2075e0f5e2a9751e3f431a"
+			"Comment": "v1.1.4-71-g890a5c3",
+			"Rev": "890a5c3458b43e6104ff5da8dfa139d013d77544"
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/require",
-			"Comment": "v1.1.4-66-gf6abca5",
-			"Rev": "f6abca593680b2315d2075e0f5e2a9751e3f431a"
+			"Comment": "v1.1.4-71-g890a5c3",
+			"Rev": "890a5c3458b43e6104ff5da8dfa139d013d77544"
 		}
 	]
 }
