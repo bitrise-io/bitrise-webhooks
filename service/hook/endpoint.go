@@ -18,6 +18,7 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/gogs"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/slack"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/visualstudioteamservices"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/assembla"
 	"github.com/gorilla/mux"
 )
 
@@ -30,6 +31,7 @@ func supportedProviders() map[string]hookCommon.Provider {
 		"gitlab":       gitlab.HookProvider{},
 		"gogs":         gogs.HookProvider{},
 		"deveo":        deveo.HookProvider{},
+		"assembla":     assembla.HookProvider{},
 	}
 }
 
