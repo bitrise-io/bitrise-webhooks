@@ -33,6 +33,8 @@ If the (commit) message includes `[skip ci]` or `[ci skip]` no build will be tri
   * handled on the path: `/h/gogs/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * [Deveo](https://deveo.com)
   * handled on the path: `/h/deveo/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
+* [Assembla](https://assembla.com)
+  * handled on the path: `/h/assembla/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 
 ### GitHub - setup & usage:
 
@@ -150,6 +152,25 @@ a [Deveo](https://deveo.com) *repository*.
 
 That's all! The next time you __push code__ or __push a new tag__
 a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
+
+### Assembla - setup & usage:
+
+Follow these steps to add your `bitrise-webhooks` URL to your [Assembla](https://assembla.com) *space*.
+
+1. Open your *space* on [assembla.com](https://assembla.com) or your organisation's assembla domain
+2. Go to the `Webhooks` section of the space
+3. Select `Create New Webhook`
+4. Set `Title` to `BitRise Webhook`
+5. Specify the `bitrise-webhooks` URL (`.../h/assembla/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `External url` field
+6. Select `application/json` in the `Content type` field
+7. Paste the following code to `Content`:
+```json
+{"assembla": {"space": "%{space}", "action": "%{action}", "object": "%{object}"}, "message": {"title": "%{title}", "body": "%{body}", "author": "%{author}"}, "git": {"repository_suffix": "%{repository_suffix}", "repository_url": "%{repository_url}", "branch": "%{branch}", "commit_id": "%{commit_id}"}}
+```
+8. Select `Code commits` in the `Post updates about:` section
+9. Click `Add`
+
+That's all! The next time you __push code__ a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 ### Slack - setup & usage:
 
@@ -401,3 +422,4 @@ response provider will be used.
 * [Chad Robinson](https://github.com/crrobinson14) - `Gogs` support
 * [Rafael Nobre](https://github.com/nobre84) - Environment variables support in `Slack` commands
 * [Tuomas Peippo](https://github.com/tume)- Skip CI feature
+* [Erik Poort](https://github.com/ErikMediaMonks) - `Assembla` support
