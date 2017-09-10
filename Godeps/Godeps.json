@@ -11,6 +11,10 @@
 			"Rev": "6eb582e08179a025ed2deb86ea6dffbd13ba1ff6"
 		},
 		{
+			"ImportPath": "github.com/bitrise-io/go-utils/colorstring",
+			"Rev": "6eb582e08179a025ed2deb86ea6dffbd13ba1ff6"
+		},
+		{
 			"ImportPath": "github.com/bitrise-io/go-utils/pointers",
 			"Rev": "6eb582e08179a025ed2deb86ea6dffbd13ba1ff6"
 		},
@@ -29,8 +33,8 @@
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",
-			"Comment": "v1.4.0-15-gbb285ea",
-			"Rev": "bb285ea687c5c77bb6935fdb2402b121d8efcbec"
+			"Comment": "v1.4.0-16-g24fca30",
+			"Rev": "24fca303ac6da784b9e8269f724ddeb0b2eea5e7"
 		},
 		{
 			"ImportPath": "github.com/pmezard/go-difflib/difflib",

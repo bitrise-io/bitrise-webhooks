@@ -10,13 +10,15 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/bitrise-io/go-utils/colorstring"
 )
 
 // EnvironmentItem ...
 type EnvironmentItem struct {
-	Name     string `json:"mapped_to,omitempty"`
-	Value    string `json:"value,omitempty"`
-	IsExpand bool   `json:"is_expand,omitempty"`
+	Name     string `json:"mapped_to"`
+	Value    string `json:"value"`
+	IsExpand bool   `json:"is_expand"`
 }
 
 // BuildParamsModel ...
@@ -102,8 +104,10 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: failed to json marshal: %s", err)
 	}
 
-	log.Printf("===> Triggering Build: (url:%s)", url)
-	log.Printf("====> JSON body: %s", jsonStr)
+	if isOnlyLog {
+		log.Println(colorstring.Yellowf("===> Triggering Build: (url:%s)", url))
+		log.Println(colorstring.Yellowf("====> JSON body: %s", jsonStr))
+	}
 
 	if isOnlyLog {
 		return TriggerAPIResponseModel{

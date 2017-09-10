@@ -10,15 +10,17 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/config"
 	"github.com/bitrise-io/bitrise-webhooks/metrics"
 	"github.com/bitrise-io/bitrise-webhooks/service"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/assembla"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/bitbucketv2"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/deveo"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/github"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/gitlab"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/gogs"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/passthrough"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/slack"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/visualstudioteamservices"
-	"github.com/bitrise-io/bitrise-webhooks/service/hook/assembla"
+	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/gorilla/mux"
 )
 
@@ -32,6 +34,7 @@ func supportedProviders() map[string]hookCommon.Provider {
 		"gogs":         gogs.HookProvider{},
 		"deveo":        deveo.HookProvider{},
 		"assembla":     assembla.HookProvider{},
+		"passthrough":  passthrough.HookProvider{},
 	}
 }
 
@@ -96,7 +99,7 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 	log.Printf(" ===> trigger build: %s", triggerURL)
 	isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
 	if isOnlyLog {
-		log.Println(" (debug) isOnlyLog: true")
+		log.Println(colorstring.Yellow(" (debug) isOnlyLog: true"))
 	}
 
 	responseModel, isSuccess, err := bitriseapi.TriggerBuild(triggerURL, apiToken, triggerAPIParams, isOnlyLog)
