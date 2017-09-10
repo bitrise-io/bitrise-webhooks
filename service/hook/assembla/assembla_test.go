@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"strings"
 )
@@ -14,7 +14,7 @@ func Test_detectContentType(t *testing.T) {
 	t.Log("Push event - should handle")
 	{
 		header := http.Header{
-			"Content-Type":     {"application/json"},
+			"Content-Type": {"application/json"},
 		}
 		contentType, err := detectContentType(header)
 		require.NoError(t, err)
@@ -27,20 +27,20 @@ func Test_transformPushEvent(t *testing.T) {
 	{
 		pushEvent := PushEventModel{
 			SpaceEventModel: SpaceEventModel{
-				Space: "Space name",
+				Space:  "Space name",
 				Action: "committed",
 				Object: "Changeset",
 			},
 			MessageEventModel: MessageEventModel{
-				Title: "1 commits [branchname]",
-				Body: "ErikPoort pushed 1 commits [branchname]\n",
+				Title:  "1 commits [branchname]",
+				Body:   "ErikPoort pushed 1 commits [branchname]\n",
 				Author: "ErikPoort",
 			},
 			GitEventModel: GitEventModel{
 				RepositorySuffix: "origin",
-				RepositoryURL: "git@git.assembla.com:username/project.git",
-				Branch: "branchname",
-				CommitID: "sha1chars11",
+				RepositoryURL:    "git@git.assembla.com:username/project.git",
+				Branch:           "branchname",
+				CommitID:         "sha1chars11",
 			},
 		}
 
@@ -71,20 +71,20 @@ func Test_incorrectPostOptions(t *testing.T) {
 	{
 		pushEvent := PushEventModel{
 			SpaceEventModel: SpaceEventModel{
-				Space: "Space name",
+				Space:  "Space name",
 				Action: "committed",
 				Object: "Changeset",
 			},
 			MessageEventModel: MessageEventModel{
-				Title: "1 commits [branchname]",
-				Body: "ErikPoort pushed 1 commits [branchname]\n",
+				Title:  "1 commits [branchname]",
+				Body:   "ErikPoort pushed 1 commits [branchname]\n",
 				Author: "ErikPoort",
 			},
 			GitEventModel: GitEventModel{
 				RepositorySuffix: "---",
-				RepositoryURL: "---",
-				Branch: "---",
-				CommitID: "---",
+				RepositoryURL:    "---",
+				Branch:           "---",
+				CommitID:         "---",
 			},
 		}
 
@@ -101,20 +101,20 @@ func Test_emptyGitEventOptions(t *testing.T) {
 	{
 		pushEvent := PushEventModel{
 			SpaceEventModel: SpaceEventModel{
-				Space: "Space name",
+				Space:  "Space name",
 				Action: "committed",
 				Object: "Changeset",
 			},
 			MessageEventModel: MessageEventModel{
-				Title: "1 commits [branchname]",
-				Body: "ErikPoort pushed 1 commits [branchname]\n",
+				Title:  "1 commits [branchname]",
+				Body:   "ErikPoort pushed 1 commits [branchname]\n",
 				Author: "ErikPoort",
 			},
 			GitEventModel: GitEventModel{
 				RepositorySuffix: "",
-				RepositoryURL: "",
-				Branch: "",
-				CommitID: "",
+				RepositoryURL:    "",
+				Branch:           "",
+				CommitID:         "",
 			},
 		}
 
@@ -172,7 +172,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 	{
 		request := http.Request{
 			Header: http.Header{
-				"Content-Type":     {"not/supported"},
+				"Content-Type": {"not/supported"},
 			},
 		}
 		hookTransformResult := provider.TransformRequest(&request)
@@ -184,7 +184,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 	{
 		request := http.Request{
 			Header: http.Header{
-				"Content-Type":     {"application/json"},
+				"Content-Type": {"application/json"},
 			},
 		}
 		hookTransformResult := provider.TransformRequest(&request)
@@ -196,7 +196,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 	{
 		request := http.Request{
 			Header: http.Header{
-				"Content-Type":     {"application/json"},
+				"Content-Type": {"application/json"},
 			},
 			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
 		}
@@ -224,7 +224,7 @@ func Test_IncorrectJSONData(t *testing.T) {
 	{
 		request := http.Request{
 			Header: http.Header{
-				"Content-Type":     {"application/json"},
+				"Content-Type": {"application/json"},
 			},
 			Body: ioutil.NopCloser(strings.NewReader(sampleIncorrectJSONData)),
 		}
