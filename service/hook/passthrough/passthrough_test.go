@@ -24,8 +24,8 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					Branch: "master",
 					Environments: []bitriseapi.EnvironmentItem{
-						bitriseapi.EnvironmentItem{Name: "WEBHOOK_HEADERS", Value: "", IsExpand: false},
-						bitriseapi.EnvironmentItem{Name: "WEBHOOK_BODY", Value: "", IsExpand: false},
+						bitriseapi.EnvironmentItem{Name: "BITRISE_WEBHOOK_PASSTHROUGH_HEADERS", Value: "", IsExpand: false},
+						bitriseapi.EnvironmentItem{Name: "BITRISE_WEBHOOK_PASSTHROUGH_BODY", Value: "", IsExpand: false},
 					},
 				},
 			},
@@ -54,12 +54,34 @@ content.`
 				BuildParams: bitriseapi.BuildParamsModel{
 					Branch: "master",
 					Environments: []bitriseapi.EnvironmentItem{
-						bitriseapi.EnvironmentItem{Name: "WEBHOOK_HEADERS", Value: `{"Content-Type":["application/json"],"Some-Custom-Header-List":["first-value","second-value"]}`, IsExpand: false},
-						bitriseapi.EnvironmentItem{Name: "WEBHOOK_BODY", Value: bodyContent, IsExpand: false},
+						bitriseapi.EnvironmentItem{Name: "BITRISE_WEBHOOK_PASSTHROUGH_HEADERS", Value: `{"Content-Type":["application/json"],"Some-Custom-Header-List":["first-value","second-value"]}`, IsExpand: false},
+						bitriseapi.EnvironmentItem{Name: "BITRISE_WEBHOOK_PASSTHROUGH_BODY", Value: bodyContent, IsExpand: false},
 					},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Body too large")
+	{
+		request := http.Request{
+			Body: ioutil.NopCloser(strings.NewReader(strings.Repeat("a", 10*1024+1))),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Body too large, larger than 10240 bytes")
+	}
+
+	t.Log("Headers too large")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Some-Custom-Header-List": {"first-value", "second-value", strings.Repeat("a", 10*1024+1)},
+			},
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Headers too large, larger than 10240 bytes")
 	}
 }

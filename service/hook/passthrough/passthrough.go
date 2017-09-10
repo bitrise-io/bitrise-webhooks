@@ -11,8 +11,10 @@ import (
 )
 
 const (
-	envKeyHeaders = `WEBHOOK_HEADERS`
-	envKeyBody    = `WEBHOOK_BODY`
+	envKeyHeaders      = `BITRISE_WEBHOOK_PASSTHROUGH_HEADERS`
+	maxHeaderSizeBytes = 10 * 1024
+	envKeyBody         = `BITRISE_WEBHOOK_PASSTHROUGH_BODY`
+	maxBodySizeBytes   = 10 * 1024
 )
 
 // HookProvider ...
@@ -28,6 +30,9 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 		headerAsJSON = b
 	}
+	if len(headerAsJSON) > maxHeaderSizeBytes {
+		return hookCommon.TransformResultModel{Error: fmt.Errorf("Headers too large, larger than %d bytes", maxHeaderSizeBytes)}
+	}
 
 	bodyBytes := []byte{}
 	if r.Body != nil {
@@ -36,6 +41,9 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 			return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to get request body: %s", err)}
 		}
 		bodyBytes = b
+	}
+	if len(bodyBytes) > maxBodySizeBytes {
+		return hookCommon.TransformResultModel{Error: fmt.Errorf("Body too large, larger than %d bytes", maxBodySizeBytes)}
 	}
 
 	environments := []bitriseapi.EnvironmentItem{

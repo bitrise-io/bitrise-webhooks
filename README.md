@@ -36,6 +36,12 @@ If the (commit) message includes `[skip ci]` or `[ci skip]` no build will be tri
 * [Assembla](https://assembla.com)
   * handled on the path: `/h/assembla/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 
+Service independent:
+
+* Passthrough - reads the request headers and body and passes it to the triggered build as environment variables.
+  * handled on the path: `/h/passthrough/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
+
+
 ### GitHub - setup & usage:
 
 All you have to do is register your `bitrise-webhooks` URL for
@@ -204,6 +210,32 @@ you can specify both if you want to. You're free to specify any number of option
 You can also send environment variables that will be available in your workflow with the format: `env[KEY1]:value1|ENV[KEY2]:value2`
 
 An example with all parameters included: `workflow: primary|b: master|tag: v1.0|commit:eee55509f16e7715bdb43308bb55e8736da4e21e|m: start my build!|ENV[DEVICE_NAME]:iPhone 6S|ENV[DEVICE_UDID]:82667b4079914d4aabed9c216620da5dedab630a`
+
+
+### Passthrough - setup & usage:
+
+Simply register or use the `.../h/passthrough/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN` url.
+**Every** request received on the `passthrough` endpoint will trigger a build, no filtering is done.
+
+_The only limit is that neither the Headers nor the Body can be larger than 10kb._
+
+The headers will be passed to the build in JSON serialized form, as the value of `BITRISE_WEBHOOK_PASSTHROUGH_HEADERS`.
+Note: headers are key value maps where the value is an array or strings, not just a single string value!
+Example:
+
+```
+{
+    "Content-Type": [
+        "application/json"
+    ],
+    "Some-Custom-Header-List": [
+        "first-value",
+        "second-value"
+    ]
+}
+```
+
+The body will be passed to the build as-it-is (in string/text form), as the value of `BITRISE_WEBHOOK_PASSTHROUGH_BODY`.
 
 
 ## How to compile & run the server
