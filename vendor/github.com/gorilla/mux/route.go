@@ -52,27 +52,12 @@ func (r *Route) Match(req *http.Request, match *RouteMatch) bool {
 	if r.buildOnly || r.err != nil {
 		return false
 	}
-
-	var matchErr error
-
 	// Match everything.
 	for _, m := range r.matchers {
 		if matched := m.Match(req, match); !matched {
-			if _, ok := m.(methodMatcher); ok {
-				matchErr = ErrMethodMismatch
-				continue
-			}
-			matchErr = nil
 			return false
 		}
 	}
-
-	if matchErr != nil {
-		match.MatchErr = matchErr
-		return false
-	}
-
-	match.MatchErr = nil
 	// Yay, we have a match. Let's collect some info about it.
 	if match.Route == nil {
 		match.Route = r
@@ -83,7 +68,6 @@ func (r *Route) Match(req *http.Request, match *RouteMatch) bool {
 	if match.Vars == nil {
 		match.Vars = make(map[string]string)
 	}
-
 	// Set variables.
 	if r.regexp != nil {
 		r.regexp.setMatch(req, match, r)
@@ -498,14 +482,13 @@ func (r *Route) URL(pairs ...string) (*url.URL, error) {
 		return nil, err
 	}
 	var scheme, host, path string
-	queries := make([]string, 0, len(r.regexp.queries))
 	if r.regexp.host != nil {
 		if host, err = r.regexp.host.url(values); err != nil {
 			return nil, err
 		}
 		scheme = "http"
-		if s := r.getBuildScheme(); s != "" {
-			scheme = s
+		if r.buildScheme != "" {
+			scheme = r.buildScheme
 		}
 	}
 	if r.regexp.path != nil {
@@ -513,18 +496,10 @@ func (r *Route) URL(pairs ...string) (*url.URL, error) {
 			return nil, err
 		}
 	}
-	for _, q := range r.regexp.queries {
-		var query string
-		if query, err = q.url(values); err != nil {
-			return nil, err
-		}
-		queries = append(queries, query)
-	}
 	return &url.URL{
-		Scheme:   scheme,
-		Host:     host,
-		Path:     path,
-		RawQuery: strings.Join(queries, "&"),
+		Scheme: scheme,
+		Host:   host,
+		Path:   path,
 	}, nil
 }
 
@@ -550,8 +525,8 @@ func (r *Route) URLHost(pairs ...string) (*url.URL, error) {
 		Scheme: "http",
 		Host:   host,
 	}
-	if s := r.getBuildScheme(); s != "" {
-		u.Scheme = s
+	if r.buildScheme != "" {
+		u.Scheme = r.buildScheme
 	}
 	return u, nil
 }
@@ -665,20 +640,9 @@ func (r *Route) buildVars(m map[string]string) map[string]string {
 
 // parentRoute allows routes to know about parent host and path definitions.
 type parentRoute interface {
-	getBuildScheme() string
 	getNamedRoutes() map[string]*Route
 	getRegexpGroup() *routeRegexpGroup
 	buildVars(map[string]string) map[string]string
-}
-
-func (r *Route) getBuildScheme() string {
-	if r.buildScheme != "" {
-		return r.buildScheme
-	}
-	if r.parent != nil {
-		return r.parent.getBuildScheme()
-	}
-	return ""
 }
 
 // getNamedRoutes returns the map where named routes are registered.
