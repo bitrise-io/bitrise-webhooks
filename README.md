@@ -215,7 +215,7 @@ An example with all parameters included: `workflow: primary|b: master|tag: v1.0|
 ### Passthrough - setup & usage:
 
 Simply register or use the `.../h/passthrough/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN` url.
-**Every** request received on the `passthrough` endpoint will trigger a build, no filtering is done.
+**Every** request received on the `passthrough` endpoint will trigger a build, __no filtering is done or supported!__.
 
 _The only limit is that neither the Headers nor the Body can be larger than 10kb._
 
@@ -236,6 +236,11 @@ Example:
 ```
 
 The body will be passed to the build as-it-is (in string/text form), as the value of `BITRISE_WEBHOOK_PASSTHROUGH_BODY`.
+
+Demo: run the server locally (e.g. with `bitrise run start`) and call the `.../h/passthrough/...` endpoint with `curl`:
+
+```
+```
 
 
 ## How to compile & run the server
