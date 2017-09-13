@@ -80,7 +80,7 @@ workflows:
             echo
 
             git checkout ${RELEASE_START_BRANCH}
-  godeps-update:
+  deps-update:
     steps:
     - script:
         inputs:
@@ -88,6 +88,9 @@ workflows:
             #!/bin/bash
             set -ex
             go get -u -v github.com/golang/dep/cmd/dep
+            # to prevent "Gopkg.lock is out of sync ..." when new deps are added
+            dep ensure -v
+            # to do the actual update
             dep ensure -v -update
   publish-release:
     steps:
