@@ -72,8 +72,8 @@ content.`
 			expectedCommitMessage string
 		}{
 			{bodyContent: "a short body content, no trim", expectedCommitMessage: "a short body content, no trim"},
-			{bodyContent: strings.Repeat("a", 100), expectedCommitMessage: strings.Repeat("a", 100)},
-			{bodyContent: strings.Repeat("a", 100+1), expectedCommitMessage: strings.Repeat("a", 97) + "..."},
+			{bodyContent: strings.Repeat("a", 1024), expectedCommitMessage: strings.Repeat("a", 1024)},
+			{bodyContent: strings.Repeat("a", 1024+1), expectedCommitMessage: strings.Repeat("a", 1021) + "..."},
 		} {
 			request := http.Request{
 				Header: http.Header{

@@ -17,7 +17,7 @@ const (
 	envKeyBody         = `BITRISE_WEBHOOK_PASSTHROUGH_BODY`
 	maxBodySizeBytes   = 10 * 1024
 
-	bodyCharsCountForCommitMsg = 100
+	bodyCharsCountForCommitMsg = 1024
 )
 
 // HookProvider ...
