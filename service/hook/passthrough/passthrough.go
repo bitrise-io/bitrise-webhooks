@@ -8,6 +8,7 @@ import (
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
+	"github.com/bitrise-io/go-utils/stringutil"
 )
 
 const (
@@ -15,6 +16,8 @@ const (
 	maxHeaderSizeBytes = 10 * 1024
 	envKeyBody         = `BITRISE_WEBHOOK_PASSTHROUGH_BODY`
 	maxBodySizeBytes   = 10 * 1024
+
+	bodyCharsCountForCommitMsg = 100
 )
 
 // HookProvider ...
@@ -55,8 +58,9 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch:       "master",
-					Environments: environments,
+					Branch:        "master",
+					CommitMessage: stringutil.MaxFirstCharsWithDots(string(bodyBytes), bodyCharsCountForCommitMsg),
+					Environments:  environments,
 				},
 			},
 		},

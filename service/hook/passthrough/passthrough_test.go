@@ -22,7 +22,8 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch: "master",
+					Branch:        "master",
+					CommitMessage: "",
 					Environments: []bitriseapi.EnvironmentItem{
 						bitriseapi.EnvironmentItem{Name: "BITRISE_WEBHOOK_PASSTHROUGH_HEADERS", Value: "", IsExpand: false},
 						bitriseapi.EnvironmentItem{Name: "BITRISE_WEBHOOK_PASSTHROUGH_BODY", Value: "", IsExpand: false},
@@ -52,7 +53,8 @@ content.`
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch: "master",
+					Branch:        "master",
+					CommitMessage: bodyContent,
 					Environments: []bitriseapi.EnvironmentItem{
 						bitriseapi.EnvironmentItem{Name: "BITRISE_WEBHOOK_PASSTHROUGH_HEADERS", Value: `{"Content-Type":["application/json"],"Some-Custom-Header-List":["first-value","second-value"]}`, IsExpand: false},
 						bitriseapi.EnvironmentItem{Name: "BITRISE_WEBHOOK_PASSTHROUGH_BODY", Value: bodyContent, IsExpand: false},
@@ -61,6 +63,42 @@ content.`
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("If body is longer than max commit message length commit message will be a trimmed version of body")
+	{
+		for _, tc := range []struct {
+			bodyContent           string
+			expectedCommitMessage string
+		}{
+			{bodyContent: "a short body content, no trim", expectedCommitMessage: "a short body content, no trim"},
+			{bodyContent: strings.Repeat("a", 100), expectedCommitMessage: strings.Repeat("a", 100)},
+			{bodyContent: strings.Repeat("a", 100+1), expectedCommitMessage: strings.Repeat("a", 97) + "..."},
+		} {
+			request := http.Request{
+				Header: http.Header{
+					"Content-Type":            {"application/json"},
+					"Some-Custom-Header-List": {"first-value", "second-value"},
+				},
+				Body: ioutil.NopCloser(strings.NewReader(tc.bodyContent)),
+			}
+			hookTransformResult := provider.TransformRequest(&request)
+			require.NoError(t, hookTransformResult.Error)
+			require.False(t, hookTransformResult.ShouldSkip)
+			require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+				{
+					BuildParams: bitriseapi.BuildParamsModel{
+						Branch:        "master",
+						CommitMessage: tc.expectedCommitMessage,
+						Environments: []bitriseapi.EnvironmentItem{
+							bitriseapi.EnvironmentItem{Name: "BITRISE_WEBHOOK_PASSTHROUGH_HEADERS", Value: `{"Content-Type":["application/json"],"Some-Custom-Header-List":["first-value","second-value"]}`, IsExpand: false},
+							bitriseapi.EnvironmentItem{Name: "BITRISE_WEBHOOK_PASSTHROUGH_BODY", Value: tc.bodyContent, IsExpand: false},
+						},
+					},
+				},
+			}, hookTransformResult.TriggerAPIParams)
+			require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+		}
 	}
 
 	t.Log("Body too large")

@@ -4,7 +4,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/bitrise-io/go-utils"
-  packages = ["builtinutil","colorstring","pointers","sliceutil","testutil"]
+  packages = ["builtinutil","colorstring","pointers","sliceutil","stringutil","testutil"]
   revision = "6eb582e08179a025ed2deb86ea6dffbd13ba1ff6"
 
 [[projects]]
@@ -22,8 +22,8 @@
 [[projects]]
   name = "github.com/gorilla/mux"
   packages = ["."]
-  revision = "bcd8bc72b08df0f70df986b97f95590779502d31"
-  version = "v1.4.0"
+  revision = "24fca303ac6da784b9e8269f724ddeb0b2eea5e7"
+  version = "v1.5.0"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -40,6 +40,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b7e3115f2ba19ccf5adc3fa3a04ece36ad9b884c36d819e617c89066e1143daa"
+  inputs-digest = "ced561b31ae864b2494b8a0e1fa957a18b31225cfee21ac3aa52cb132020cfe1"
   solver-name = "gps-cdcl"
   solver-version = 1
