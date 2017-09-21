@@ -22,6 +22,7 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/visualstudioteamservices"
 	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 func supportedProviders() map[string]hookCommon.Provider {
@@ -102,11 +103,17 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 		log.Println(colorstring.Yellow(" (debug) isOnlyLog: true"))
 	}
 
+	if err := triggerAPIParams.Validate(); err != nil {
+		log.Printf(" (!) Failed to trigger build: invalid API parameters: %+v", err)
+		return bitriseapi.TriggerAPIResponseModel{}, false, errors.Wrap(err, "Failed to Trigger the Build: Invalid parameters")
+	}
+
 	responseModel, isSuccess, err := bitriseapi.TriggerBuild(triggerURL, apiToken, triggerAPIParams, isOnlyLog)
 	if err != nil {
-		log.Printf(" [!] Exception: failed to trigger build: %s", err)
-		return bitriseapi.TriggerAPIResponseModel{}, false, fmt.Errorf("Failed to Trigger the Build: %s", err)
+		log.Printf(" [!] Exception: Failed to trigger build: %+v", err)
+		return bitriseapi.TriggerAPIResponseModel{}, false, errors.Wrap(err, "Failed to Trigger the Build")
 	}
+
 	log.Printf(" ===> trigger build - DONE (success: %t) (%s)", isSuccess, triggerURL)
 	log.Printf("      (debug) response: (%#v)", responseModel)
 	return responseModel, isSuccess, nil
