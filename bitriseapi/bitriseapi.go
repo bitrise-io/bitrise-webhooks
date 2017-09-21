@@ -3,7 +3,6 @@ package bitriseapi
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"github.com/bitrise-io/go-utils/colorstring"
+	"github.com/pkg/errors"
 )
 
 // EnvironmentItem ...
@@ -77,12 +77,12 @@ func (triggerParams TriggerAPIParamsModel) Validate() error {
 func BuildTriggerURL(apiRootURL string, appSlug string) (*url.URL, error) {
 	baseURL, err := url.Parse(apiRootURL)
 	if err != nil {
-		return nil, fmt.Errorf("BuildTriggerURL: Failed to parse (%s), error: %s", apiRootURL, err)
+		return nil, errors.Wrapf(err, "BuildTriggerURL: Failed to parse (%s)", apiRootURL)
 	}
 
 	pathURL, err := url.Parse(fmt.Sprintf("/app/%s/build/start.json", appSlug))
 	if err != nil {
-		return nil, fmt.Errorf("BuildTriggerURL: Failed to parse PATH, error: %s", err)
+		return nil, errors.Wrap(err, "BuildTriggerURL: Failed to parse PATH")
 	}
 	return baseURL.ResolveReference(pathURL), nil
 }
@@ -94,14 +94,14 @@ func BuildTriggerURL(apiRootURL string, appSlug string) (*url.URL, error) {
 //  will be returned, and error will be nil.
 func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) (TriggerAPIResponseModel, bool, error) {
 	if err := params.Validate(); err != nil {
-		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: build trigger parameter invalid: %s", err)
+		return TriggerAPIResponseModel{}, false, errors.Wrap(err, "TriggerBuild: build trigger parameter invalid")
 	}
 
 	params.TriggeredBy = "webhook"
 
 	jsonStr, err := json.Marshal(params)
 	if err != nil {
-		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: failed to json marshal: %s", err)
+		return TriggerAPIResponseModel{}, false, errors.Wrap(err, "TriggerBuild: failed to json marshal")
 	}
 
 	if isOnlyLog {
@@ -118,7 +118,7 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 
 	req, err := http.NewRequest("POST", url.String(), bytes.NewBuffer(jsonStr))
 	if err != nil {
-		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: failed to create request: %s", err)
+		return TriggerAPIResponseModel{}, false, errors.Wrap(err, "TriggerBuild: failed to create request")
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Api-Token", apiToken)
@@ -129,22 +129,22 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: failed to send request: %s", err)
+		return TriggerAPIResponseModel{}, false, errors.Wrap(err, "TriggerBuild: failed to send request")
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Printf(" [!] Exception: TriggerBuild: Failed to close response body, error: %s", err)
+			log.Printf(" [!] Exception: TriggerBuild: Failed to close response body: %+v", err)
 		}
 	}()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: request sent, but failed to read response body (http-code:%d): %s", resp.StatusCode, body)
+		return TriggerAPIResponseModel{}, false, errors.Wrapf(err, "TriggerBuild: request sent, but failed to read response body (http-code:%d)", resp.StatusCode)
 	}
 
 	var respModel TriggerAPIResponseModel
 	if err := json.Unmarshal(body, &respModel); err != nil {
-		return TriggerAPIResponseModel{}, false, fmt.Errorf("TriggerBuild: request sent, but failed to parse response (http-code:%d): %s", resp.StatusCode, body)
+		return TriggerAPIResponseModel{}, false, errors.Wrapf(err, "TriggerBuild: request sent, but failed to parse response (http-code:%d)", resp.StatusCode)
 	}
 
 	if 200 <= resp.StatusCode && resp.StatusCode <= 202 {
