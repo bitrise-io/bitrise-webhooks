@@ -103,11 +103,17 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 		log.Println(colorstring.Yellow(" (debug) isOnlyLog: true"))
 	}
 
+	if err := triggerAPIParams.Validate(); err != nil {
+		log.Printf(" (!) Failed to trigger build: invalid API parameters: %+v", err)
+		return bitriseapi.TriggerAPIResponseModel{}, false, errors.Wrap(err, "Failed to Trigger the Build: Invalid parameters")
+	}
+
 	responseModel, isSuccess, err := bitriseapi.TriggerBuild(triggerURL, apiToken, triggerAPIParams, isOnlyLog)
 	if err != nil {
-		log.Printf(" (!) Failed to trigger build: %+v", err)
+		log.Printf(" [!] Exception: Failed to trigger build: %+v", err)
 		return bitriseapi.TriggerAPIResponseModel{}, false, errors.Wrap(err, "Failed to Trigger the Build")
 	}
+
 	log.Printf(" ===> trigger build - DONE (success: %t) (%s)", isSuccess, triggerURL)
 	log.Printf("      (debug) response: (%#v)", responseModel)
 	return responseModel, isSuccess, nil
