@@ -20,6 +20,14 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
+# Heroku specific
+# https://github.com/heroku/heroku-buildpack-go#dep-specifics
+[metadata.heroku]
+  root-package = "github.com/bitrise-io/bitrise-webhooks"
+  # go-version = "go1.8.3"
+  # install = [ "./cmd/...", "./foo" ]
+  ensure = "false"
+  # additional-tools = ["github.com/mattes/migrate"]
 
 [[constraint]]
   branch = "master"

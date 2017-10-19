@@ -92,8 +92,6 @@ workflows:
             dep ensure -v
             # to do the actual update
             dep ensure -v -update
-            # copy heroku vendor json into vendor/ dir
-            cp ./heroku-vendor.json ./vendor/vendor.json
   publish-release:
     steps:
     - script:
