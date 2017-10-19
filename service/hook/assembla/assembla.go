@@ -19,31 +19,31 @@ import (
 
 // SpaceEventModel ...
 type SpaceEventModel struct {
-	Space	string	`json:"space"`
-	Action	string	`json:"action"`
-	Object	string	`json:"object"`
+	Space  string `json:"space"`
+	Action string `json:"action"`
+	Object string `json:"object"`
 }
 
 // MessageEventModel ...
 type MessageEventModel struct {
-	Title   string	`json:"title"`
-	Body    string	`json:"body"`
-	Author	string	`json:"author"`
+	Title  string `json:"title"`
+	Body   string `json:"body"`
+	Author string `json:"author"`
 }
 
 // GitEventModel ...
 type GitEventModel struct {
-	RepositorySuffix    string      `json:"repository_suffix"`
-	RepositoryURL       string      `json:"repository_url"`
-	Branch              string      `json:"branch"`
-	CommitID            string      `json:"commit_id"`
+	RepositorySuffix string `json:"repository_suffix"`
+	RepositoryURL    string `json:"repository_url"`
+	Branch           string `json:"branch"`
+	CommitID         string `json:"commit_id"`
 }
 
 // PushEventModel ...
 type PushEventModel struct {
-	SpaceEventModel	    SpaceEventModel		`json:"assembla"`
-	MessageEventModel	MessageEventModel	`json:"message"`
-	GitEventModel		GitEventModel		`json:"git"`
+	SpaceEventModel   SpaceEventModel   `json:"assembla"`
+	MessageEventModel MessageEventModel `json:"message"`
+	GitEventModel     GitEventModel     `json:"git"`
 }
 
 // ---------------------------------------
@@ -65,14 +65,14 @@ func detectAssemblaData(pushEvent PushEventModel) error {
 	if (pushEvent.GitEventModel.CommitID == "") ||
 		(pushEvent.GitEventModel.Branch == "") ||
 		(pushEvent.GitEventModel.RepositoryURL == "") ||
-		(pushEvent.GitEventModel.RepositorySuffix == "")	{
+		(pushEvent.GitEventModel.RepositorySuffix == "") {
 		return errors.New("Webhook is not correctly setup, make sure you post updates about 'Code commits' in Assembla")
 	}
 
 	if (pushEvent.GitEventModel.CommitID == "---") ||
 		(pushEvent.GitEventModel.Branch == "---") ||
 		(pushEvent.GitEventModel.RepositoryURL == "---") ||
-		(pushEvent.GitEventModel.RepositorySuffix == "---")	{
+		(pushEvent.GitEventModel.RepositorySuffix == "---") {
 		return errors.New("Webhook is not correctly setup, make sure you post updates about 'Code commits' in Assembla")
 	}
 
@@ -80,8 +80,8 @@ func detectAssemblaData(pushEvent PushEventModel) error {
 }
 
 func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
-	if (pushEvent.SpaceEventModel.Action != "pushed" &&
-		pushEvent.SpaceEventModel.Action != "committed") {
+	if (pushEvent.SpaceEventModel.Action != "pushed") &&
+		(pushEvent.SpaceEventModel.Action != "committed") {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Action was not 'pushed' or 'committed', was: %s", pushEvent.SpaceEventModel.Action),
 		}

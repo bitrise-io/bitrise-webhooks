@@ -10,16 +10,19 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/config"
 	"github.com/bitrise-io/bitrise-webhooks/metrics"
 	"github.com/bitrise-io/bitrise-webhooks/service"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/assembla"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/bitbucketv2"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/deveo"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/github"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/gitlab"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/gogs"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/passthrough"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/slack"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/visualstudioteamservices"
-	"github.com/bitrise-io/bitrise-webhooks/service/hook/assembla"
+	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 func supportedProviders() map[string]hookCommon.Provider {
@@ -32,6 +35,7 @@ func supportedProviders() map[string]hookCommon.Provider {
 		"gogs":         gogs.HookProvider{},
 		"deveo":        deveo.HookProvider{},
 		"assembla":     assembla.HookProvider{},
+		"passthrough":  passthrough.HookProvider{},
 	}
 }
 
@@ -96,14 +100,20 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 	log.Printf(" ===> trigger build: %s", triggerURL)
 	isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
 	if isOnlyLog {
-		log.Println(" (debug) isOnlyLog: true")
+		log.Println(colorstring.Yellow(" (debug) isOnlyLog: true"))
+	}
+
+	if err := triggerAPIParams.Validate(); err != nil {
+		log.Printf(" (!) Failed to trigger build: invalid API parameters: %+v", err)
+		return bitriseapi.TriggerAPIResponseModel{}, false, errors.Wrap(err, "Failed to Trigger the Build: Invalid parameters")
 	}
 
 	responseModel, isSuccess, err := bitriseapi.TriggerBuild(triggerURL, apiToken, triggerAPIParams, isOnlyLog)
 	if err != nil {
-		log.Printf(" [!] Exception: failed to trigger build: %s", err)
-		return bitriseapi.TriggerAPIResponseModel{}, false, fmt.Errorf("Failed to Trigger the Build: %s", err)
+		log.Printf(" [!] Exception: Failed to trigger build: %+v", err)
+		return bitriseapi.TriggerAPIResponseModel{}, false, errors.Wrap(err, "Failed to Trigger the Build")
 	}
+
 	log.Printf(" ===> trigger build - DONE (success: %t) (%s)", isSuccess, triggerURL)
 	log.Printf("      (debug) response: (%#v)", responseModel)
 	return responseModel, isSuccess, nil
