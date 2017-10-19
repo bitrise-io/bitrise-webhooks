@@ -80,9 +80,10 @@ func detectAssemblaData(pushEvent PushEventModel) error {
 }
 
 func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
-	if pushEvent.SpaceEventModel.Action != "committed" {
+	if (pushEvent.SpaceEventModel.Action != "pushed") &&
+		(pushEvent.SpaceEventModel.Action != "committed") {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Action was not 'committed', was: %s", pushEvent.SpaceEventModel.Action),
+			Error: fmt.Errorf("Action was not 'pushed' or 'committed', was: %s", pushEvent.SpaceEventModel.Action),
 		}
 	}
 	if pushEvent.MessageEventModel.Body == "" {
