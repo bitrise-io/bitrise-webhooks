@@ -41,7 +41,6 @@ Service independent:
 * Passthrough - reads the request headers and body and passes it to the triggered build as environment variables.
   * handled on the path: `/h/passthrough/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 
-
 ### GitHub - setup & usage:
 
 All you have to do is register your `bitrise-webhooks` URL for
@@ -173,7 +172,7 @@ Follow these steps to add your `bitrise-webhooks` URL to your [Assembla](https:/
 ```json
 {"assembla": {"space": "%{space}", "action": "%{action}", "object": "%{object}"}, "message": {"title": "%{title}", "body": "%{body}", "author": "%{author}"}, "git": {"repository_suffix": "%{repository_suffix}", "repository_url": "%{repository_url}", "branch": "%{branch}", "commit_id": "%{commit_id}"}}
 ```
-8. Select `Code commits` in the `Post updates about:` section
+8. Select `Code commits` and/or `Git Push` in the `Post updates about:` section
 9. Click `Add`
 
 That's all! The next time you __push code__ a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
