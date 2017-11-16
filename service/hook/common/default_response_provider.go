@@ -39,8 +39,16 @@ func (hp DefaultResponseProvider) TransformResponse(input TransformResponseInput
 		httpStatusCode = 200
 	}
 
-	if len(input.Errors) > 0 || len(input.FailedTriggerResponses) > 0 {
+	if len(input.Errors) > 0 {
 		httpStatusCode = 400
+	}
+
+	if len(input.FailedTriggerResponses) > 0 {
+		if hp.knownError(input) {
+			httpStatusCode = 200
+		} else {
+			httpStatusCode = 400
+		}
 	}
 
 	return TransformResponseModel{
@@ -69,4 +77,13 @@ func (hp DefaultResponseProvider) TransformSuccessMessageResponse(msg string) Tr
 		Data:           SuccessRespModel{Message: msg},
 		HTTPStatusCode: 200,
 	}
+}
+
+func (hp DefaultResponseProvider) knownError(input TransformResponseInputModel) bool {
+	for _, response := range input.FailedTriggerResponses {
+		if response.Status != "error" {
+			return false
+		}
+	}
+	return true
 }
