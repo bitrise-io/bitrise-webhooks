@@ -147,6 +147,10 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 		return TriggerAPIResponseModel{}, false, errors.Wrapf(err, "TriggerBuild: request sent, but failed to parse response (http-code:%d)", resp.StatusCode)
 	}
 
+	if respModel.Status == "" && respModel.Message == "" {
+		respModel.Message = string(body)
+	}
+
 	if 200 <= resp.StatusCode && resp.StatusCode <= 202 {
 		return respModel, true, nil
 	}

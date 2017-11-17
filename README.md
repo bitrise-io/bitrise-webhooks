@@ -439,8 +439,16 @@ response provider will be used.
       and `"failed_responses": []` JSON arrays
     * And all the errors (where the response was not available / call timed out, etc.)
       as a `"errors": []` JSON array (if any)
-    * If at least one call fails or the response is an error response
-      the HTTP status code will be `400`
+    * If at least one call fails:
+        * In case the error is not an internal error, nor an authorization or any other system error,
+          just the build could not be started (e.g. Trigger Map doesn't have any mapping for the trigger),
+          then the response code with be `200`. This is to prevent services to "disable" the Webhook,
+          as most of the git hosting services auto-disable webhooks if too many / too frequent non `2xx`
+          responses received.
+        * On the other hand, if it's a system error (e.g. an internal error or an authentication error)
+          then of course the webhook server will not return a `2xx` (success) code,
+          but instead it'll return a `400` error with as much details in the response about the
+          error as the server can determine.
     * If all trigger calls succeed the status code will be `201`
 * If the provider declares that it does not want to wait for the Trigger API response,
   then a response will be returned immediately after triggering a build (calling the Trigger API),
