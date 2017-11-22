@@ -245,10 +245,10 @@ func Test_detectContentTypeAttemptNumberAndEventKey(t *testing.T) {
 			"Content-Type": {"application/json"},
 		}
 		contentType, attemptNum, eventKey, err := detectContentTypeAttemptNumberAndEventKey(header)
-		require.EqualError(t, err, "No X-Attempt-Number Header found")
-		require.Equal(t, "", contentType)
-		require.Equal(t, "", eventKey)
-		require.Equal(t, "", attemptNum)
+		require.NoError(t, err)
+		require.Equal(t, "application/json", contentType)
+		require.Equal(t, "repo:push", eventKey)
+		require.Equal(t, "1", attemptNum)
 	}
 }
 
