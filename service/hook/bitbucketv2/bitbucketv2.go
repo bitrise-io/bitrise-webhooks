@@ -120,7 +120,7 @@ func detectContentTypeAttemptNumberAndEventKey(header http.Header) (string, stri
 
 	attemptNum := header.Get("X-Attempt-Number")
 	if attemptNum == "" {
-		return "", "", "", errors.New("No X-Attempt-Number Header found")
+		attemptNum = "1"
 	}
 
 	return contentType, attemptNum, eventKey, nil
