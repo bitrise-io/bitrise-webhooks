@@ -23,6 +23,8 @@ If the (commit) message includes `[skip ci]` or `[ci skip]` no build will be tri
   * handled on the path: `/h/github/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * [Bitbucket](https://bitbucket.org) webhooks V2 ("Webhooks" on the Bitbucket web UI)
   * handled on the path: `/h/bitbucket-v2/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
+* [Bitbucket Server](https://bitbucket.org)
+  * handled on the path: `/h/bitbucket-server/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * [Slack](https://slack.com) (both outgoing webhooks & slash commands)
   * handled on the path: `/h/slack/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * [Visual Studio Team Services](https://www.visualstudio.com/products/visual-studio-team-services-vs)
@@ -79,6 +81,23 @@ a [Bitbucket](https://bitbucket.org) *repository*.
 That's all! The next time you __push code__, __push a new tag__ or __create/update a pull request__
 a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
+### Bitbucket Server Webhooks - setup & usage:
+
+All you have to do is register your `bitrise-webhooks` URL for
+a Bitbucket Server *repository*.
+
+1. Open your *repository* on your self hosted Bitbucket Server instance
+2. Go to `Settings` of the *repository*
+3. Select `Webhooks`
+4. Click on `Create webhook`
+5. Specify the `bitrise-webhooks` URL (`.../h/bitbucket-server/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `URL` field
+6. In the *Events* section select the following properties:
+  * Repository > Push
+  * Pull Request > Opened
+7. Click `Save`
+
+That's all! The next time you __push code__, __push a new tag__ or __create/update a pull request__
+a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 ### GitLab - setup & usage:
 
