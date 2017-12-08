@@ -23,19 +23,21 @@ import (
 	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/bitbucketserver"
 )
 
 func supportedProviders() map[string]hookCommon.Provider {
 	return map[string]hookCommon.Provider{
-		"github":       github.HookProvider{},
-		"bitbucket-v2": bitbucketv2.HookProvider{},
-		"slack":        slack.HookProvider{},
-		"visualstudio": visualstudioteamservices.HookProvider{},
-		"gitlab":       gitlab.HookProvider{},
-		"gogs":         gogs.HookProvider{},
-		"deveo":        deveo.HookProvider{},
-		"assembla":     assembla.HookProvider{},
-		"passthrough":  passthrough.HookProvider{},
+		"github":           github.HookProvider{},
+		"bitbucket-v2":     bitbucketv2.HookProvider{},
+		"bitbucket-server": bitbucketserver.HookProvider{},
+		"slack":            slack.HookProvider{},
+		"visualstudio":     visualstudioteamservices.HookProvider{},
+		"gitlab":           gitlab.HookProvider{},
+		"gogs":             gogs.HookProvider{},
+		"deveo":            deveo.HookProvider{},
+		"assembla":         assembla.HookProvider{},
+		"passthrough":      passthrough.HookProvider{},
 	}
 }
 
