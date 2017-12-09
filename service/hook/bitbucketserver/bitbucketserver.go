@@ -22,6 +22,8 @@ const (
 
 // --------------------------
 // --- Webhook Data Model ---
+
+//PushEventModel ...
 type PushEventModel struct {
 	EventKey       string              `json:"eventKey"`
 	Date           string              `json:"date"`
@@ -30,41 +32,47 @@ type PushEventModel struct {
 	Changes        []ChangeItemModel   `json:"changes"`
 }
 
+//ChangeItemModel ...
 type ChangeItemModel struct {
-	RefId    string   `json:"refId"`
+	RefID    string   `json:"refId"`
 	FromHash string   `json:"fromHash"`
 	ToHash   string   `json:"toHash"`
 	Type     string   `json:"type"`
 	Ref      RefModel `json:"ref"`
 }
 
+//RefModel ...
 type RefModel struct {
-	Id        string `json:"id"`
-	DisplayId string `json:"displayId"`
+	ID        string `json:"id"`
+	DisplayID string `json:"displayId"`
 	Type      string `json:"type"`
 }
 
+//UserInfoModel ...
 type UserInfoModel struct {
 	DisplayName string `json:"displayName"`
 }
 
+//RepositoryInfoModel ...
 type RepositoryInfoModel struct {
 	Slug    string           `json:"slug"`
-	Id      int              `json:"id"`
+	ID      int              `json:"id"`
 	Name    string           `json:"name"`
 	Public  bool             `json:"public"`
 	Scm     string           `json:"scmId"`
 	Project ProjectInfoModel `json:"owner"`
 }
 
+//ProjectInfoModel ...
 type ProjectInfoModel struct {
 	Key    string `json:"key"`
-	Id     int    `json:"id"`
+	ID     int    `json:"id"`
 	Name   string `json:"name"`
 	Public bool   `json:"public"`
 	Type   string `json:"type"`
 }
 
+//PullRequestInfoModel ...
 type PullRequestInfoModel struct {
 	ID          int                 `json:"id"`
 	Version     int                 `json:"version"`
@@ -78,6 +86,7 @@ type PullRequestInfoModel struct {
 	ToRef       PullRequestRefModel `json:"toRef"`
 }
 
+//PullRequestEventModel ...
 type PullRequestEventModel struct {
 	EventKey    string               `json:"eventKey"`
 	Date        string               `json:"date"`
@@ -85,9 +94,10 @@ type PullRequestEventModel struct {
 	PullRequest PullRequestInfoModel `json:"pullRequest"`
 }
 
+//PullRequestRefModel ...
 type PullRequestRefModel struct {
-	Id           string              `json:"id"`
-	DisplayId    string              `json:"displayId"`
+	ID           string              `json:"id"`
+	DisplayID    string              `json:"displayId"`
 	Type         string              `json:"type"`
 	LatestCommit string              `json:"latestCommit"`
 	Repository   RepositoryInfoModel `json:"repository"`
@@ -135,14 +145,14 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 	triggerAPIParams := []bitriseapi.TriggerAPIParamsModel{}
 	errs := []string{}
 	for _, aChange := range pushEvent.Changes {
-		if (pushEvent.RepositoryInfo.Scm == scmGit && aChange.Type == "UPDATE") {
+		if pushEvent.RepositoryInfo.Scm == scmGit && aChange.Type == "UPDATE" {
 			if aChange.Ref.Type != "BRANCH" {
 				errs = append(errs, fmt.Sprintf("Ref was not a type=BRANCH. Type was: %s", aChange.Ref.Type))
 				continue
 			}
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch:     aChange.Ref.DisplayId,
+					Branch:     aChange.Ref.DisplayID,
 					CommitHash: aChange.ToHash,
 				},
 			}
@@ -154,7 +164,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			}
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:        aChange.Ref.DisplayId,
+					Tag:        aChange.Ref.DisplayID,
 					CommitHash: aChange.ToHash,
 				},
 			}
@@ -191,8 +201,8 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitMessage: commitMsg,
 					CommitHash:    pullRequest.PullRequest.FromRef.LatestCommit,
-					Branch:        pullRequest.PullRequest.FromRef.DisplayId,
-					BranchDest:    pullRequest.PullRequest.ToRef.DisplayId,
+					Branch:        pullRequest.PullRequest.FromRef.DisplayID,
+					BranchDest:    pullRequest.PullRequest.ToRef.DisplayID,
 					PullRequestID: &pullRequest.PullRequest.ID,
 				},
 			},
