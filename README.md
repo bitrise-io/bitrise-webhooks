@@ -494,3 +494,4 @@ response provider will be used.
 * [Rafael Nobre](https://github.com/nobre84) - Environment variables support in `Slack` commands
 * [Tuomas Peippo](https://github.com/tume)- Skip CI feature
 * [Erik Poort](https://github.com/ErikMediaMonks) - `Assembla` support
+* [ChrisTitos](https://github.com/ChrisTitos) - `Bitbucket Server` support
