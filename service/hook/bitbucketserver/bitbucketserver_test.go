@@ -51,7 +51,7 @@ const (
       "refId":"refs/heads/master",
       "fromHash":"from-hash-1",
       "toHash":"to-hash-1",
-      "type":"UPDATE"
+      "type":"ADD"
     },
  {
       "ref":{
@@ -405,7 +405,7 @@ func Test_transformPushEvent(t *testing.T) {
 			},
 			Changes: []ChangeItemModel{
 				{
-					Type:     "UPDATE",
+					Type:     "ADD",
 					FromHash: "from-hash-1",
 					ToHash:   "to-hash-1",
 					RefID:    "refs/heads/master",
@@ -617,7 +617,7 @@ func Test_transformPushEvent(t *testing.T) {
 			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
-		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Not a type=UPDATE nor type=ADD change. Change.Type was: INVALID]")
+		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Not a type=ADD change. Change.Type was: INVALID]")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -671,7 +671,7 @@ func Test_transformPushEvent(t *testing.T) {
 			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
-		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Ref was not a type=BRANCH. Type was: NOT-BRANCH Ref was not a type=TAG. Type was: NOT-TAG]")
+		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Ref was not a type=BRANCH nor type=TAG change. Type was: NOT-BRANCH Ref was not a type=BRANCH nor type=TAG change. Type was: NOT-TAG]")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
