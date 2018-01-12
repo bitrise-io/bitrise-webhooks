@@ -145,9 +145,9 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 	triggerAPIParams := []bitriseapi.TriggerAPIParamsModel{}
 	errs := []string{}
 	for _, aChange := range pushEvent.Changes {
-		if pushEvent.RepositoryInfo.Scm == scmGit && aChange.Type == "UPDATE" {
-			if aChange.Ref.Type != "BRANCH" {
-				errs = append(errs, fmt.Sprintf("Ref was not a type=BRANCH. Type was: %s", aChange.Ref.Type))
+		if pushEvent.RepositoryInfo.Scm == scmGit && aChange.Ref.Type == "BRANCH" {
+			if aChange.Type != "ADD" && aChange.Type != "UPDATE" {
+				errs = append(errs, fmt.Sprintf("Not a type=UPDATE nor type=ADD change. Change.Type was: %s", aChange.Type))
 				continue
 			}
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
@@ -157,9 +157,9 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 				},
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
-		} else if aChange.Type == "ADD" { //tag
-			if aChange.Ref.Type != "TAG" {
-				errs = append(errs, fmt.Sprintf("Ref was not a type=TAG. Type was: %s", aChange.Ref.Type))
+		} else if aChange.Ref.Type == "TAG" { //tag
+			if aChange.Type != "ADD" {
+				errs = append(errs, fmt.Sprintf("Not a type=ADD change. Change.Type was: %s", aChange.Type))
 				continue
 			}
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
@@ -170,7 +170,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 		} else {
-			errs = append(errs, fmt.Sprintf("Not a type=UPDATE nor type=ADD change. Change.Type was: %s", aChange.Type))
+			errs = append(errs, fmt.Sprintf("Ref was not a type=BRANCH nor type=TAG change. Type was: %s", aChange.Ref.Type))
 		}
 	}
 	if len(triggerAPIParams) < 1 {

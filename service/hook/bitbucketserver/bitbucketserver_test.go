@@ -331,6 +331,60 @@ func Test_transformPushEvent(t *testing.T) {
 		}
 	}
 
+	t.Log("Do Transform - single change - push new branch")
+	{
+		pushEvent := PushEventModel{
+			EventKey: "repo:refs_changed",
+			Date:     "2017-09-19T09:58:11+1000",
+			Actor: UserInfoModel{
+				DisplayName: "Username",
+			},
+			RepositoryInfo: RepositoryInfoModel{
+				Slug:   "android",
+				ID:     1,
+				Name:   "Android",
+				Public: false,
+				Scm:    "git",
+				Project: ProjectInfoModel{
+					Key:    "APP",
+					ID:     2,
+					Name:   "App Repo",
+					Public: false,
+					Type:   "normal",
+				},
+			},
+			Changes: []ChangeItemModel{
+				{
+					Type:     "ADD",
+					FromHash: "0000000000000000000000000000000000000000",
+					ToHash:   "TO-966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					RefID:    "refs/heads/newbranch",
+					Ref: RefModel{
+						ID:        "refs/heads/newbranch",
+						DisplayID: "newbranch",
+						Type:      "BRANCH",
+					},
+				},
+			},
+		}
+
+		// OK
+		{
+			hookTransformResult := transformPushEvent(pushEvent)
+			require.NoError(t, hookTransformResult.Error)
+			require.False(t, hookTransformResult.ShouldSkip)
+			require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+				{
+					BuildParams: bitriseapi.BuildParamsModel{
+						CommitHash: "TO-966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+						Branch:     "newbranch",
+					},
+				},
+			}, hookTransformResult.TriggerAPIParams)
+			require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+		}
+	}
+
 	t.Log("Do Transform - single change - tag")
 	{
 		tagPushEvent := PushEventModel{
@@ -617,7 +671,7 @@ func Test_transformPushEvent(t *testing.T) {
 			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
-		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Not a type=UPDATE nor type=ADD change. Change.Type was: INVALID]")
+		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Not a type=ADD change. Change.Type was: INVALID]")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -671,7 +725,7 @@ func Test_transformPushEvent(t *testing.T) {
 			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
-		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Ref was not a type=BRANCH. Type was: NOT-BRANCH Ref was not a type=TAG. Type was: NOT-TAG]")
+		require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Ref was not a type=BRANCH nor type=TAG change. Type was: NOT-BRANCH Ref was not a type=BRANCH nor type=TAG change. Type was: NOT-TAG]")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
