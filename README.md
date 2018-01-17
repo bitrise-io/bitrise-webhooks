@@ -404,6 +404,9 @@ provider implementation.
   * Once your transform functions are well tested you should get back to the `TransformRequest` function,
     test & implement that too
     * You should include a sample webhook data & test, as you can see it in the `github` and `bitbucketv2` services.
+* Run the tests & linters with: `bitrise run test`
+    * To run only the Go tests: `go test ./...`
+    * To run only the tests of your own package (`github` in this example): `go test ./service/hook/github/...`
 * Once the implementation is ready you can register a path/route for the service/provider:
   * Open `service/hook/endpoint.go`
   * Add your provider to the `supportedProviders` map
