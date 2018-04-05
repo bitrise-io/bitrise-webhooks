@@ -11,6 +11,7 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/metrics"
 	"github.com/bitrise-io/bitrise-webhooks/service"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/assembla"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/bitbucketserver"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/bitbucketv2"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/deveo"
@@ -23,7 +24,6 @@ import (
 	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"github.com/bitrise-io/bitrise-webhooks/service/hook/bitbucketserver"
 )
 
 func supportedProviders() map[string]hookCommon.Provider {
@@ -169,7 +169,7 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	// Let's Trigger a build / some builds!
 	triggerURL := config.SendRequestToURL
 	if triggerURL == nil {
-		u, err := bitriseapi.BuildTriggerURL("https://www.bitrise.io", appSlug)
+		u, err := bitriseapi.BuildTriggerURL("https://app.bitrise.io", appSlug)
 		if err != nil {
 			log.Printf(" [!] Exception: hookHandler: failed to create Build Trigger URL: %s", err)
 			respondWithErrorString(w, &hookProvider, fmt.Sprintf("Failed to create Build Trigger URL: %s", err))
