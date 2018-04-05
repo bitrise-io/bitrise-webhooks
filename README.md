@@ -264,7 +264,7 @@ curl -X POST --data 'just a text body' -H 'Example-Header: example header value'
 by default the server will print what and where it would send (debug mode), so you should see this in the server's log:
 
 ```
-2017/09/10 16:30:18 ===> Triggering Build: (url:https://www.bitrise.io/app/BITRISE-APP-SLUG/build/start.json)
+2017/09/10 16:30:18 ===> Triggering Build: (url:https://app.bitrise.io/app/BITRISE-APP-SLUG/build/start.json)
 2017/09/10 16:30:18 ====> JSON body: {"build_params":{"branch":"master","environments":[{"mapped_to":"BITRISE_WEBHOOK_PASSTHROUGH_HEADERS","value":"{\"Accept\":[\"*/*\"],\"Accept-Encoding\":[\"gzip\"],\"Content-Length\":[\"16\"],\"Content-Type\":[\"application/x-www-form-urlencoded\"],\"Example-Header\":[\"example header value\"],\"User-Agent\":[\"curl/7.54.0\"],\"X-Forwarded-For\":[\"::1\"]}","is_expand":false},{"mapped_to":"BITRISE_WEBHOOK_PASSTHROUGH_BODY","value":"just a text body","is_expand":false}]},"triggered_by":"webhook"}
 ```
 
@@ -404,6 +404,9 @@ provider implementation.
   * Once your transform functions are well tested you should get back to the `TransformRequest` function,
     test & implement that too
     * You should include a sample webhook data & test, as you can see it in the `github` and `bitbucketv2` services.
+* Run the tests & linters with: `bitrise run test`
+    * To run only the Go tests: `go test ./...`
+    * To run only the tests of your own package (`github` in this example): `go test ./service/hook/github/...`
 * Once the implementation is ready you can register a path/route for the service/provider:
   * Open `service/hook/endpoint.go`
   * Add your provider to the `supportedProviders` map
