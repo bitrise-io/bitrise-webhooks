@@ -264,7 +264,7 @@ curl -X POST --data 'just a text body' -H 'Example-Header: example header value'
 by default the server will print what and where it would send (debug mode), so you should see this in the server's log:
 
 ```
-2017/09/10 16:30:18 ===> Triggering Build: (url:https://www.bitrise.io/app/BITRISE-APP-SLUG/build/start.json)
+2017/09/10 16:30:18 ===> Triggering Build: (url:https://app.bitrise.io/app/BITRISE-APP-SLUG/build/start.json)
 2017/09/10 16:30:18 ====> JSON body: {"build_params":{"branch":"master","environments":[{"mapped_to":"BITRISE_WEBHOOK_PASSTHROUGH_HEADERS","value":"{\"Accept\":[\"*/*\"],\"Accept-Encoding\":[\"gzip\"],\"Content-Length\":[\"16\"],\"Content-Type\":[\"application/x-www-form-urlencoded\"],\"Example-Header\":[\"example header value\"],\"User-Agent\":[\"curl/7.54.0\"],\"X-Forwarded-For\":[\"::1\"]}","is_expand":false},{"mapped_to":"BITRISE_WEBHOOK_PASSTHROUGH_BODY","value":"just a text body","is_expand":false}]},"triggered_by":"webhook"}
 ```
 
