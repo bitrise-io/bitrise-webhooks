@@ -19,7 +19,20 @@ const (
     "distinct": true,
     "id": "83b86e5f286f546dc5a4a58db66ceef44460c85e",
     "message": "re-structuring Hook Providers, with added tests"
-  }
+  },
+  "commits": [
+    {
+      "added": [
+        "added/file/path"
+      ],
+      "removed": [
+        "removed/file/path"
+      ],
+      "modified": [
+        "modified/file/path"
+      ]
+    }
+  ]
 }`
 
 	sampleTagPushData = `{
@@ -29,13 +42,27 @@ const (
     "distinct": true,
     "id": "2e197ebd2330183ae11338151cf3a75db0c23c92",
     "message": "generalize Push Event (previously Code Push)\n\nwe'll handle the Tag Push too, so related codes are changed to reflect this (removed code from CodePush - e.g. CodePushEventModel -> PushEventModel)"
-  }
+  },
+  "commits": [
+    {
+      "added": [
+        "added/file/path"
+      ],
+      "removed": [
+        "removed/file/path"
+      ],
+      "modified": [
+        "modified/file/path"
+      ]
+    }
+  ]
 }`
 
 	samplePullRequestData = `{
   "action": "opened",
   "number": 12,
   "pull_request": {
+    "diff_url": "https://github.com/bitrise-io/bitrise-webhooks/pull/1.diff",
     "head": {
       "ref": "feature/github-pr",
       "sha": "83b86e5f286f546dc5a4a58db66ceef44460c85e",
@@ -874,6 +901,13 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 					CommitMessage: "re-structuring Hook Providers, with added tests",
 					Branch:        "master",
+					PushCommitPaths: []bitriseapi.CommitPaths{
+						bitriseapi.CommitPaths{
+							Added:    []string{"added/file/path"},
+							Removed:  []string{"removed/file/path"},
+							Modified: []string{"modified/file/path"},
+						},
+					},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -898,6 +932,13 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					Tag:           "v0.0.2",
 					CommitHash:    "2e197ebd2330183ae11338151cf3a75db0c23c92",
 					CommitMessage: "generalize Push Event (previously Code Push)\n\nwe'll handle the Tag Push too, so related codes are changed to reflect this (removed code from CodePush - e.g. CodePushEventModel -> PushEventModel)",
+					PushCommitPaths: []bitriseapi.CommitPaths{
+						bitriseapi.CommitPaths{
+							Added:    []string{"added/file/path"},
+							Removed:  []string{"removed/file/path"},
+							Modified: []string{"modified/file/path"},
+						},
+					},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -919,6 +960,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
+					DiffURL:                  "https://github.com/bitrise-io/bitrise-webhooks/pull/1.diff",
 					CommitHash:               "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 					CommitMessage:            "PR test\n\nPR text body",
 					Branch:                   "feature/github-pr",

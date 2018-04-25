@@ -24,9 +24,10 @@ type CommitModel struct {
 
 // PushEventModel ...
 type PushEventModel struct {
-	Ref        string      `json:"ref"`
-	Deleted    bool        `json:"deleted"`
-	HeadCommit CommitModel `json:"head_commit"`
+	Ref         string                   `json:"ref"`
+	Deleted     bool                     `json:"deleted"`
+	HeadCommit  CommitModel              `json:"head_commit"`
+	CommitPaths []bitriseapi.CommitPaths `json:"commits"`
 }
 
 // RepoInfoModel ...
@@ -55,6 +56,7 @@ type PullRequestInfoModel struct {
 	Body           string          `json:"body"`
 	Merged         bool            `json:"merged"`
 	Mergeable      *bool           `json:"mergeable"`
+	DiffURL        string          `json:"diff_url"`
 }
 
 // PullRequestChangeFromItemModel ...
@@ -110,9 +112,10 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 				{
 					BuildParams: bitriseapi.BuildParamsModel{
-						Branch:        branch,
-						CommitHash:    headCommit.CommitHash,
-						CommitMessage: headCommit.CommitMessage,
+						Branch:          branch,
+						CommitHash:      headCommit.CommitHash,
+						CommitMessage:   headCommit.CommitMessage,
+						PushCommitPaths: pushEvent.CommitPaths,
 					},
 				},
 			},
@@ -131,9 +134,10 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 				{
 					BuildParams: bitriseapi.BuildParamsModel{
-						Tag:           tag,
-						CommitHash:    headCommit.CommitHash,
-						CommitMessage: headCommit.CommitMessage,
+						Tag:             tag,
+						CommitHash:      headCommit.CommitHash,
+						CommitMessage:   headCommit.CommitMessage,
+						PushCommitPaths: pushEvent.CommitPaths,
 					},
 				},
 			},
@@ -204,6 +208,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					PullRequestRepositoryURL: pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
 					PullRequestMergeBranch:   fmt.Sprintf("pull/%d/merge", pullRequest.PullRequestID),
 					PullRequestHeadBranch:    fmt.Sprintf("pull/%d/head", pullRequest.PullRequestID),
+					DiffURL:                  pullRequest.PullRequestInfo.DiffURL,
 				},
 			},
 		},
