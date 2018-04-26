@@ -21,6 +21,13 @@ type EnvironmentItem struct {
 	IsExpand bool   `json:"is_expand"`
 }
 
+// CommitPaths ...
+type CommitPaths struct {
+	Added    []string `json:"added"`
+	Removed  []string `json:"removed"`
+	Modified []string `json:"modified"`
+}
+
 // BuildParamsModel ...
 type BuildParamsModel struct {
 	// git commit hash
@@ -45,6 +52,10 @@ type BuildParamsModel struct {
 	WorkflowID string `json:"workflow_id,omitempty"`
 	// additional environment variables
 	Environments []EnvironmentItem `json:"environments,omitempty"`
+	// URL of the diff
+	DiffURL string `json:"diff_url"`
+	// paths of changes
+	PushCommitPaths []CommitPaths `json:"commit_paths"`
 }
 
 // TriggerAPIParamsModel ...
