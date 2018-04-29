@@ -104,11 +104,11 @@ content.`
 	t.Log("Body too large")
 	{
 		request := http.Request{
-			Body: ioutil.NopCloser(strings.NewReader(strings.Repeat("a", 10*1024+1))),
+			Body: ioutil.NopCloser(strings.NewReader(strings.Repeat("a", 20*1024+1))),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.False(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Body too large, larger than 10240 bytes")
+		require.EqualError(t, hookTransformResult.Error, "Body too large, larger than 20480 bytes")
 	}
 
 	t.Log("Headers too large")
