@@ -15,7 +15,7 @@ const (
 	envKeyHeaders      = `BITRISE_WEBHOOK_PASSTHROUGH_HEADERS`
 	maxHeaderSizeBytes = 10 * 1024
 	envKeyBody         = `BITRISE_WEBHOOK_PASSTHROUGH_BODY`
-	maxBodySizeBytes   = 10 * 1024
+	maxBodySizeBytes   = 20 * 1024
 
 	bodyCharsCountForCommitMsg = 1024
 )
