@@ -96,8 +96,8 @@ a Bitbucket Server *repository*.
   * Pull Request > Opened
 7. Click `Save`
 
-That's all! The next time you __push code__, __push a new tag__ or __create/update a pull request__
-a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
+That's all! The next time you __push code__, __push a new tag__ or __create a pull request__
+a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise). Please note that Bitbucket Server doesn't send any notifications when new commits are pushed to an existing PR, so no builds will be triggered by these events.
 
 ### GitLab - setup & usage:
 
