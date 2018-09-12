@@ -18,6 +18,12 @@ import (
 
 const (
 	scmGit = "git"
+
+	eventTypeAdd = "ADD"
+	eventTypeUpdate = "UPDATE"
+
+	eventRefTypeBranch = "BRANCH"
+	eventRefTypeTag = "TAG"
 )
 
 // --------------------------
@@ -145,9 +151,9 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 	triggerAPIParams := []bitriseapi.TriggerAPIParamsModel{}
 	errs := []string{}
 	for _, aChange := range pushEvent.Changes {
-		if pushEvent.RepositoryInfo.Scm == scmGit && aChange.Ref.Type == "BRANCH" {
-			if aChange.Type != "ADD" && aChange.Type != "UPDATE" {
-				errs = append(errs, fmt.Sprintf("Not a type=UPDATE nor type=ADD change. Change.Type was: %s", aChange.Type))
+		if pushEvent.RepositoryInfo.Scm == scmGit && aChange.Ref.Type == eventRefTypeBranch {
+			if aChange.Type != eventTypeAdd && aChange.Type != eventTypeUpdate {
+				errs = append(errs, fmt.Sprintf("Not a type=%s nor type=%s change. Change.Type was: %s", eventTypeUpdate, eventTypeAdd, aChange.Type))
 				continue
 			}
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
@@ -157,9 +163,9 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 				},
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
-		} else if aChange.Ref.Type == "TAG" { //tag
-			if aChange.Type != "ADD" {
-				errs = append(errs, fmt.Sprintf("Not a type=ADD change. Change.Type was: %s", aChange.Type))
+		} else if aChange.Ref.Type == eventRefTypeTag {
+			if aChange.Type != eventTypeAdd {
+				errs = append(errs, fmt.Sprintf("Not a type=%s change. Change.Type was: %s", eventRefTypeTag, aChange.Type))
 				continue
 			}
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
@@ -170,7 +176,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 		} else {
-			errs = append(errs, fmt.Sprintf("Ref was not a type=BRANCH nor type=TAG change. Type was: %s", aChange.Ref.Type))
+			errs = append(errs, fmt.Sprintf("Ref was not a type=%s nor type=%s change. Type was: %s", eventRefTypeBranch, eventRefTypeTag, aChange.Ref.Type))
 		}
 	}
 	if len(triggerAPIParams) < 1 {
