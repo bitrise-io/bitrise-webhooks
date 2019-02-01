@@ -383,8 +383,8 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 		mergeRequest := MergeRequestEventModel{
 			ObjectKind: "merge_request",
 			ObjectAttributes: ObjectAttributesInfoModel{
-				State:      "opened",
-				Action:     "approved",
+				State:  "opened",
+				Action: "approved",
 			},
 		}
 		hookTransformResult := transformMergeRequestEvent(mergeRequest)
@@ -399,8 +399,8 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 		mergeRequest := MergeRequestEventModel{
 			ObjectKind: "merge_request",
 			ObjectAttributes: ObjectAttributesInfoModel{
-				State:      "opened",
-				Action:     "update",
+				State:  "opened",
+				Action: "update",
 			},
 		}
 		hookTransformResult := transformMergeRequestEvent(mergeRequest)
