@@ -4,12 +4,12 @@ package gitlab
 //
 // ## Webhook calls
 //
-// Official API docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/web_hooks/web_hooks.md
+// Official API docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/user/project/integrations/webhooks.md
 //
 // ### Code Push
 //
 // A code push webhook is sent with the header: `X-Gitlab-Event: Push Hook`.
-// Official docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/web_hooks/web_hooks.md#push-events
+// Official docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/user/project/integrations/webhooks.md#push-events
 //
 // GitLab sends push webhooks for every branch separately. Even if you
 // push to two different branches at the same time (git push --all) it'll
@@ -32,7 +32,7 @@ package gitlab
 //
 // ### Merge request
 // A merge request is sent with the header: `X-Gitlab-Event: Merge Request Hook`
-// Official docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/web_hooks/web_hooks.md#merge-request-events
+// Official docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/user/project/integrations/webhooks.md#merge-request-events
 //
 
 import (
@@ -95,8 +95,11 @@ type ObjectAttributesInfoModel struct {
 	Title          string              `json:"title"`
 	Description    string              `json:"description"`
 	State          string              `json:"state"`
+	Action         string              `json:"action"`
+	MergeStatus    string              `json:"merge_status"`
 	MergeCommitSHA string              `json:"merge_commit_sha"`
 	MergeError     string              `json:"merge_error"`
+	Oldrev	       string              `json:"oldrev"`
 	Source         BranchInfoModel     `json:"source"`
 	SourceBranch   string              `json:"source_branch"`
 	Target         BranchInfoModel     `json:"target"`
@@ -134,8 +137,13 @@ func isAcceptEventType(eventKey string) bool {
 	return sliceutil.IsStringInSlice(eventKey, []string{tagPushEventID, codePushEventID, mergeRequestEventID})
 }
 
-func isAcceptMergeRequestState(prAction string) bool {
-	return sliceutil.IsStringInSlice(prAction, []string{"opened", "reopened"})
+func isAcceptMergeRequestState(prState string) bool {
+	return sliceutil.IsStringInSlice(prState, []string{"opened", "reopened"})
+}
+
+func isAcceptMergeRequestAction(prAction string, prOldrev string) bool {
+	// an "update" without "oldrev" present isn't a code change, so skip
+	return prAction == "open" || prAction == "update" && prOldrev != ""
 }
 
 func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
@@ -256,7 +264,15 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 		}
 	}
 
-	if mergeRequest.ObjectAttributes.MergeError != "" {
+	if !isAcceptMergeRequestAction(mergeRequest.ObjectAttributes.Action, mergeRequest.ObjectAttributes.Oldrev) {
+		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
+			Error:      fmt.Errorf("Merge Request action doesn't require a build: %s", mergeRequest.ObjectAttributes.Action),
+			ShouldSkip: true,
+		}
+	}
+
+	if mergeRequest.ObjectAttributes.MergeStatus == "cannot_be_merged" || mergeRequest.ObjectAttributes.MergeError != "" {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
 			Error:      errors.New("Merge Request is not mergeable"),

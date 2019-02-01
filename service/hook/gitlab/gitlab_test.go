@@ -32,7 +32,7 @@ const sampleMergeRequestData = `{
 "object_kind": "merge_request",
 "object_attributes": {
 	"target_branch": "develop",
-	"source_branch": "feature/github-pr",
+	"source_branch": "feature/gitlab-pr",
 	"title": "PR test",
 	"merge_status": "unchecked",
 	"iid": 12,
@@ -53,6 +53,7 @@ const sampleMergeRequestData = `{
 		"id": "da966425f32973b6290dcff6a443103c7ff2a8cb"
 	},
 	"action": "update",
+	"oldrev": "3c86b996d8014000a93f3c202fc0963e81e56c4c",
 	"state": "opened"
 }}`
 
@@ -347,6 +348,8 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 			ObjectKind: "merge_request",
 			ObjectAttributes: ObjectAttributesInfoModel{
 				State:      "opened",
+				Action:     "update",
+				Oldrev:     "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 				MergeError: "Some merge error",
 			},
 		}
@@ -357,23 +360,74 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
+	t.Log("Not mergeable")
+	{
+		mergeRequest := MergeRequestEventModel{
+			ObjectKind: "merge_request",
+			ObjectAttributes: ObjectAttributesInfoModel{
+				State:       "opened",
+				Action:      "update",
+				Oldrev:      "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				MergeStatus: "cannot_be_merged",
+			},
+		}
+		hookTransformResult := transformMergeRequestEvent(mergeRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Merge Request is not mergeable")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Irrelevant action")
+	{
+		mergeRequest := MergeRequestEventModel{
+			ObjectKind: "merge_request",
+			ObjectAttributes: ObjectAttributesInfoModel{
+				State:      "opened",
+				Action:     "approved",
+			},
+		}
+		hookTransformResult := transformMergeRequestEvent(mergeRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Merge Request action doesn't require a build: approved")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Irrelevant update")
+	{
+		mergeRequest := MergeRequestEventModel{
+			ObjectKind: "merge_request",
+			ObjectAttributes: ObjectAttributesInfoModel{
+				State:      "opened",
+				Action:     "update",
+			},
+		}
+		hookTransformResult := transformMergeRequestEvent(mergeRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Merge Request action doesn't require a build: update")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
 	t.Log("Not yet merged")
 	{
 		mergeRequest := MergeRequestEventModel{
 			ObjectKind: "merge_request",
 			ObjectAttributes: ObjectAttributesInfoModel{
-				ID:    12,
-				Title: "PR test",
-				State: "opened",
+				ID:     12,
+				Title:  "PR test",
+				State:  "opened",
+				Action: "open",
 				Source: BranchInfoModel{
 					VisibilityLevel: 20,
-					GitSSHURL:       "git@github.com:bitrise-io/bitrise-webhooks.git",
+					GitSSHURL:       "git@gitlab.com:bitrise-io/bitrise-webhooks.git",
 					GitHTTPURL:      "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 				},
 				SourceBranch: "feature/gitlab-pr",
 				Target: BranchInfoModel{
 					VisibilityLevel: 20,
-					GitSSHURL:       "git@github.com:bitrise-io/bitrise-webhooks.git",
+					GitSSHURL:       "git@gitlab.com:bitrise-io/bitrise-webhooks.git",
 					GitHTTPURL:      "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 				},
 				TargetBranch: "master",
@@ -411,15 +465,16 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 				Title:       "PR test",
 				Description: "PR test body",
 				State:       "opened",
+				Action:      "open",
 				Source: BranchInfoModel{
 					VisibilityLevel: 20,
-					GitSSHURL:       "git@github.com:bitrise-io/bitrise-webhooks.git",
+					GitSSHURL:       "git@gitlab.com:bitrise-io/bitrise-webhooks.git",
 					GitHTTPURL:      "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 				},
 				SourceBranch: "feature/gitlab-pr",
 				Target: BranchInfoModel{
 					VisibilityLevel: 20,
-					GitSSHURL:       "git@github.com:bitrise-io/bitrise-webhooks.git",
+					GitSSHURL:       "git@gitlab.com:bitrise-io/bitrise-webhooks.git",
 					GitHTTPURL:      "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 				},
 				TargetBranch: "master",
@@ -600,7 +655,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:               "da966425f32973b6290dcff6a443103c7ff2a8cb",
 					CommitMessage:            "PR test\n\nPR text body",
-					Branch:                   "feature/github-pr",
+					Branch:                   "feature/gitlab-pr",
 					BranchDest:               "develop",
 					PullRequestID:            pointers.NewIntPtr(12),
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
