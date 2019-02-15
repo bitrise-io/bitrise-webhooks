@@ -4,12 +4,12 @@ package gitlab
 //
 // ## Webhook calls
 //
-// Official API docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/web_hooks/web_hooks.md
+// Official API docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/user/project/integrations/webhooks.md
 //
 // ### Code Push
 //
 // A code push webhook is sent with the header: `X-Gitlab-Event: Push Hook`.
-// Official docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/web_hooks/web_hooks.md#push-events
+// Official docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/user/project/integrations/webhooks.md#push-events
 //
 // GitLab sends push webhooks for every branch separately. Even if you
 // push to two different branches at the same time (git push --all) it'll
@@ -32,7 +32,7 @@ package gitlab
 //
 // ### Merge request
 // A merge request is sent with the header: `X-Gitlab-Event: Merge Request Hook`
-// Official docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/web_hooks/web_hooks.md#merge-request-events
+// Official docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/user/project/integrations/webhooks.md#merge-request-events
 //
 
 import (
@@ -95,8 +95,11 @@ type ObjectAttributesInfoModel struct {
 	Title          string              `json:"title"`
 	Description    string              `json:"description"`
 	State          string              `json:"state"`
+	Action         string              `json:"action"`
+	MergeStatus    string              `json:"merge_status"`
 	MergeCommitSHA string              `json:"merge_commit_sha"`
 	MergeError     string              `json:"merge_error"`
+	Oldrev         string              `json:"oldrev"`
 	Source         BranchInfoModel     `json:"source"`
 	SourceBranch   string              `json:"source_branch"`
 	Target         BranchInfoModel     `json:"target"`
@@ -134,8 +137,13 @@ func isAcceptEventType(eventKey string) bool {
 	return sliceutil.IsStringInSlice(eventKey, []string{tagPushEventID, codePushEventID, mergeRequestEventID})
 }
 
-func isAcceptMergeRequestState(prAction string) bool {
-	return sliceutil.IsStringInSlice(prAction, []string{"opened", "reopened"})
+func isAcceptMergeRequestState(prState string) bool {
+	return sliceutil.IsStringInSlice(prState, []string{"opened", "reopened"})
+}
+
+func isAcceptMergeRequestAction(prAction string, prOldrev string) bool {
+	// an "update" without "oldrev" present isn't a code change, so skip
+	return prAction == "open" || prAction == "update" && prOldrev != ""
 }
 
 func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
@@ -149,8 +157,8 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 	if !strings.HasPrefix(codePushEvent.Ref, "refs/heads/") {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error:      fmt.Errorf("Ref (%s) is not a head ref", codePushEvent.Ref),
-			ShouldSkip: true,
+			Error:                      fmt.Errorf("Ref (%s) is not a head ref", codePushEvent.Ref),
+			ShouldSkip:                 true,
 		}
 	}
 	branch := strings.TrimPrefix(codePushEvent.Ref, "refs/heads/")
@@ -168,7 +176,7 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 	if !isLastCommitFound {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error: errors.New("The commit specified by 'checkout_sha' was not included in the 'commits' array - no match found"),
+			Error:                      errors.New("The commit specified by 'checkout_sha' was not included in the 'commits' array - no match found"),
 		}
 	}
 
@@ -190,14 +198,14 @@ func transformTagPushEvent(tagPushEvent TagPushEventModel) hookCommon.TransformR
 	if tagPushEvent.ObjectKind != "tag_push" {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error: fmt.Errorf("Not a Tag Push object: %s", tagPushEvent.ObjectKind),
+			Error:                      fmt.Errorf("Not a Tag Push object: %s", tagPushEvent.ObjectKind),
 		}
 	}
 
 	if !strings.HasPrefix(tagPushEvent.Ref, "refs/tags/") {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error: fmt.Errorf("Ref (%s) is not a tags ref", tagPushEvent.Ref),
+			Error:                      fmt.Errorf("Ref (%s) is not a tags ref", tagPushEvent.Ref),
 		}
 	}
 	tag := strings.TrimPrefix(tagPushEvent.Ref, "refs/tags/")
@@ -205,8 +213,8 @@ func transformTagPushEvent(tagPushEvent TagPushEventModel) hookCommon.TransformR
 	if len(tagPushEvent.CheckoutSHA) < 1 {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error:      errors.New("This is a Tag Deleted event, no build is required"),
-			ShouldSkip: true,
+			Error:                      errors.New("This is a Tag Deleted event, no build is required"),
+			ShouldSkip:                 true,
 		}
 	}
 
@@ -227,40 +235,48 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 	if mergeRequest.ObjectKind != "merge_request" {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error:      errors.New("Not a Merge Request object"),
-			ShouldSkip: true,
+			Error:                      errors.New("Not a Merge Request object"),
+			ShouldSkip:                 true,
 		}
 	}
 
 	if mergeRequest.ObjectAttributes.State == "" {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error:      errors.New("No Merge Request state specified"),
-			ShouldSkip: true,
+			Error:                      errors.New("No Merge Request state specified"),
+			ShouldSkip:                 true,
 		}
 	}
 
 	if mergeRequest.ObjectAttributes.MergeCommitSHA != "" {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error:      errors.New("Merge Request already merged"),
-			ShouldSkip: true,
+			Error:                      errors.New("Merge Request already merged"),
+			ShouldSkip:                 true,
 		}
 	}
 
 	if !isAcceptMergeRequestState(mergeRequest.ObjectAttributes.State) {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error:      fmt.Errorf("Merge Request state doesn't require a build: %s", mergeRequest.ObjectAttributes.State),
-			ShouldSkip: true,
+			Error:                      fmt.Errorf("Merge Request state doesn't require a build: %s", mergeRequest.ObjectAttributes.State),
+			ShouldSkip:                 true,
 		}
 	}
 
-	if mergeRequest.ObjectAttributes.MergeError != "" {
+	if !isAcceptMergeRequestAction(mergeRequest.ObjectAttributes.Action, mergeRequest.ObjectAttributes.Oldrev) {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error:      errors.New("Merge Request is not mergeable"),
-			ShouldSkip: true,
+			Error:                      fmt.Errorf("Merge Request action doesn't require a build: %s", mergeRequest.ObjectAttributes.Action),
+			ShouldSkip:                 true,
+		}
+	}
+
+	if mergeRequest.ObjectAttributes.MergeStatus == "cannot_be_merged" || mergeRequest.ObjectAttributes.MergeError != "" {
+		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
+			Error:                      errors.New("Merge Request is not mergeable"),
+			ShouldSkip:                 true,
 		}
 	}
 
@@ -293,14 +309,14 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	if err != nil {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error: fmt.Errorf("Issue with Headers: %s", err),
+			Error:                      fmt.Errorf("Issue with Headers: %s", err),
 		}
 	}
 
 	if contentType != "application/json" {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error: fmt.Errorf("Content-Type is not supported: %s", contentType),
+			Error:                      fmt.Errorf("Content-Type is not supported: %s", contentType),
 		}
 	}
 
@@ -308,14 +324,14 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		// Unsupported Event
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error: fmt.Errorf("Unsupported Webhook event: %s", eventID),
+			Error:                      fmt.Errorf("Unsupported Webhook event: %s", eventID),
 		}
 	}
 
 	if r.Body == nil {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error: fmt.Errorf("Failed to read content of request body: no or empty request body"),
+			Error:                      fmt.Errorf("Failed to read content of request body: no or empty request body"),
 		}
 	}
 
@@ -326,7 +342,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 			if err := json.NewDecoder(r.Body).Decode(&codePushEvent); err != nil {
 				return hookCommon.TransformResultModel{
 					DontWaitForTriggerResponse: true,
-					Error: fmt.Errorf("Failed to parse request body: %s", err)}
+					Error:                      fmt.Errorf("Failed to parse request body: %s", err)}
 			}
 		}
 		return transformCodePushEvent(codePushEvent)
@@ -337,7 +353,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 			if err := json.NewDecoder(r.Body).Decode(&tagPushEvent); err != nil {
 				return hookCommon.TransformResultModel{
 					DontWaitForTriggerResponse: true,
-					Error: fmt.Errorf("Failed to parse request body: %s", err)}
+					Error:                      fmt.Errorf("Failed to parse request body: %s", err)}
 			}
 		}
 		return transformTagPushEvent(tagPushEvent)
@@ -346,7 +362,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		if err := json.NewDecoder(r.Body).Decode(&mergeRequestEvent); err != nil {
 			return hookCommon.TransformResultModel{
 				DontWaitForTriggerResponse: true,
-				Error: fmt.Errorf("Failed to parse request body as JSON: %s", err)}
+				Error:                      fmt.Errorf("Failed to parse request body as JSON: %s", err)}
 		}
 
 		return transformMergeRequestEvent(mergeRequestEvent)
@@ -354,6 +370,6 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 
 	return hookCommon.TransformResultModel{
 		DontWaitForTriggerResponse: true,
-		Error: fmt.Errorf("Unsupported GitLab event type: %s", eventID),
+		Error:                      fmt.Errorf("Unsupported GitLab event type: %s", eventID),
 	}
 }
