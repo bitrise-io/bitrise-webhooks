@@ -30,6 +30,11 @@ type PushEventModel struct {
 	CommitPaths []bitriseapi.CommitPaths `json:"commits"`
 }
 
+// UserModel ...
+type UserModel struct {
+	Login string `json:"login"`
+}
+
 // RepoInfoModel ...
 type RepoInfoModel struct {
 	Private bool `json:"private"`
@@ -37,6 +42,8 @@ type RepoInfoModel struct {
 	SSHURL string `json:"ssh_url"`
 	// Public git clone url
 	CloneURL string `json:"clone_url"`
+	// Owner information
+	Owner UserModel `json:"owner"`
 }
 
 // BranchInfoModel ...
@@ -203,7 +210,9 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					CommitMessage:            commitMsg,
 					CommitHash:               pullRequest.PullRequestInfo.HeadBranchInfo.CommitHash,
 					Branch:                   pullRequest.PullRequestInfo.HeadBranchInfo.Ref,
+					BranchRepoOwner:          pullRequest.PullRequestInfo.HeadBranchInfo.Repo.Owner.Login,
 					BranchDest:               pullRequest.PullRequestInfo.BaseBranchInfo.Ref,
+					BranchDestRepoOwner:      pullRequest.PullRequestInfo.BaseBranchInfo.Repo.Owner.Login,
 					PullRequestID:            &pullRequest.PullRequestID,
 					PullRequestRepositoryURL: pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
 					PullRequestMergeBranch:   fmt.Sprintf("pull/%d/merge", pullRequest.PullRequestID),
