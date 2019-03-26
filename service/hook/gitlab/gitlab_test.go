@@ -42,11 +42,13 @@ const sampleMergeRequestData = `{
 	"source": {
 		"git_ssh_url": "git@gitlab.com:bitrise-io/bitrise-webhooks.git",
 		"git_http_url": "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+		"namespace":"bitrise-io",
 		"visibility_level": 20
 	},
 	"target": {
 		"git_ssh_url": "git@gitlab.com:bitrise-io/bitrise-webhooks.git",
 		"git_http_url": "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+		"namespace":"bitrise-team",
 		"visibility_level": 20
 	},
 	"last_commit": {
@@ -656,7 +658,9 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitHash:               "da966425f32973b6290dcff6a443103c7ff2a8cb",
 					CommitMessage:            "PR test\n\nPR text body",
 					Branch:                   "feature/gitlab-pr",
+					BranchRepoOwner:          "bitrise-io",
 					BranchDest:               "develop",
+					BranchDestRepoOwner:      "bitrise-team",
 					PullRequestID:            pointers.NewIntPtr(12),
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestHeadBranch:    "merge-requests/12/head",

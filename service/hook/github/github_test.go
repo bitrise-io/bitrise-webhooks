@@ -68,8 +68,11 @@ const (
       "sha": "83b86e5f286f546dc5a4a58db66ceef44460c85e",
       "repo" : {
         "private": false,
-        "ssh_url": "git@github.com:bitrise-io/bitrise-webhooks.git",
-        "clone_url": "https://github.com/bitrise-io/bitrise-webhooks.git"
+        "ssh_url": "git@github.com:bitrise-team/bitrise-webhooks.git",
+		"clone_url": "https://github.com/bitrise-team/bitrise-webhooks.git",
+		"owner": {
+			"login": "bitrise-team"
+		}
       }
     },
     "base": {
@@ -78,7 +81,10 @@ const (
       "repo" : {
         "private": false,
         "ssh_url": "git@github.com:bitrise-io/bitrise-webhooks.git",
-        "clone_url": "https://github.com/bitrise-io/bitrise-webhooks.git"
+		"clone_url": "https://github.com/bitrise-io/bitrise-webhooks.git",
+		"owner": {
+			"login": "bitrise-io"
+		}
       }
     },
     "title": "PR test",
@@ -964,9 +970,11 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitHash:               "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 					CommitMessage:            "PR test\n\nPR text body",
 					Branch:                   "feature/github-pr",
+					BranchRepoOwner:          "bitrise-team",
 					BranchDest:               "master",
+					BranchDestRepoOwner:      "bitrise-io",
 					PullRequestID:            pointers.NewIntPtr(12),
-					PullRequestRepositoryURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
+					PullRequestRepositoryURL: "https://github.com/bitrise-team/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
 					PullRequestHeadBranch:    "pull/12/head",
 				},

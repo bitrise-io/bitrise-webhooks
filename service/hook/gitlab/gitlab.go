@@ -294,7 +294,7 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 					CommitMessage:            commitMsg,
 					CommitHash:               mergeRequest.ObjectAttributes.LastCommit.SHA,
 					Branch:                   mergeRequest.ObjectAttributes.SourceBranch,
-					BranchRepoOwner:          mergeRequest.ObjectAttributes.Target.Namespace,
+					BranchRepoOwner:          mergeRequest.ObjectAttributes.Source.Namespace,
 					BranchDest:               mergeRequest.ObjectAttributes.TargetBranch,
 					BranchDestRepoOwner:      mergeRequest.ObjectAttributes.Target.Namespace,
 					PullRequestID:            &mergeRequest.ObjectAttributes.ID,
