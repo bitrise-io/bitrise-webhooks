@@ -28,7 +28,7 @@ workflows:
             go get -u github.com/kisielk/errcheck
 
             # Go lint
-            go get -u github.com/golang/lint/golint
+            go get -u golang.org/x/lint/golint
   create-release:
     steps:
     - ensure-clean-git: {}
