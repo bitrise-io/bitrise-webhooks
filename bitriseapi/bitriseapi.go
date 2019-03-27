@@ -36,8 +36,12 @@ type BuildParamsModel struct {
 	CommitMessage string `json:"commit_message,omitempty"`
 	// source branch
 	Branch string `json:"branch,omitempty"`
+	// source branch repo owner
+	BranchRepoOwner string `json:"branch_repo_owner,omitempty"`
 	// destination branch, exposed for pull requests
 	BranchDest string `json:"branch_dest,omitempty"`
+	// destination branch repo owner, exposed for pull requests
+	BranchDestRepoOwner string `json:"branch_dest_repo_owner,omitempty"`
 	// tag
 	Tag string `json:"tag,omitempty"`
 	// pull request id, exposed for pull requests from the provider's serivce
