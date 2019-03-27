@@ -133,7 +133,10 @@ const (
     },
     "repository":{
       "name":"prtest",
-      "full_name":"birmacher/prtest"
+      "full_name":"birmacher/prtest",
+      "owner": {
+        "username": "birmacher"
+      }
     }
   },
   "title":"change",
@@ -148,7 +151,10 @@ const (
     },
     "repository":{
       "name":"prtest",
-      "full_name":"birmacher/prtest"
+      "full_name":"birmacher/prtest",
+      "owner": {
+        "username": "bitrise-io"
+      }
     }
   }
 }
@@ -951,7 +957,9 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitHash:               "6a3451888d91",
 					CommitMessage:            "change",
 					Branch:                   "feature/test",
+					BranchRepoOwner:          "bitrise-io",
 					BranchDest:               "master",
+					BranchDestRepoOwner:      "birmacher",
 					PullRequestID:            pointers.NewIntPtr(1),
 					PullRequestRepositoryURL: "https://bitbucket.org/birmacher/prtest.git",
 				},

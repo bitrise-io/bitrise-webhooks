@@ -82,6 +82,7 @@ type BranchInfoModel struct {
 	VisibilityLevel int    `json:"visibility_level"`
 	GitSSHURL       string `json:"git_ssh_url"`
 	GitHTTPURL      string `json:"git_http_url"`
+	Namespace       string `json:"namespace"`
 }
 
 // LastCommitInfoModel ...
@@ -293,7 +294,9 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 					CommitMessage:            commitMsg,
 					CommitHash:               mergeRequest.ObjectAttributes.LastCommit.SHA,
 					Branch:                   mergeRequest.ObjectAttributes.SourceBranch,
+					BranchRepoOwner:          mergeRequest.ObjectAttributes.Source.Namespace,
 					BranchDest:               mergeRequest.ObjectAttributes.TargetBranch,
+					BranchDestRepoOwner:      mergeRequest.ObjectAttributes.Target.Namespace,
 					PullRequestID:            &mergeRequest.ObjectAttributes.ID,
 					PullRequestRepositoryURL: mergeRequest.ObjectAttributes.Source.getRepositoryURL(),
 					PullRequestHeadBranch:    fmt.Sprintf("merge-requests/%d/head", mergeRequest.ObjectAttributes.ID),
