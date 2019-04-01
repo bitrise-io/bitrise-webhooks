@@ -30,6 +30,9 @@ const sampleCodePushData = `{
 
 const sampleMergeRequestData = `{
 "object_kind": "merge_request",
+"user": {
+	"name": "Author Name"
+},
 "object_attributes": {
 	"target_branch": "develop",
 	"source_branch": "feature/gitlab-pr",
@@ -663,6 +666,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					BranchDestRepoOwner:      "bitrise-team",
 					PullRequestID:            pointers.NewIntPtr(12),
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+					PullRequestAuthor:        "Author Name",
 					PullRequestHeadBranch:    "merge-requests/12/head",
 				},
 			},

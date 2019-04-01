@@ -108,10 +108,16 @@ type ObjectAttributesInfoModel struct {
 	LastCommit     LastCommitInfoModel `json:"last_commit"`
 }
 
+// UserModel ...
+type UserModel struct {
+	Name string `json:"name"`
+}
+
 // MergeRequestEventModel ...
 type MergeRequestEventModel struct {
 	ObjectKind       string                    `json:"object_kind"`
 	ObjectAttributes ObjectAttributesInfoModel `json:"object_attributes"`
+	User             UserModel                 `json:"user"`
 }
 
 // ---------------------------------------
@@ -299,6 +305,7 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 					BranchDestRepoOwner:      mergeRequest.ObjectAttributes.Target.Namespace,
 					PullRequestID:            &mergeRequest.ObjectAttributes.ID,
 					PullRequestRepositoryURL: mergeRequest.ObjectAttributes.Source.getRepositoryURL(),
+					PullRequestAuthor:        mergeRequest.User.Name,
 					PullRequestHeadBranch:    fmt.Sprintf("merge-requests/%d/head", mergeRequest.ObjectAttributes.ID),
 				},
 			},
