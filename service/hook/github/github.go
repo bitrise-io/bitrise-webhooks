@@ -64,6 +64,7 @@ type PullRequestInfoModel struct {
 	Merged         bool            `json:"merged"`
 	Mergeable      *bool           `json:"mergeable"`
 	DiffURL        string          `json:"diff_url"`
+	User           UserModel       `json:"user"`
 }
 
 // PullRequestChangeFromItemModel ...
@@ -215,6 +216,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					BranchDestRepoOwner:      pullRequest.PullRequestInfo.BaseBranchInfo.Repo.Owner.Login,
 					PullRequestID:            &pullRequest.PullRequestID,
 					PullRequestRepositoryURL: pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
+					PullRequestAuthor:        pullRequest.PullRequestInfo.User.Login,
 					PullRequestMergeBranch:   fmt.Sprintf("pull/%d/merge", pullRequest.PullRequestID),
 					PullRequestHeadBranch:    fmt.Sprintf("pull/%d/head", pullRequest.PullRequestID),
 					DiffURL:                  pullRequest.PullRequestInfo.DiffURL,
