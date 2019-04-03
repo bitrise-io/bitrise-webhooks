@@ -52,6 +52,8 @@ type BuildParamsModel struct {
 	PullRequestMergeBranch string `json:"pull_request_merge_branch,omitempty"`
 	// source branch mapped to the original repository if the provider supports it, exposed for pull requests
 	PullRequestHeadBranch string `json:"pull_request_head_branch,omitempty"`
+	// The creator of the pull request
+	PullRequestAuthor string `json:"pull_request_author,omitempty"`
 	// workflow id to run
 	WorkflowID string `json:"workflow_id,omitempty"`
 	// additional environment variables

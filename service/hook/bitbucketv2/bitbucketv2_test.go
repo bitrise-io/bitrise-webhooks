@@ -140,7 +140,8 @@ const (
     }
   },
   "title":"change",
-  "id":1,
+	"id":1,
+	"author": "Author Name",
   "state":"OPEN",
   "source":{
     "commit":{
@@ -658,10 +659,11 @@ func Test_transformPullRequestEvent(t *testing.T) {
 	{
 		pullRequest := PullRequestEventModel{
 			PullRequestInfo: PullRequestInfoModel{
-				ID:    1,
-				Type:  "pullrequest",
-				Title: "Title of pull request",
-				State: "OPEN",
+				ID:     1,
+				Type:   "pullrequest",
+				Title:  "Title of pull request",
+				State:  "OPEN",
+				Author: "Author Name",
 				SourceInfo: PullRequestBranchInfoModel{
 					BranchInfo: BranchInfoModel{
 						Name: "branch2",
@@ -699,6 +701,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					BranchDest:               "master",
 					PullRequestID:            pointers.NewIntPtr(1),
 					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
+					PullRequestAuthor:        "Author Name",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -962,6 +965,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					BranchDestRepoOwner:      "birmacher",
 					PullRequestID:            pointers.NewIntPtr(1),
 					PullRequestRepositoryURL: "https://bitbucket.org/birmacher/prtest.git",
+					PullRequestAuthor:        "Author Name",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)

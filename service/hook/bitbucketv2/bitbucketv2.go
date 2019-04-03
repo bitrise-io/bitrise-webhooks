@@ -91,6 +91,7 @@ type PullRequestInfoModel struct {
 	Title           string                     `json:"title"`
 	Description     string                     `json:"description"`
 	State           string                     `json:"state"`
+	Author          string                     `json:"author"`
 	SourceInfo      PullRequestBranchInfoModel `json:"source"`
 	DestinationInfo PullRequestBranchInfoModel `json:"destination"`
 }
@@ -243,6 +244,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					BranchDestRepoOwner:      pullRequest.PullRequestInfo.DestinationInfo.RepositoryInfo.Owner.Username,
 					PullRequestID:            &pullRequest.PullRequestInfo.ID,
 					PullRequestRepositoryURL: sourceRepositoryURL,
+					PullRequestAuthor:        pullRequest.PullRequestInfo.Author,
 				},
 			},
 		},
