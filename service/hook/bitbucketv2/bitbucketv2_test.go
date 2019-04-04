@@ -135,14 +135,14 @@ const (
       "name":"prtest",
       "full_name":"birmacher/prtest",
       "owner": {
-        "username": "birmacher"
+        "nickname": "birmacher"
       }
     }
   },
   "title":"change",
 	"id":1,
 	"author": {
-		"username": "Author Name"
+		"nickname": "Author Name"
 	},
   "state":"OPEN",
   "source":{
@@ -156,7 +156,7 @@ const (
       "name":"prtest",
       "full_name":"birmacher/prtest",
       "owner": {
-        "username": "bitrise-io"
+        "nickname": "bitrise-io"
       }
     }
   }
@@ -666,7 +666,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Title: "Title of pull request",
 				State: "OPEN",
 				Author: OwnerInfoModel{
-					Username: "Author Name",
+					Nickname: "Author Name",
 				},
 				SourceInfo: PullRequestBranchInfoModel{
 					BranchInfo: BranchInfoModel{
