@@ -141,7 +141,9 @@ const (
   },
   "title":"change",
 	"id":1,
-	"author": "Author Name",
+	"author": {
+		"username": "Author Name"
+	},
   "state":"OPEN",
   "source":{
     "commit":{
@@ -659,11 +661,13 @@ func Test_transformPullRequestEvent(t *testing.T) {
 	{
 		pullRequest := PullRequestEventModel{
 			PullRequestInfo: PullRequestInfoModel{
-				ID:     1,
-				Type:   "pullrequest",
-				Title:  "Title of pull request",
-				State:  "OPEN",
-				Author: "Author Name",
+				ID:    1,
+				Type:  "pullrequest",
+				Title: "Title of pull request",
+				State: "OPEN",
+				Author: OwnerInfoModel{
+					Username: "Author Name",
+				},
 				SourceInfo: PullRequestBranchInfoModel{
 					BranchInfo: BranchInfoModel{
 						Name: "branch2",
