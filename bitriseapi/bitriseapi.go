@@ -10,6 +10,9 @@ import (
 	"net/url"
 	"time"
 
+	"go.uber.org/zap"
+
+	"github.com/bitrise-io/api-utils/logging"
 	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/pkg/errors"
 )
@@ -110,6 +113,13 @@ func BuildTriggerURL(apiRootURL string, appSlug string) (*url.URL, error) {
 // If the response is an HTTP success response then the whole response body
 //  will be returned, and error will be nil.
 func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) (TriggerAPIResponseModel, bool, error) {
+	logger := logging.WithContext(nil)
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			fmt.Println("Failed to Sync logger")
+		}
+	}()
 	if err := params.Validate(); err != nil {
 		return TriggerAPIResponseModel{}, false, errors.Wrap(err, "TriggerBuild: build trigger parameter invalid")
 	}
@@ -150,7 +160,7 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Printf(" [!] Exception: TriggerBuild: Failed to close response body: %+v", err)
+			logger.Error(" [!] Exception: TriggerBuild: Failed to close response body", zap.Error(err))
 		}
 	}()
 

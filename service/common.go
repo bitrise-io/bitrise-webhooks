@@ -3,7 +3,6 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/bitrise-io/api-utils/logging"
@@ -20,10 +19,17 @@ type StandardErrorRespModel struct {
 
 // RespondWith ...
 func RespondWith(w http.ResponseWriter, httpStatusCode int, respModel interface{}) {
+	logger := logging.WithContext(nil)
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			fmt.Println("Failed to Sync logger")
+		}
+	}()
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpStatusCode)
 	if err := json.NewEncoder(w).Encode(&respModel); err != nil {
-		log.Println(" [!] Exception: RespondWith: Error: ", err)
+		logger.Error(" [!] Exception: RespondWith", zap.Error(err))
 	}
 }
 
