@@ -2,8 +2,12 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/bitrise-io/api-utils/logging"
+	"go.uber.org/zap"
 )
 
 // StandardErrorRespModel ...
@@ -54,9 +58,16 @@ func RespondWithError(w http.ResponseWriter, httpErrCode int, errMsg string) {
 
 // RespondWithErrorJSON ...
 func RespondWithErrorJSON(w http.ResponseWriter, httpErrCode int, respModel interface{}) {
+	logger := logging.WithContext(nil)
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			fmt.Println("Failed to Sync logger")
+		}
+	}()
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpErrCode)
 	if err := json.NewEncoder(w).Encode(&respModel); err != nil {
-		log.Println(" [!] Exception: RespondWithErrorJSON: Error: ", err)
+		logger.Error(" [!] Exception: RespondWithErrorJSON", zap.Error(err))
 	}
 }

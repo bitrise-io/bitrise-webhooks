@@ -3,6 +3,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:24461f25dae9edbe336a6158047dedc136a74f7f3c9dcbb1cff7495e0c45d6cd"
+  name = "github.com/bitrise-io/api-utils"
+  packages = ["logging"]
+  pruneopts = ""
+  revision = "7974d3427746144cb177168703b98f13d3dcde53"
+
+[[projects]]
+  branch = "master"
   digest = "1:603d8364aa8a573115c33dff82b30bef136d825e5b4ed2891c99fd38d048faa2"
   name = "github.com/bitrise-io/go-utils"
   packages = [
@@ -84,6 +92,37 @@
   version = "v1.1.0"
 
 [[projects]]
+  digest = "1:e6ff7840319b6fda979a918a8801005ec2049abca62af19211d96971d8ec3327"
+  name = "go.uber.org/atomic"
+  packages = ["."]
+  pruneopts = ""
+  revision = "df976f2515e274675050de7b3f42545de80594fd"
+  version = "v1.4.0"
+
+[[projects]]
+  digest = "1:22c7effcb4da0eacb2bb1940ee173fac010e9ef3c691f5de4b524d538bd980f5"
+  name = "go.uber.org/multierr"
+  packages = ["."]
+  pruneopts = ""
+  revision = "3c4937480c32f4c13a875a1829af76c98ca3d40a"
+  version = "v1.1.0"
+
+[[projects]]
+  digest = "1:984e93aca9088b440b894df41f2043b6a3db8f9cf30767032770bfc4796993b0"
+  name = "go.uber.org/zap"
+  packages = [
+    ".",
+    "buffer",
+    "internal/bufferpool",
+    "internal/color",
+    "internal/exit",
+    "zapcore",
+  ]
+  pruneopts = ""
+  revision = "27376062155ad36be76b0f12cf1572a221d3a48c"
+  version = "v1.10.0"
+
+[[projects]]
   branch = "master"
   digest = "1:022f4bd6739cc585724b670eb38b3fbd3efe60d45cd6b279c990e434f8a8f6ea"
   name = "golang.org/x/sys"
@@ -125,6 +164,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/bitrise-io/api-utils/logging",
     "github.com/bitrise-io/go-utils/colorstring",
     "github.com/bitrise-io/go-utils/pointers",
     "github.com/bitrise-io/go-utils/sliceutil",
@@ -133,6 +173,7 @@
     "github.com/gorilla/mux",
     "github.com/pkg/errors",
     "github.com/stretchr/testify/require",
+    "go.uber.org/zap",
     "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux",
     "gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer",
   ]
