@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/bitrise-io/api-utils/logging"
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	"github.com/bitrise-io/bitrise-webhooks/config"
 	"github.com/bitrise-io/bitrise-webhooks/metrics"
@@ -24,6 +25,7 @@ import (
 	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 func supportedProviders() map[string]hookCommon.Provider {
@@ -99,24 +101,31 @@ func respondWithResults(w http.ResponseWriter, provider *hookCommon.Provider, re
 // --- Utility functions ---
 
 func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitriseapi.TriggerAPIParamsModel) (bitriseapi.TriggerAPIResponseModel, bool, error) {
-	log.Printf(" ===> trigger build: %s", triggerURL)
+	logger := logging.WithContext(nil)
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			fmt.Println("Failed to Sync logger")
+		}
+	}()
+	logger.Info(" ===> trigger build", zap.String("triggerURL", triggerURL.String()))
 	isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
 	if isOnlyLog {
-		log.Println(colorstring.Yellow(" (debug) isOnlyLog: true"))
+		logger.Debug(colorstring.Yellow(" (debug) isOnlyLog: true"))
 	}
 
 	if err := triggerAPIParams.Validate(); err != nil {
-		log.Printf(" (!) Failed to trigger build: invalid API parameters: %+v", err)
+		logger.Error(" (!) Failed to trigger build: invalid API parameters", zap.Error(err))
 		return bitriseapi.TriggerAPIResponseModel{}, false, errors.Wrap(err, "Failed to Trigger the Build: Invalid parameters")
 	}
 
 	responseModel, isSuccess, err := bitriseapi.TriggerBuild(triggerURL, apiToken, triggerAPIParams, isOnlyLog)
 	if err != nil {
-		log.Printf(" [!] Exception: Failed to trigger build: %+v", err)
+		logger.Error(" [!] Exception: Failed to trigger build", zap.Error(err))
 		return bitriseapi.TriggerAPIResponseModel{}, false, errors.Wrap(err, "Failed to Trigger the Build")
 	}
 
-	log.Printf(" ===> trigger build - DONE (success: %t) (%s)", isSuccess, triggerURL)
+	logger.Info(" ===> trigger build - DONE", zap.Bool("success", isSuccess), zap.String("triggerURL", triggerURL.String()))
 	log.Printf("      (debug) response: (%#v)", responseModel)
 	return responseModel, isSuccess, nil
 }
@@ -130,6 +139,14 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	serviceID := vars["service-id"]
 	appSlug := vars["app-slug"]
 	apiToken := vars["api-token"]
+
+	logger := logging.WithContext(r.Context())
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			fmt.Println("Failed to Sync logger")
+		}
+	}()
 
 	if serviceID == "" {
 		respondWithErrorString(w, nil, "No service-id defined")
@@ -171,7 +188,7 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	if triggerURL == nil {
 		u, err := bitriseapi.BuildTriggerURL("https://app.bitrise.io", appSlug)
 		if err != nil {
-			log.Printf(" [!] Exception: hookHandler: failed to create Build Trigger URL: %s", err)
+			logger.Error(" [!] Exception: hookHandler: failed to create Build Trigger URL", zap.Error(err))
 			respondWithErrorString(w, &hookProvider, fmt.Sprintf("Failed to create Build Trigger URL: %s", err))
 			return
 		}
