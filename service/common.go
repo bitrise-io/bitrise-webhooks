@@ -2,8 +2,11 @@ package service
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
+
+	"github.com/bitrise-io/api-utils/logging"
+	"go.uber.org/zap"
 )
 
 // StandardErrorRespModel ...
@@ -16,10 +19,17 @@ type StandardErrorRespModel struct {
 
 // RespondWith ...
 func RespondWith(w http.ResponseWriter, httpStatusCode int, respModel interface{}) {
+	logger := logging.WithContext(nil)
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			fmt.Println("Failed to Sync logger")
+		}
+	}()
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpStatusCode)
 	if err := json.NewEncoder(w).Encode(&respModel); err != nil {
-		log.Println(" [!] Exception: RespondWith: Error: ", err)
+		logger.Error(" [!] Exception: RespondWith", zap.Error(err))
 	}
 }
 
@@ -54,9 +64,16 @@ func RespondWithError(w http.ResponseWriter, httpErrCode int, errMsg string) {
 
 // RespondWithErrorJSON ...
 func RespondWithErrorJSON(w http.ResponseWriter, httpErrCode int, respModel interface{}) {
+	logger := logging.WithContext(nil)
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			fmt.Println("Failed to Sync logger")
+		}
+	}()
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpErrCode)
 	if err := json.NewEncoder(w).Encode(&respModel); err != nil {
-		log.Println(" [!] Exception: RespondWithErrorJSON: Error: ", err)
+		logger.Error(" [!] Exception: RespondWithErrorJSON", zap.Error(err))
 	}
 }

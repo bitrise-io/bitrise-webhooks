@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/bitrise-io/bitrise-webhooks/config"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 func stringFlagOrEnv(flagValue *string, envKey string) string {
@@ -25,6 +26,8 @@ func stringFlag(flagValue *string) string {
 }
 
 func main() {
+	tracer.Start(tracer.WithServiceName("webhooks"))
+	defer tracer.Stop()
 	var (
 		portFlag          = flag.String("port", "", `Use port [$PORT]`)
 		sendRequestToFlag = flag.String("send-request-to", "", `Send requests to this URL. If set, every request will be sent to this URL and not to bitrise.io. You can use this to debug/test, e.g. with http://requestb.in [$SEND_REQUEST_TO]`)
