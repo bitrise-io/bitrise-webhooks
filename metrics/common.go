@@ -14,24 +14,4 @@ func WrapHandlerFunc(h func(http.ResponseWriter, *http.Request)) func(http.Respo
 		log.Printf(" => %s: %s - %s (%s)", req.Method, req.RequestURI, time.Since(startTime), req.Header.Get("Content-Type"))
 	}
 	return requestWrap
-	// if newRelicAgent == nil {
-	// 	return requestWrap
-	// }
-	// return newRelicAgent.WrapHTTPHandlerFunc(requestWrap)
-}
-
-// Trace ...
-func Trace(name string, fn func()) {
-	wrapFn := func() {
-		startTime := time.Now()
-		fn()
-		log.Printf(" ==> TRACE (%s) - %s", name, time.Since(startTime))
-	}
-	wrapFn()
-	return
-	// if newRelicAgent == nil {
-	// 	wrapFn()
-	// 	return
-	// }
-	// newRelicAgent.Tracer.Trace(name, wrapFn)
 }
