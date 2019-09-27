@@ -133,11 +133,17 @@ const (
     },
     "repository":{
       "name":"prtest",
-      "full_name":"birmacher/prtest"
+      "full_name":"birmacher/prtest",
+      "owner": {
+        "nickname": "birmacher"
+      }
     }
   },
   "title":"change",
-  "id":1,
+	"id":1,
+	"author": {
+		"nickname": "Author Name"
+	},
   "state":"OPEN",
   "source":{
     "commit":{
@@ -148,7 +154,10 @@ const (
     },
     "repository":{
       "name":"prtest",
-      "full_name":"birmacher/prtest"
+      "full_name":"birmacher/prtest",
+      "owner": {
+        "nickname": "bitrise-io"
+      }
     }
   }
 }
@@ -656,6 +665,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Type:  "pullrequest",
 				Title: "Title of pull request",
 				State: "OPEN",
+				Author: OwnerInfoModel{
+					Nickname: "Author Name",
+				},
 				SourceInfo: PullRequestBranchInfoModel{
 					BranchInfo: BranchInfoModel{
 						Name: "branch2",
@@ -693,6 +705,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					BranchDest:               "master",
 					PullRequestID:            pointers.NewIntPtr(1),
 					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
+					PullRequestAuthor:        "Author Name",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -951,9 +964,12 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitHash:               "6a3451888d91",
 					CommitMessage:            "change",
 					Branch:                   "feature/test",
+					BranchRepoOwner:          "bitrise-io",
 					BranchDest:               "master",
+					BranchDestRepoOwner:      "birmacher",
 					PullRequestID:            pointers.NewIntPtr(1),
 					PullRequestRepositoryURL: "https://bitbucket.org/birmacher/prtest.git",
+					PullRequestAuthor:        "Author Name",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)

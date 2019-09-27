@@ -55,7 +55,7 @@ type PushEventModel struct {
 
 // OwnerInfoModel ...
 type OwnerInfoModel struct {
-	Username string `json:"username"`
+	Nickname string `json:"nickname"`
 }
 
 // RepositoryInfoModel ...
@@ -91,6 +91,7 @@ type PullRequestInfoModel struct {
 	Title           string                     `json:"title"`
 	Description     string                     `json:"description"`
 	State           string                     `json:"state"`
+	Author          OwnerInfoModel             `json:"author"`
 	SourceInfo      PullRequestBranchInfoModel `json:"source"`
 	DestinationInfo PullRequestBranchInfoModel `json:"destination"`
 }
@@ -238,9 +239,12 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					CommitMessage:            commitMsg,
 					CommitHash:               pullRequest.PullRequestInfo.SourceInfo.CommitInfo.CommitHash,
 					Branch:                   pullRequest.PullRequestInfo.SourceInfo.BranchInfo.Name,
+					BranchRepoOwner:          pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.Owner.Nickname,
 					BranchDest:               pullRequest.PullRequestInfo.DestinationInfo.BranchInfo.Name,
+					BranchDestRepoOwner:      pullRequest.PullRequestInfo.DestinationInfo.RepositoryInfo.Owner.Nickname,
 					PullRequestID:            &pullRequest.PullRequestInfo.ID,
 					PullRequestRepositoryURL: sourceRepositoryURL,
+					PullRequestAuthor:        pullRequest.PullRequestInfo.Author.Nickname,
 				},
 			},
 		},

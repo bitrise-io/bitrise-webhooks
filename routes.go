@@ -7,11 +7,11 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/service"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook"
 	"github.com/bitrise-io/bitrise-webhooks/service/root"
-	"github.com/gorilla/mux"
+	"gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 )
 
 func setupRoutes() {
-	r := mux.NewRouter()
+	r := mux.NewRouter(mux.WithServiceName("webhooks"))
 	//
 	r.HandleFunc("/h/{service-id}/{app-slug}/{api-token}", metrics.WrapHandlerFunc(hook.HTTPHandler)).
 		Methods("POST")

@@ -10,6 +10,9 @@ import (
 	"net/url"
 	"time"
 
+	"go.uber.org/zap"
+
+	"github.com/bitrise-io/api-utils/logging"
 	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/pkg/errors"
 )
@@ -36,8 +39,12 @@ type BuildParamsModel struct {
 	CommitMessage string `json:"commit_message,omitempty"`
 	// source branch
 	Branch string `json:"branch,omitempty"`
+	// source branch repo owner
+	BranchRepoOwner string `json:"branch_repo_owner,omitempty"`
 	// destination branch, exposed for pull requests
 	BranchDest string `json:"branch_dest,omitempty"`
+	// destination branch repo owner, exposed for pull requests
+	BranchDestRepoOwner string `json:"branch_dest_repo_owner,omitempty"`
 	// tag
 	Tag string `json:"tag,omitempty"`
 	// pull request id, exposed for pull requests from the provider's serivce
@@ -48,6 +55,8 @@ type BuildParamsModel struct {
 	PullRequestMergeBranch string `json:"pull_request_merge_branch,omitempty"`
 	// source branch mapped to the original repository if the provider supports it, exposed for pull requests
 	PullRequestHeadBranch string `json:"pull_request_head_branch,omitempty"`
+	// The creator of the pull request
+	PullRequestAuthor string `json:"pull_request_author,omitempty"`
 	// workflow id to run
 	WorkflowID string `json:"workflow_id,omitempty"`
 	// additional environment variables
@@ -104,6 +113,13 @@ func BuildTriggerURL(apiRootURL string, appSlug string) (*url.URL, error) {
 // If the response is an HTTP success response then the whole response body
 //  will be returned, and error will be nil.
 func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) (TriggerAPIResponseModel, bool, error) {
+	logger := logging.WithContext(nil)
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			fmt.Println("Failed to Sync logger")
+		}
+	}()
 	if err := params.Validate(); err != nil {
 		return TriggerAPIResponseModel{}, false, errors.Wrap(err, "TriggerBuild: build trigger parameter invalid")
 	}
@@ -144,7 +160,7 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Printf(" [!] Exception: TriggerBuild: Failed to close response body: %+v", err)
+			logger.Error(" [!] Exception: TriggerBuild: Failed to close response body", zap.Error(err))
 		}
 	}()
 
