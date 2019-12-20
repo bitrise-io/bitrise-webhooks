@@ -133,7 +133,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 
 	t.Log("Not a head ref")
 	{
-		codePush := CodePushEventModel{
+		codePush := PushEventModel{
 			Secret:      "",
 			Ref:         "refs/not/head",
 			CheckoutSHA: "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
@@ -144,8 +144,22 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := transformPushEvent(codePush)
+		require.EqualError(t, hookTransformResult.Error, "Ref (refs/not/head) is not a head ref")
 		require.False(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Is a tag ref")
+	{
+		codePush := PushEventModel{
+			Secret:      "",
+			Ref:         "refs/tags/1.0.0",
+			CheckoutSHA: "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
+		}
+		hookTransformResult := transformPushEvent(codePush)
+		require.True(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}

@@ -70,6 +70,12 @@ func detectContentTypeAndEventID(header http.Header) (string, string, error) {
 }
 
 func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
+	if strings.HasPrefix(pushEvent.Ref, "refs/tags/") {
+		return hookCommon.TransformResultModel{
+			ShouldSkip: true,
+		}
+	}
+
 	lastCommit := CommitModel{}
 	isLastCommitFound := false
 	for _, aCommit := range pushEvent.Commits {
@@ -89,6 +95,12 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 	if len(lastCommit.CommitHash) == 0 {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Missing commit hash"),
+		}
+	}
+
+	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Ref (%s) is not a head ref", pushEvent.Ref),
 		}
 	}
 
