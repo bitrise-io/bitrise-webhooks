@@ -211,7 +211,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return sliceutil.IsStringInSlice(eventKey, []string{"repo:refs_changed", "pr:opened"})
+	return sliceutil.IsStringInSlice(eventKey, []string{"repo:refs_changed", "pr:opened", "diagnostics:ping"})
 }
 
 // TransformRequest ...
@@ -261,6 +261,11 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 
 		return transformPullRequestEvent(pullRequestEvent)
+	} else if eventKey == "diagnostics:ping" {
+		return hookCommon.TransformResultModel{
+			ShouldSkip: true,
+			Error:      fmt.Errorf("Bitbucket event type: %s is successful", eventKey),
+		}
 	}
 
 	return hookCommon.TransformResultModel{

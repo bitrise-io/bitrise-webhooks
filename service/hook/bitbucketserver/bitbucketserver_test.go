@@ -198,6 +198,10 @@ const (
     }
   }
 }`
+
+	samplePingData = `{
+	"test": true
+}`
 )
 
 func Test_detectContentTypeSecretAndEventKey(t *testing.T) {
@@ -824,6 +828,25 @@ func Test_isAcceptEventType(t *testing.T) {
 			t.Log(" * " + anAction)
 			require.Equal(t, false, isAcceptEventType(anAction))
 		}
+	}
+}
+
+func Test_transformPingEvent(t *testing.T) {
+	provider := HookProvider{}
+
+	t.Log("Bitbucket Server Ping")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":  {"diagnostics:ping"},
+				"Content-Type": {"application/json; charset=utf-8"},
+				"X-Request-Id": {"009af3f7-21ef-4806-8649-e6916498ab0f"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(samplePingData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Bitbucket event type: diagnostics:ping is successful")
 	}
 }
 
