@@ -1,4 +1,4 @@
-# bitrise-webhooks
+# bitrise-webhooks [![Build Status](https://app.bitrise.io/app/8497e83cdf562ebb/status.svg?token=wuCyk-mqTVE0LTnjgiY82Q&branch=master)](https://app.bitrise.io/app/8497e83cdf562ebb)
 
 Bitrise Webhooks processor.
 
@@ -8,9 +8,6 @@ and calls it to start a build.
 
 **Feel free to add your own webhook transform provider to this project!**
 For more information check the [How to add support for a new Provider](https://github.com/bitrise-io/bitrise-webhooks#how-to-add-support-for-a-new-provider) section.
-
-[![Build Status](https://www.bitrise.io/app/8497e83cdf562ebb.svg?token=wuCyk-mqTVE0LTnjgiY82Q&branch=master)](https://www.bitrise.io/app/8497e83cdf562ebb)
-
 
 ## CI Skip
 
