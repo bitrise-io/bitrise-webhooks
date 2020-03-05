@@ -36,7 +36,6 @@ type CommitModel struct {
 
 // PushEventModel ...
 type PushEventModel struct {
-	Secret      string        `json:"secret"`
 	Ref         string        `json:"ref"`
 	CheckoutSHA string        `json:"after"`
 	Commits     []CommitModel `json:"commits"`
@@ -44,7 +43,6 @@ type PushEventModel struct {
 
 // CreateEventModel ...
 type CreateEventModel struct {
-	Secret  string `json:"secret"`
 	Ref     string `json:"ref"`
 	RefType string `json:"ref_type"`
 }
@@ -72,6 +70,7 @@ func detectContentTypeAndEventID(header http.Header) (string, string, error) {
 func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
 	if strings.HasPrefix(pushEvent.Ref, "refs/tags/") {
 		return hookCommon.TransformResultModel{
+			Error:      fmt.Errorf("Ref (%s) is a tag ref", pushEvent.Ref),
 			ShouldSkip: true,
 		}
 	}

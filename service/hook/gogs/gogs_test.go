@@ -50,7 +50,6 @@ func Test_transformCodePushEvent(t *testing.T) {
 	t.Log("Do Transform - single commit")
 	{
 		codePush := PushEventModel{
-			Secret:      "",
 			Ref:         "refs/heads/master",
 			CheckoutSHA: "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
 			Commits: []CommitModel{
@@ -78,7 +77,6 @@ func Test_transformCodePushEvent(t *testing.T) {
 	t.Log("Do Transform - multiple commits - CheckoutSHA match should trigger the build")
 	{
 		codePush := PushEventModel{
-			Secret:      "",
 			Ref:         "refs/heads/master",
 			CheckoutSHA: "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
 			Commits: []CommitModel{
@@ -114,7 +112,6 @@ func Test_transformCodePushEvent(t *testing.T) {
 	t.Log("No commit matches CheckoutSHA")
 	{
 		codePush := PushEventModel{
-			Secret:      "",
 			Ref:         "refs/heads/master",
 			CheckoutSHA: "checkout-sha",
 			Commits: []CommitModel{
@@ -134,7 +131,6 @@ func Test_transformCodePushEvent(t *testing.T) {
 	t.Log("Not a head ref")
 	{
 		codePush := PushEventModel{
-			Secret:      "",
 			Ref:         "refs/not/head",
 			CheckoutSHA: "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
 			Commits: []CommitModel{
@@ -154,7 +150,6 @@ func Test_transformCodePushEvent(t *testing.T) {
 	t.Log("Is a tag ref")
 	{
 		codePush := PushEventModel{
-			Secret:      "",
 			Ref:         "refs/tags/1.0.0",
 			CheckoutSHA: "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
 		}
