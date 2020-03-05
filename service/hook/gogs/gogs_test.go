@@ -182,7 +182,9 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 	const sampleTagPushData = `{
   "secret": "",
   "ref": "v1.12",
-  "ref_type": "tag"
+  "ref_type": "tag",
+  "id":"commithash",
+  "message":"Simple message"
 }`
 
 	const sampleBranchCreatePushData = `{
@@ -230,7 +232,9 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag: "v1.12",
+					Tag:           "v1.12",
+					CommitHash:    "commithash",
+					CommitMessage: "Simple message",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -247,7 +251,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.True(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Ignoring branch-create request")
+		require.EqualError(t, hookTransformResult.Error, "Not a tag create event - ignoring")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 	}
 

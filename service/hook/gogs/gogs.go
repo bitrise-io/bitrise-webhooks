@@ -43,8 +43,10 @@ type PushEventModel struct {
 
 // CreateEventModel ...
 type CreateEventModel struct {
-	Ref     string `json:"ref"`
-	RefType string `json:"ref_type"`
+	Ref           string `json:"ref"`
+	RefType       string `json:"ref_type"`
+	CommitHash    string `json:"id"`
+	CommitMessage string `json:"message"`
 }
 
 // ---------------------------------------
@@ -119,12 +121,9 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 }
 
 func transformCreateEvent(createEvent CreateEventModel) hookCommon.TransformResultModel {
-	// Currently, we only support tag creation, not branches. Even if we wanted branch creation
-	// to trigger a build we would have to wait for https://github.com/go-gitea/gitea/issues/286
-	// to be in both Gogs and Gitea core, and well adopted/distributed.
 	if createEvent.RefType != "tag" {
 		return hookCommon.TransformResultModel{
-			Error:      errors.New("Ignoring branch-create request"),
+			Error:      errors.New("Not a tag create event - ignoring"),
 			ShouldSkip: true,
 		}
 	}
@@ -133,7 +132,9 @@ func transformCreateEvent(createEvent CreateEventModel) hookCommon.TransformResu
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag: createEvent.Ref,
+					Tag:           createEvent.Ref,
+					CommitHash:    createEvent.CommitHash,
+					CommitMessage: createEvent.CommitMessage,
 				},
 			},
 		},
