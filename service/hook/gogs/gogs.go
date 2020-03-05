@@ -24,7 +24,8 @@ import (
 // --- Webhook Data Model ---
 
 const (
-	pushEventID = "push"
+	pushEventID   = "push"
+	createEventID = "create"
 )
 
 // CommitModel ...
@@ -33,12 +34,19 @@ type CommitModel struct {
 	CommitMessage string `json:"message"`
 }
 
-// CodePushEventModel ...
-type CodePushEventModel struct {
-	Secret      string        `json:"secret"`
+// PushEventModel ...
+type PushEventModel struct {
 	Ref         string        `json:"ref"`
 	CheckoutSHA string        `json:"after"`
 	Commits     []CommitModel `json:"commits"`
+}
+
+// CreateEventModel ...
+type CreateEventModel struct {
+	Ref           string `json:"ref"`
+	RefType       string `json:"ref_type"`
+	CommitHash    string `json:"id"`
+	CommitMessage string `json:"message"`
 }
 
 // ---------------------------------------
@@ -61,19 +69,18 @@ func detectContentTypeAndEventID(header http.Header) (string, string, error) {
 	return contentType, eventID, nil
 }
 
-func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
-	if !strings.HasPrefix(codePushEvent.Ref, "refs/heads/") {
+func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
+	if strings.HasPrefix(pushEvent.Ref, "refs/tags/") {
 		return hookCommon.TransformResultModel{
-			Error:      fmt.Errorf("Ref (%s) is not a head ref", codePushEvent.Ref),
+			Error:      fmt.Errorf("Ref (%s) is a tag ref", pushEvent.Ref),
 			ShouldSkip: true,
 		}
 	}
-	branch := strings.TrimPrefix(codePushEvent.Ref, "refs/heads/")
 
 	lastCommit := CommitModel{}
 	isLastCommitFound := false
-	for _, aCommit := range codePushEvent.Commits {
-		if aCommit.CommitHash == codePushEvent.CheckoutSHA {
+	for _, aCommit := range pushEvent.Commits {
+		if aCommit.CommitHash == pushEvent.CheckoutSHA {
 			isLastCommitFound = true
 			lastCommit = aCommit
 			break
@@ -86,13 +93,48 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 		}
 	}
 
+	if len(lastCommit.CommitHash) == 0 {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Missing commit hash"),
+		}
+	}
+
+	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Ref (%s) is not a head ref", pushEvent.Ref),
+		}
+	}
+
+	branch := strings.TrimPrefix(pushEvent.Ref, "refs/heads/")
+
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
+					Branch:        branch,
 					CommitHash:    lastCommit.CommitHash,
 					CommitMessage: lastCommit.CommitMessage,
-					Branch:        branch,
+				},
+			},
+		},
+	}
+}
+
+func transformCreateEvent(createEvent CreateEventModel) hookCommon.TransformResultModel {
+	if createEvent.RefType != "tag" {
+		return hookCommon.TransformResultModel{
+			Error:      errors.New("Not a tag create event - ignoring"),
+			ShouldSkip: true,
+		}
+	}
+
+	return hookCommon.TransformResultModel{
+		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					Tag:           createEvent.Ref,
+					CommitHash:    createEvent.CommitHash,
+					CommitMessage: createEvent.CommitMessage,
 				},
 			},
 		},
@@ -108,16 +150,9 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 	}
 
-	if contentType != "application/json" {
+	if contentType != hookCommon.ContentTypeApplicationJSON {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Content-Type is not supported: %s", contentType),
-		}
-	}
-
-	if eventID != "push" {
-		// Unsupported Event
-		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Unsupported Webhook event: %s", eventID),
 		}
 	}
 
@@ -127,12 +162,25 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 	}
 
-	// code push
-	var codePushEvent CodePushEventModel
-	if contentType == "application/json" {
-		if err := json.NewDecoder(r.Body).Decode(&codePushEvent); err != nil {
+	if eventID == pushEventID {
+		var pushEvent PushEventModel
+		if err := json.NewDecoder(r.Body).Decode(&pushEvent); err != nil {
 			return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: %s", err)}
 		}
+
+		return transformPushEvent(pushEvent)
+
+	} else if eventID == createEventID {
+		var createEvent CreateEventModel
+		if err := json.NewDecoder(r.Body).Decode(&createEvent); err != nil {
+			return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: %s", err)}
+		}
+
+		return transformCreateEvent(createEvent)
 	}
-	return transformCodePushEvent(codePushEvent)
+
+	// Unsupported Event
+	return hookCommon.TransformResultModel{
+		Error: fmt.Errorf("Unsupported Webhook event: %s", eventID),
+	}
 }
