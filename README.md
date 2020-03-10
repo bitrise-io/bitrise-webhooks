@@ -493,6 +493,7 @@ response provider will be used.
 
 * [The Bitrise Team](https://github.com/bitrise-io)
 * [Chad Robinson](https://github.com/crrobinson14) - `Gogs` support
+* [Maarten Manders](https://github.com/mac89) - `Gogs/Gitea` webhook tag handling support
 * [Rafael Nobre](https://github.com/nobre84) - Environment variables support in `Slack` commands
 * [Tuomas Peippo](https://github.com/tume)- Skip CI feature
 * [Erik Poort](https://github.com/ErikMediaMonks) - `Assembla` support
