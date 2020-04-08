@@ -211,8 +211,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return (sliceutil.IsStringInSlice(eventKey, []string{"repo:refs_changed", "pr:opened"}) ||
-					sliceutil.IsStringInSlice(eventKey, []string{"repo:refs_changed", "pr:modified"}))
+	return (sliceutil.IsStringInSlice(eventKey, []string{"repo:refs_changed", "pr:opened", "pr:modified"}))
 }
 
 // TransformRequest ...
