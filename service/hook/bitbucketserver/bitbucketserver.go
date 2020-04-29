@@ -186,7 +186,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.TransformResultModel {
 
-	if pullRequest.PullRequest.State != "OPEN" {
+	if !(pullRequest.PullRequest.State == "OPEN" || pullRequest.PullRequest.State == "MERGED") {
 		return hookCommon.TransformResultModel{
 			Error:      fmt.Errorf("Pull Request state doesn't require a build: %s", pullRequest.PullRequest.State),
 			ShouldSkip: true,
@@ -211,7 +211,8 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return (sliceutil.IsStringInSlice(eventKey, []string{"repo:refs_changed", "pr:opened", "pr:modified"}))
+	return (sliceutil.IsStringInSlice(eventKey,
+		[]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged"}))
 }
 
 // TransformRequest ...
@@ -263,6 +264,15 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		return transformPullRequestEvent(pullRequestEvent)
 
 	} else if eventKey == "pr:modified" {
+		var pullRequestEvent PullRequestEventModel
+		if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
+			return hookCommon.TransformResultModel{
+				Error: fmt.Errorf("Failed to parse request body as JSON: %s", err),
+			}
+		}
+
+		return transformPullRequestEvent(pullRequestEvent)
+	} else if eventKey == "pr:merged" {
 		var pullRequestEvent PullRequestEventModel
 		if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
 			return hookCommon.TransformResultModel{
