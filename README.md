@@ -498,3 +498,4 @@ response provider will be used.
 * [Tuomas Peippo](https://github.com/tume)- Skip CI feature
 * [Erik Poort](https://github.com/ErikMediaMonks) - `Assembla` support
 * [ChrisTitos](https://github.com/ChrisTitos) - `Bitbucket Server` support
+* [adelavina](https://github.com/adelavina) - `Bitbucket Server` `pr:modified` key support
