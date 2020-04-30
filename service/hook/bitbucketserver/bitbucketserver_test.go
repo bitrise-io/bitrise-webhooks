@@ -946,6 +946,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 
 		hookTransformResult := transformPullRequestEvent(pullRequest)
 		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Pull Request state doesn't require a build: MERGED")
 	}
 
 	t.Log("Already Declined")
