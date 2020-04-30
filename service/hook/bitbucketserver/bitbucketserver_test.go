@@ -945,7 +945,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 		}
 
 		hookTransformResult := transformPullRequestEvent(pullRequest)
-		require.False(t, hookTransformResult.ShouldSkip)
+		require.True(t, hookTransformResult.ShouldSkip)
 	}
 
 	t.Log("Already Declined")
@@ -1184,19 +1184,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestMergedData)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.NoError(t, hookTransformResult.Error)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "45f9690c928915a5e1c4366d5ee1985eea03f05d",
-					CommitMessage: "Awesome feature",
-					Branch:        "admin/file-1505781548644",
-					BranchDest:    "master",
-					PullRequestID: pointers.NewIntPtr(9),
-				},
-			},
-		}, hookTransformResult.TriggerAPIParams)
-		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Pull Request state doesn't require a build: MERGED")
 	}
 }

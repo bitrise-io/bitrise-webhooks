@@ -185,8 +185,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 }
 
 func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.TransformResultModel {
-
-	if !(pullRequest.PullRequest.State == "OPEN" || pullRequest.PullRequest.State == "MERGED") {
+	if pullRequest.PullRequest.State != "OPEN" {
 		return hookCommon.TransformResultModel{
 			Error:      fmt.Errorf("Pull Request state doesn't require a build: %s", pullRequest.PullRequest.State),
 			ShouldSkip: true,
