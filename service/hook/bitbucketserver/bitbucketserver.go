@@ -252,26 +252,9 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 
 		return transformPushEvent(pushEvent)
-	} else if eventKey == "pr:opened" {
-		var pullRequestEvent PullRequestEventModel
-		if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
-			return hookCommon.TransformResultModel{
-				Error: fmt.Errorf("Failed to parse request body as JSON: %s", err),
-			}
-		}
+	}
 
-		return transformPullRequestEvent(pullRequestEvent)
-
-	} else if eventKey == "pr:modified" {
-		var pullRequestEvent PullRequestEventModel
-		if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
-			return hookCommon.TransformResultModel{
-				Error: fmt.Errorf("Failed to parse request body as JSON: %s", err),
-			}
-		}
-
-		return transformPullRequestEvent(pullRequestEvent)
-	} else if eventKey == "pr:merged" {
+	if eventKey == "pr:opened" || eventKey == "pr:modified" || eventKey == "pr:merged" {
 		var pullRequestEvent PullRequestEventModel
 		if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
 			return hookCommon.TransformResultModel{
