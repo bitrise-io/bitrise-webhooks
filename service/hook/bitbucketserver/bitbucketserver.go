@@ -185,7 +185,6 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 }
 
 func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.TransformResultModel {
-
 	if pullRequest.PullRequest.State != "OPEN" {
 		return hookCommon.TransformResultModel{
 			Error:      fmt.Errorf("Pull Request state doesn't require a build: %s", pullRequest.PullRequest.State),
@@ -211,7 +210,8 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return sliceutil.IsStringInSlice(eventKey, []string{"repo:refs_changed", "pr:opened", "diagnostics:ping"})
+	return (sliceutil.IsStringInSlice(eventKey,
+		[]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged", "diagnostics:ping"}))
 }
 
 // TransformRequest ...
@@ -252,7 +252,9 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 
 		return transformPushEvent(pushEvent)
-	} else if eventKey == "pr:opened" {
+	}
+
+	if eventKey == "pr:opened" || eventKey == "pr:modified" || eventKey == "pr:merged" {
 		var pullRequestEvent PullRequestEventModel
 		if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
 			return hookCommon.TransformResultModel{
@@ -261,7 +263,9 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 
 		return transformPullRequestEvent(pullRequestEvent)
-	} else if eventKey == "diagnostics:ping" {
+	}
+  
+  if eventKey == "diagnostics:ping" {
 		return hookCommon.TransformResultModel{
 			ShouldSkip: true,
 			Error:      fmt.Errorf("Bitbucket event type: %s is successful", eventKey),
