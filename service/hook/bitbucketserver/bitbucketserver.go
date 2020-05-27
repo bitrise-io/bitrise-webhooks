@@ -265,7 +265,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		return transformPullRequestEvent(pullRequestEvent)
 	}
   
-  if eventKey == "diagnostics:ping" {
+	if eventKey == "diagnostics:ping" {
 		return hookCommon.TransformResultModel{
 			ShouldSkip: true,
 			Error:      fmt.Errorf("Bitbucket event type: %s is successful", eventKey),
