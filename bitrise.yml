@@ -11,6 +11,8 @@ app:
       opts:
         description: |
           Optionally, define this in your .bitrise.secrets.yml, to send requests to the specified URL.
+    - RELEASE_START_BRANCH: master	
+    - RELEASE_DESTINATION_BRANCH: prod
 workflows:
   _install_test_tools:
     steps:
@@ -105,7 +107,7 @@ workflows:
                 git checkout ${RELEASE_DESTINATION_BRANCH}
                 git push upstream
                 git push upstream --tags
-                    
+
                 git checkout ${RELEASE_START_BRANCH}
   deps-update:
     steps:
