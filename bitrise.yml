@@ -29,24 +29,18 @@ workflows:
                 # Go lint
                 go get -u golang.org/x/lint/golint
   publish-release-package:
-    steps:
-      - script:
-          title: Start the release flow
-          inputs:
-            - content: |-
-                #!/bin/bash
-                set -e
-                bitrise run configure-git-credentials
-
-                bitrise run create-release
-                bitrise run configure-upstream
-                bitrise run publish-release
+    before_run:
+      - configure-git-credentials
+    after_run:
+      - create-release
+      - configure-upstream
+      - publish-release
   configure-git-credentials:
     steps:
       - set-git-credentials@1:
-        inputs:
-        - git_user_name: "$WEBSITEBOT_USER"
-        - git_email_address: "$WEBSITEBOT_EMAIL"
+          inputs:
+            - git_user_name: "$WEBSITEBOT_USER"
+            - git_email_address: "$WEBSITEBOT_EMAIL"
   create-release:
     steps:
       - script:
