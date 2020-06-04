@@ -2,173 +2,194 @@ format_version: 3
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 app:
   envs:
-  - GO_PROJECT_PATH: github.com/bitrise-io/bitrise-webhooks
-  - PORT: "4000"
-  - IS_USE_GIN: "yes"
-    opts:
-      description: |
-        If set to "yes" we'll use github.com/codegangsta/gin to live-reload the code on change.
-  - SEND_REQUEST_TO: $SEND_REQUEST_TO
-    opts:
-      description: |
-        Optionally, define this in your .bitrise.secrets.yml, to send requests to the specified URL.
-  - RELEASE_START_BRANCH: master
-  - RELEASE_DESTINATION_BRANCH: prod
+    - GO_PROJECT_PATH: github.com/bitrise-io/bitrise-webhooks
+    - PORT: "4000"
+    - IS_USE_GIN: "yes"
+      opts:
+        description: |
+          If set to "yes" we'll use github.com/codegangsta/gin to live-reload the code on change.
+      opts:
+        description: |
+          Optionally, define this in your .bitrise.secrets.yml, to send requests to the specified URL.
+    - RELEASE_START_BRANCH: master	
+    - RELEASE_DESTINATION_BRANCH: prod
 workflows:
   _install_test_tools:
     steps:
-    - script:
-        title: Install required testing tools
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
+      - script:
+          title: Install required testing tools
+          inputs:
+            - content: |-
+                #!/bin/bash
+                set -ex
 
-            # Check for unhandled errors
-            go get -u github.com/kisielk/errcheck
+                # Check for unhandled errors
+                go get -u github.com/kisielk/errcheck
 
-            # Go lint
-            go get -u golang.org/x/lint/golint
+                # Go lint
+                go get -u golang.org/x/lint/golint
+  publish-release-package:
+    before_run:
+      - configure-git-credentials
+    after_run:
+      - create-release
+      - configure-upstream
+      - publish-release
+  configure-git-credentials:
+    steps:
+      - set-git-credentials@1:
+          inputs:
+            - git_user_name: "$WEBSITEBOT_USER"
+            - git_email_address: "$WEBSITEBOT_EMAIL"
   create-release:
     steps:
-    - ensure-clean-git: {}
-    - script:
-        title: bump version number, then merge into 'prod' branch, tag & commit &
-          push
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -e
-
-            echo
-            echo 'How to roll-back?'
-            echo '* if you want to undo the last commit you can call:'
-            echo '    $ git reset --hard HEAD~1'
-            echo '* to roll back to the remote state:'
-            echo '    $ git reset --hard origin/[branch-name]'
-            echo
-
-            set -x
-            version_file_path="./version/version.go"
-            current_branch="$(git symbolic-ref --short HEAD)"
-            if [[ "$current_branch" != "${RELEASE_START_BRANCH}" ]] ; then
-              echo " [!] You have to be on the ${RELEASE_START_BRANCH} branch to create a release!"
-              exit 1
-            fi
-
-            current_version="$(go run _scripts/get_version.go -file "$version_file_path")"
-            bumped_version=$(ruby -e "splits='${current_version}'.split('.');major=splits[0];minor=splits[1];patch=splits[2];puts \"#{major}.#{minor}.#{patch.to_i.next}\"")
-
-            bash _scripts/set_version.sh "$version_file_path" "$bumped_version"
-
-            git add "$version_file_path"
-            git commit -m "v${bumped_version}"
-            echo
-            echo '------------'
-            git show
-            echo '------------'
-            echo
-
-            git checkout ${RELEASE_DESTINATION_BRANCH}
-            git pull
-            git merge ${RELEASE_START_BRANCH} --no-ff -m "Merge ${RELEASE_START_BRANCH} into ${RELEASE_DESTINATION_BRANCH}, release: v${bumped_version}"
-            git tag "${bumped_version}"
-            echo
-            echo '------------'
-            git show
-            echo '------------'
-            echo
-
-            git checkout ${RELEASE_START_BRANCH}
-  deps-update:
+      - script:
+          title: Create version bump commit
+          inputs:
+            - content: |-
+                #!/bin/bash
+                set -e
+                
+                echo
+                echo 'How to roll-back?'
+                echo '* if you want to undo the last commit you can call:'
+                echo '    $ git reset --hard HEAD~1'
+                echo '* to roll back to the remote state:'
+                echo '    $ git reset --hard origin/[branch-name]'
+                echo
+                
+                set -x
+                version_file_path="./version/version.go"
+                
+                git fetch
+                git checkout ${RELEASE_START_BRANCH}
+                
+                current_version="$(go run _scripts/get_version.go -file "$version_file_path")"
+                bumped_version=$(ruby -e "splits='${current_version}'.split('.');major=splits[0];minor=splits[1];patch=splits[2];puts \"#{major}.#{minor}.#{patch.to_i.next}\"")
+                
+                bash _scripts/set_version.sh "$version_file_path" "$bumped_version"
+                
+                git add "$version_file_path"
+                git commit -m "v${bumped_version} [skip ci]"
+                echo
+                echo '------------'
+                git show
+                echo '------------'
+                echo
+                
+                git checkout ${RELEASE_DESTINATION_BRANCH}
+                git pull
+                git merge ${RELEASE_START_BRANCH} --no-ff -m "Merge ${RELEASE_START_BRANCH} into ${RELEASE_DESTINATION_BRANCH}, release: v${bumped_version}"
+                git tag "${bumped_version}"
+                echo
+                echo '------------'
+                git show
+                echo '------------'
+                echo
+                
+                git checkout ${RELEASE_START_BRANCH}
+  configure-upstream:
     steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            go get -u -v github.com/golang/dep/cmd/dep
-            # to prevent "Gopkg.lock is out of sync ..." when new deps are added
-            dep ensure -v
-            # to do the actual update
-            dep ensure -v -update
+      - script:
+          title: Configure the upstream repo
+          inputs:
+            - content: |-
+                #!/usr/bin/env bash
+
+                set -e
+                set -x
+
+                echo ${GIT_REPOSITORY_URL}
+                stripped_url=$(echo $GIT_REPOSITORY_URL | sed -e 's/^http:\/\///g' -e 's/^https:\/\///g')
+
+                git remote add upstream https://websitebot:${GITHUB_AUTH_TOKEN}@${stripped_url}
+                git fetch upstream
+
   publish-release:
     steps:
-    - script:
-        title: git push both 'master' and 'prod' as well as the tags
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            current_branch="$(git symbolic-ref --short HEAD)"
-            if [[ "$current_branch" != "${RELEASE_START_BRANCH}" ]] ; then
-              echo " [!] You have to be on the ${RELEASE_START_BRANCH} branch to create a release!"
-              exit 1
-            fi
-            git push
-            git push --tags
-            #
-            git checkout ${RELEASE_DESTINATION_BRANCH}
-            git push
-            git push --tags
-            #
-            git checkout ${RELEASE_START_BRANCH}
+      - script:
+          title: Publish the prepared release, push the commits
+          inputs:
+            - content: |-
+                #!/bin/bash
+                set -ex
+                git checkout ${RELEASE_START_BRANCH}
+                git push upstream
+                git push upstream --tags
+
+                git checkout ${RELEASE_DESTINATION_BRANCH}
+                git push upstream
+                git push upstream --tags
+
+                git checkout ${RELEASE_START_BRANCH}
+  deps-update:
+    steps:
+      - script:
+          inputs:
+            - content: |-
+                #!/bin/bash
+                set -ex
+                go get -u -v github.com/golang/dep/cmd/dep
+                # to prevent "Gopkg.lock is out of sync ..." when new deps are added
+                dep ensure -v
+                # to do the actual update
+                dep ensure -v -update
   start:
     steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            go install $GO_PROJECT_PATH
-            if [ "$IS_USE_GIN" == "yes" ] ; then
-              go get github.com/codegangsta/gin
-              gin --port $PORT
-            else
-              bitrise-webhooks -port $PORT
-            fi
+      - script:
+          inputs:
+            - content: |-
+                #!/bin/bash
+                set -ex
+                go install $GO_PROJECT_PATH
+                if [ "$IS_USE_GIN" == "yes" ] ; then
+                  go get github.com/codegangsta/gin
+                  gin --port $PORT
+                else
+                  bitrise-webhooks -port $PORT
+                fi
   test:
     before_run:
-    - _install_test_tools
+      - _install_test_tools
     steps:
-    - script:
-        title: Print infos for the test
-        inputs:
-        - content: |-
-            set -x
-            go version
-    - script:
-        title: GOLIST_WITHOUT_VENDOR
-        inputs:
-        - content: |-
-            set -ex
-            no_vendor_paths="$(go list ./... | grep -v vendor)"
-            envman add --key GOLIST_WITHOUT_VENDOR --value "$no_vendor_paths"
-    - script:
-        title: Go Test
-        inputs:
-        - content: go test ./...
-    - script:
-        title: Go Vet
-        inputs:
-        - content: go vet ./...
-    - script:
-        title: Err check
-        inputs:
-        - content: errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
-    - script:
-        title: Go Lint
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -e
+      - script:
+          title: Print infos for the test
+          inputs:
+            - content: |-
+                set -x
+                go version
+      - script:
+          title: GOLIST_WITHOUT_VENDOR
+          inputs:
+            - content: |-
+                set -ex
+                no_vendor_paths="$(go list ./... | grep -v vendor)"
+                envman add --key GOLIST_WITHOUT_VENDOR --value "$no_vendor_paths"
+      - script:
+          title: Go Test
+          inputs:
+            - content: go test ./...
+      - script:
+          title: Go Vet
+          inputs:
+            - content: go vet ./...
+      - script:
+          title: Err check
+          inputs:
+            - content: errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
+      - script:
+          title: Go Lint
+          inputs:
+            - content: |-
+                #!/bin/bash
+                set -e
 
-            while read -r line; do
-              echo "-> Linting: $line"
-              golint_out="$(golint $line)"
-              if [[ "${golint_out}" != "" ]] ; then
-                echo "=> Golint issues found:"
-                echo "${golint_out}"
-                exit 1
-              fi
-            done <<< "$GOLIST_WITHOUT_VENDOR"
+                while read -r line; do
+                  echo "-> Linting: $line"
+                  golint_out="$(golint $line)"
+                  if [[ "${golint_out}" != "" ]] ; then
+                    echo "=> Golint issues found:"
+                    echo "${golint_out}"
+                    exit 1
+                  fi
+                done <<< "$GOLIST_WITHOUT_VENDOR"
