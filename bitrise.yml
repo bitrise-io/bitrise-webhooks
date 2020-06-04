@@ -31,7 +31,7 @@ workflows:
   create-release:
     steps:
       - script:
-          title: Create release commints
+          title: Create version bump commit
           inputs:
             - content: |-
                 #!/bin/bash
