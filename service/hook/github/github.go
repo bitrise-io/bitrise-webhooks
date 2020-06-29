@@ -12,6 +12,10 @@ import (
 	"github.com/bitrise-io/go-utils/sliceutil"
 )
 
+const (
+	envKeyRepositoryOriginURL = "REPOSITORY_ORIGIN_URL"
+)
+
 // --------------------------
 // --- Webhook Data Model ---
 
@@ -129,7 +133,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		if u := pushEvent.Repository.getURL(); len(u) > 0 {
 			params.BuildParams.Environments = append(params.BuildParams.Environments,
 				bitriseapi.EnvironmentItem{
-					Name:     "REPOSITORY_ORIGIN_URL",
+					Name:     envKeyRepositoryOriginURL,
 					Value:    u,
 					IsExpand: false,
 				})
@@ -160,7 +164,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		if u := pushEvent.Repository.getURL(); len(u) > 0 {
 			params.BuildParams.Environments = append(params.BuildParams.Environments,
 				bitriseapi.EnvironmentItem{
-					Name:     "REPOSITORY_ORIGIN_URL",
+					Name:     envKeyRepositoryOriginURL,
 					Value:    u,
 					IsExpand: false,
 				})
@@ -243,7 +247,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	if u := pullRequest.PullRequestInfo.HeadBranchInfo.Repo.getURL(); len(u) > 0 {
 		params.BuildParams.Environments = append(params.BuildParams.Environments,
 			bitriseapi.EnvironmentItem{
-				Name:     "REPOSITORY_ORIGIN_URL",
+				Name:     envKeyRepositoryOriginURL,
 				Value:    u,
 				IsExpand: false,
 			})
