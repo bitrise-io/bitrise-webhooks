@@ -67,6 +67,17 @@ type BuildParamsModel struct {
 	PushCommitPaths []CommitPaths `json:"commit_paths"`
 }
 
+// AppendEnv ...
+func (bpm *BuildParamsModel) AppendEnv(k, v string, isExpand bool) {
+	if len(v) > 0 {
+		bpm.Environments = append(bpm.Environments, EnvironmentItem{
+			Name:     k,
+			Value:    v,
+			IsExpand: isExpand,
+		})
+	}
+}
+
 // TriggerAPIParamsModel ...
 type TriggerAPIParamsModel struct {
 	BuildParams BuildParamsModel `json:"build_params"`

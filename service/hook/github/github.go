@@ -130,14 +130,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			},
 		}
 
-		if u := pushEvent.Repository.getURL(); len(u) > 0 {
-			params.BuildParams.Environments = append(params.BuildParams.Environments,
-				bitriseapi.EnvironmentItem{
-					Name:     envKeyRepositoryOriginURL,
-					Value:    u,
-					IsExpand: false,
-				})
-		}
+		params.BuildParams.AppendEnv(envKeyRepositoryOriginURL, pushEvent.Repository.getURL(), false)
 
 		return hookCommon.TransformResultModel{
 			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{params},
@@ -161,14 +154,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			},
 		}
 
-		if u := pushEvent.Repository.getURL(); len(u) > 0 {
-			params.BuildParams.Environments = append(params.BuildParams.Environments,
-				bitriseapi.EnvironmentItem{
-					Name:     envKeyRepositoryOriginURL,
-					Value:    u,
-					IsExpand: false,
-				})
-		}
+		params.BuildParams.AppendEnv(envKeyRepositoryOriginURL, pushEvent.Repository.getURL(), false)
 
 		return hookCommon.TransformResultModel{
 			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{params},
@@ -244,14 +230,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		},
 	}
 
-	if u := pullRequest.PullRequestInfo.HeadBranchInfo.Repo.getURL(); len(u) > 0 {
-		params.BuildParams.Environments = append(params.BuildParams.Environments,
-			bitriseapi.EnvironmentItem{
-				Name:     envKeyRepositoryOriginURL,
-				Value:    u,
-				IsExpand: false,
-			})
-	}
+	params.BuildParams.AppendEnv(envKeyRepositoryOriginURL, pullRequest.PullRequestInfo.HeadBranchInfo.Repo.getURL(), false)
 
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{params},
