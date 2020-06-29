@@ -225,6 +225,7 @@ func Test_transformPushEvent(t *testing.T) {
 				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 				CommitMessage: "re-structuring Hook Providers, with added tests",
 			},
+			Repository: RepoInfoModel{CloneURL: "https://test-git-org/my-repo.git"},
 		}
 		hookTransformResult := transformPushEvent(codePush)
 		require.NoError(t, hookTransformResult.Error)
@@ -235,6 +236,9 @@ func Test_transformPushEvent(t *testing.T) {
 					CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 					CommitMessage: "re-structuring Hook Providers, with added tests",
 					Branch:        "master",
+					Environments: []bitriseapi.EnvironmentItem{
+						{Name: "REPOSITORY_ORIGIN_URL", Value: "https://test-git-org/my-repo.git", IsExpand: false},
+					},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -250,6 +254,7 @@ func Test_transformPushEvent(t *testing.T) {
 				CommitHash:    "2e197ebd2330183ae11338151cf3a75db0c23c92",
 				CommitMessage: "generalize Push Event (previously Code Push)",
 			},
+			Repository: RepoInfoModel{SSHURL: "ssh://git@test-git-org:my-repo.git", Private: true},
 		}
 		hookTransformResult := transformPushEvent(tagPush)
 		require.NoError(t, hookTransformResult.Error)
@@ -260,6 +265,9 @@ func Test_transformPushEvent(t *testing.T) {
 					Tag:           "v0.0.2",
 					CommitHash:    "2e197ebd2330183ae11338151cf3a75db0c23c92",
 					CommitMessage: "generalize Push Event (previously Code Push)",
+					Environments: []bitriseapi.EnvironmentItem{
+						{Name: "REPOSITORY_ORIGIN_URL", Value: "ssh://git@test-git-org:my-repo.git", IsExpand: false},
+					},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -275,6 +283,7 @@ func Test_transformPushEvent(t *testing.T) {
 				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 				CommitMessage: "re-structuring Hook Providers, with added tests",
 			},
+			Repository: RepoInfoModel{SSHURL: "ssh://git@test-git-org:my-repo.git", Private: true},
 		}
 		hookTransformResult := transformPushEvent(codePush)
 		require.NoError(t, hookTransformResult.Error)
@@ -285,6 +294,9 @@ func Test_transformPushEvent(t *testing.T) {
 					CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 					CommitMessage: "re-structuring Hook Providers, with added tests",
 					Branch:        "master",
+					Environments: []bitriseapi.EnvironmentItem{
+						{Name: "REPOSITORY_ORIGIN_URL", Value: "ssh://git@test-git-org:my-repo.git", IsExpand: false},
+					},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -300,6 +312,7 @@ func Test_transformPushEvent(t *testing.T) {
 				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 				CommitMessage: "re-structuring Hook Providers, with added tests",
 			},
+			Repository: RepoInfoModel{SSHURL: "ssh://git@test-git-org:my-repo.git", Private: true},
 		}
 		hookTransformResult := transformPushEvent(tagPush)
 		require.NoError(t, hookTransformResult.Error)
@@ -310,6 +323,9 @@ func Test_transformPushEvent(t *testing.T) {
 					Tag:           "v0.0.2",
 					CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 					CommitMessage: "re-structuring Hook Providers, with added tests",
+					Environments: []bitriseapi.EnvironmentItem{
+						{Name: "REPOSITORY_ORIGIN_URL", Value: "ssh://git@test-git-org:my-repo.git", IsExpand: false},
+					},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -491,6 +507,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestRepositoryURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
 					PullRequestHeadBranch:    "pull/12/head",
+					Environments: []bitriseapi.EnvironmentItem{
+						{Name: "REPOSITORY_ORIGIN_URL", Value: "https://github.com/bitrise-io/bitrise-webhooks.git", IsExpand: false},
+					},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -540,6 +559,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestRepositoryURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
 					PullRequestHeadBranch:    "pull/12/head",
+					Environments: []bitriseapi.EnvironmentItem{
+						{Name: "REPOSITORY_ORIGIN_URL", Value: "https://github.com/bitrise-io/bitrise-webhooks.git", IsExpand: false},
+					},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -590,6 +612,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestRepositoryURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
 					PullRequestHeadBranch:    "pull/12/head",
+					Environments: []bitriseapi.EnvironmentItem{
+						{Name: "REPOSITORY_ORIGIN_URL", Value: "https://github.com/bitrise-io/bitrise-webhooks.git", IsExpand: false},
+					},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -687,6 +712,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestRepositoryURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
 					PullRequestHeadBranch:    "pull/12/head",
+					Environments: []bitriseapi.EnvironmentItem{
+						{Name: "REPOSITORY_ORIGIN_URL", Value: "https://github.com/bitrise-io/bitrise-webhooks.git", IsExpand: false},
+					},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -784,6 +812,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestRepositoryURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
 					PullRequestHeadBranch:    "pull/12/head",
+					Environments: []bitriseapi.EnvironmentItem{
+						{Name: "REPOSITORY_ORIGIN_URL", Value: "https://github.com/bitrise-io/bitrise-webhooks.git", IsExpand: false},
+					},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)

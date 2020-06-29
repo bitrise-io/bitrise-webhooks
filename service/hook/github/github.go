@@ -28,6 +28,7 @@ type PushEventModel struct {
 	Deleted     bool                     `json:"deleted"`
 	HeadCommit  CommitModel              `json:"head_commit"`
 	CommitPaths []bitriseapi.CommitPaths `json:"commits"`
+	Repository  RepoInfoModel            `json:"repository"`
 }
 
 // UserModel ...
@@ -116,17 +117,26 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			}
 		}
 
-		return hookCommon.TransformResultModel{
-			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
-				{
-					BuildParams: bitriseapi.BuildParamsModel{
-						Branch:          branch,
-						CommitHash:      headCommit.CommitHash,
-						CommitMessage:   headCommit.CommitMessage,
-						PushCommitPaths: pushEvent.CommitPaths,
-					},
-				},
+		params := bitriseapi.TriggerAPIParamsModel{
+			BuildParams: bitriseapi.BuildParamsModel{
+				Branch:          branch,
+				CommitHash:      headCommit.CommitHash,
+				CommitMessage:   headCommit.CommitMessage,
+				PushCommitPaths: pushEvent.CommitPaths,
 			},
+		}
+
+		if u := pushEvent.Repository.getURL(); len(u) > 0 {
+			params.BuildParams.Environments = append(params.BuildParams.Environments,
+				bitriseapi.EnvironmentItem{
+					Name:     "REPOSITORY_ORIGIN_URL",
+					Value:    u,
+					IsExpand: false,
+				})
+		}
+
+		return hookCommon.TransformResultModel{
+			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{params},
 		}
 	} else if strings.HasPrefix(pushEvent.Ref, "refs/tags/") {
 		// tag push
@@ -138,17 +148,26 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			}
 		}
 
-		return hookCommon.TransformResultModel{
-			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
-				{
-					BuildParams: bitriseapi.BuildParamsModel{
-						Tag:             tag,
-						CommitHash:      headCommit.CommitHash,
-						CommitMessage:   headCommit.CommitMessage,
-						PushCommitPaths: pushEvent.CommitPaths,
-					},
-				},
+		params := bitriseapi.TriggerAPIParamsModel{
+			BuildParams: bitriseapi.BuildParamsModel{
+				Tag:             tag,
+				CommitHash:      headCommit.CommitHash,
+				CommitMessage:   headCommit.CommitMessage,
+				PushCommitPaths: pushEvent.CommitPaths,
 			},
+		}
+
+		if u := pushEvent.Repository.getURL(); len(u) > 0 {
+			params.BuildParams.Environments = append(params.BuildParams.Environments,
+				bitriseapi.EnvironmentItem{
+					Name:     "REPOSITORY_ORIGIN_URL",
+					Value:    u,
+					IsExpand: false,
+				})
+		}
+
+		return hookCommon.TransformResultModel{
+			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{params},
 		}
 	}
 
@@ -204,25 +223,34 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		commitMsg = fmt.Sprintf("%s\n\n%s", commitMsg, pullRequest.PullRequestInfo.Body)
 	}
 
-	return hookCommon.TransformResultModel{
-		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					CommitMessage:            commitMsg,
-					CommitHash:               pullRequest.PullRequestInfo.HeadBranchInfo.CommitHash,
-					Branch:                   pullRequest.PullRequestInfo.HeadBranchInfo.Ref,
-					BranchRepoOwner:          pullRequest.PullRequestInfo.HeadBranchInfo.Repo.Owner.Login,
-					BranchDest:               pullRequest.PullRequestInfo.BaseBranchInfo.Ref,
-					BranchDestRepoOwner:      pullRequest.PullRequestInfo.BaseBranchInfo.Repo.Owner.Login,
-					PullRequestID:            &pullRequest.PullRequestID,
-					PullRequestRepositoryURL: pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
-					PullRequestAuthor:        pullRequest.PullRequestInfo.User.Login,
-					PullRequestMergeBranch:   fmt.Sprintf("pull/%d/merge", pullRequest.PullRequestID),
-					PullRequestHeadBranch:    fmt.Sprintf("pull/%d/head", pullRequest.PullRequestID),
-					DiffURL:                  pullRequest.PullRequestInfo.DiffURL,
-				},
-			},
+	params := bitriseapi.TriggerAPIParamsModel{
+		BuildParams: bitriseapi.BuildParamsModel{
+			CommitMessage:            commitMsg,
+			CommitHash:               pullRequest.PullRequestInfo.HeadBranchInfo.CommitHash,
+			Branch:                   pullRequest.PullRequestInfo.HeadBranchInfo.Ref,
+			BranchRepoOwner:          pullRequest.PullRequestInfo.HeadBranchInfo.Repo.Owner.Login,
+			BranchDest:               pullRequest.PullRequestInfo.BaseBranchInfo.Ref,
+			BranchDestRepoOwner:      pullRequest.PullRequestInfo.BaseBranchInfo.Repo.Owner.Login,
+			PullRequestID:            &pullRequest.PullRequestID,
+			PullRequestRepositoryURL: pullRequest.PullRequestInfo.HeadBranchInfo.Repo.getURL(),
+			PullRequestAuthor:        pullRequest.PullRequestInfo.User.Login,
+			PullRequestMergeBranch:   fmt.Sprintf("pull/%d/merge", pullRequest.PullRequestID),
+			PullRequestHeadBranch:    fmt.Sprintf("pull/%d/head", pullRequest.PullRequestID),
+			DiffURL:                  pullRequest.PullRequestInfo.DiffURL,
 		},
+	}
+
+	if u := pullRequest.PullRequestInfo.HeadBranchInfo.Repo.getURL(); len(u) > 0 {
+		params.BuildParams.Environments = append(params.BuildParams.Environments,
+			bitriseapi.EnvironmentItem{
+				Name:     "REPOSITORY_ORIGIN_URL",
+				Value:    u,
+				IsExpand: false,
+			})
+	}
+
+	return hookCommon.TransformResultModel{
+		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{params},
 	}
 }
 
@@ -324,9 +352,9 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 }
 
 // returns the repository clone URL depending on the publicity of the project
-func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
-	if branchInfoModel.Repo.Private {
-		return branchInfoModel.Repo.SSHURL
+func (RepoInfoModel RepoInfoModel) getURL() string {
+	if RepoInfoModel.Private {
+		return RepoInfoModel.SSHURL
 	}
-	return branchInfoModel.Repo.CloneURL
+	return RepoInfoModel.CloneURL
 }
