@@ -211,7 +211,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 
 func isAcceptEventType(eventKey string) bool {
 	return (sliceutil.IsStringInSlice(eventKey,
-		[]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged", "diagnostics:ping"}))
+		[]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged", "diagnostics:ping", "pr:from_ref_updated"}))
 }
 
 // TransformRequest ...
@@ -254,7 +254,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		return transformPushEvent(pushEvent)
 	}
 
-	if eventKey == "pr:opened" || eventKey == "pr:modified" || eventKey == "pr:merged" {
+	if eventKey == "pr:opened" || eventKey == "pr:modified" || eventKey == "pr:merged" || eventKey == "pr:from_ref_updated" {
 		var pullRequestEvent PullRequestEventModel
 		if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
 			return hookCommon.TransformResultModel{
@@ -264,7 +264,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 
 		return transformPullRequestEvent(pullRequestEvent)
 	}
-  
+
 	if eventKey == "diagnostics:ping" {
 		return hookCommon.TransformResultModel{
 			ShouldSkip: true,

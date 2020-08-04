@@ -293,6 +293,100 @@ const (
 }
 }`
 
+samplePullRequestFromRefUpdatedData = `{
+"eventKey":"pr:from_ref_updated",
+"date":"2017-09-19T09:58:11+1000",
+"actor":{
+"name":"admin",
+"emailAddress":"admin@example.com",
+"id":1,
+"displayName":"Administrator",
+"active":true,
+"slug":"admin",
+"type":"NORMAL"
+},
+"pullRequest":{
+"id":1,
+"version":0,
+"title":"a new file added",
+"state":"OPEN",
+"open":true,
+"closed":false,
+"createdDate":1505779091796,
+"updatedDate":1505779091796,
+"fromRef":{
+	"id":"refs/heads/a-branch",
+	"displayId":"a-branch",
+	"latestCommit":"ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+	"repository":{
+		"slug":"repository",
+		"id":84,
+		"name":"repository",
+		"scmId":"git",
+		"state":"AVAILABLE",
+		"statusMessage":"Available",
+		"forkable":true,
+		"project":{
+			"key":"PROJ",
+			"id":84,
+			"name":"project",
+			"public":false,
+			"type":"NORMAL"
+		},
+		"public":false
+	}
+},
+"toRef":{
+	"id":"refs/heads/master",
+	"displayId":"master",
+	"latestCommit":"178864a7d521b6f5e720b386b2c2b0ef8563e0dc",
+	"repository":{
+		"slug":"repository",
+		"id":84,
+		"name":"repository",
+		"scmId":"git",
+		"state":"AVAILABLE",
+		"statusMessage":"Available",
+		"forkable":true,
+		"project":{
+			"key":"PROJ",
+			"id":84,
+			"name":"project",
+			"public":false,
+			"type":"NORMAL"
+		},
+		"public":false
+	}
+},
+"locked":false,
+"author":{
+	"user":{
+		"name":"admin",
+		"emailAddress":"admin@example.com",
+		"id":1,
+		"displayName":"Administrator",
+		"active":true,
+		"slug":"admin",
+		"type":"NORMAL"
+	},
+	"role":"AUTHOR",
+	"approved":false,
+	"status":"UNAPPROVED"
+},
+"reviewers":[
+
+],
+"participants":[
+
+],
+"links":{
+	"self":[
+		null
+	]
+}
+}
+}`
+
 	samplePullRequestMergedData = `{
 	"eventKey": "pr:merged",
 	"date": "2017-09-19T10:39:36+1000",
@@ -399,7 +493,7 @@ const (
 		}
 	}
 }`
-  
+
   samplePingData = `{
 	"test": true
 }`
@@ -1198,6 +1292,32 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
+	t.Log("Test with Sample Pull Request From Ref Updated Data")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":  {"pr:from_ref_updated"},
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestFromRefUpdatedData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+					CommitMessage: "a new file added",
+					Branch:        "a-branch",
+					BranchDest:    "master",
+					PullRequestID: pointers.NewIntPtr(1),
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+	
 	t.Log("Test with Sample Pull Request merged data")
 	{
 		request := http.Request{
