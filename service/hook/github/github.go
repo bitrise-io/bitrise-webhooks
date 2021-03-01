@@ -196,11 +196,19 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		}
 	}
 	if pullRequest.Action == "edited" {
-		// skip it if only title / description changed, and the previous pattern did not include a [skip ci] pattern
+		// skip it if only title / description changed, and the current title did not remove a [skip ci] pattern
 		if pullRequest.Changes.Base == nil {
-			if !hookCommon.IsSkipBuildByCommitMessage(pullRequest.Changes.Title.From) && !hookCommon.IsSkipBuildByCommitMessage(pullRequest.Changes.Body.From) {
+			// only description changed
+			if pullRequest.Changes.Title.From == "" {
 				return hookCommon.TransformResultModel{
-					Error:      errors.New("Pull Request edit doesn't require a build: only title and/or description was changed, and previous one was not skipped"),
+					Error:      errors.New("Pull Request edit doesn't require a build: only body/description was changed"),
+					ShouldSkip: true,
+				}
+			}
+			// title changed without removing any [skip ci] pattern
+			if !hookCommon.IsSkipBuildByCommitMessage(pullRequest.Changes.Title.From) {
+				return hookCommon.TransformResultModel{
+					Error:      errors.New("Pull Request edit doesn't require a build: only title was changed, and previous one was not skipped"),
 					ShouldSkip: true,
 				}
 			}
