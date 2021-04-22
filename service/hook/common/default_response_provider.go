@@ -53,7 +53,7 @@ func (hp DefaultResponseProvider) TransformResponse(input TransformResponseInput
 
 	return TransformResponseModel{
 		Data: DefaultTransformResponseModel{
-			Errors: input.Errors,
+			Errors:                       input.Errors,
 			DidNotWaitForTriggerResponse: input.DidNotWaitForTriggerResponse,
 			SuccessTriggerResponses:      input.SuccessTriggerResponses,
 			FailedTriggerResponses:       input.FailedTriggerResponses,
