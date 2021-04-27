@@ -218,9 +218,9 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					BranchDest:               pullRequest.PullRequestInfo.BaseBranchInfo.Ref,
 					BranchDestRepoOwner:      pullRequest.PullRequestInfo.BaseBranchInfo.Repo.Owner.Login,
 					PullRequestID:            &pullRequest.PullRequestID,
-					PullRequestRepositoryURL: pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
 					BaseRepositoryURL:        pullRequest.PullRequestInfo.BaseBranchInfo.getRepositoryURL(),
 					HeadRepositoryURL:        pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
+					PullRequestRepositoryURL: pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
 					PullRequestAuthor:        pullRequest.PullRequestInfo.User.Login,
 					PullRequestMergeBranch:   fmt.Sprintf("pull/%d/merge", pullRequest.PullRequestID),
 					PullRequestHeadBranch:    fmt.Sprintf("pull/%d/head", pullRequest.PullRequestID),
@@ -328,12 +328,10 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	}
 }
 
-// returns the repository clone URL depending on the publicity of the project
 func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
 	return branchInfoModel.Repo.getRepositoryURL()
 }
 
-// returns the repository clone URL depending on the publicity of the project
 func (repoInfoModel RepoInfoModel) getRepositoryURL() string {
 	if repoInfoModel.Private {
 		return repoInfoModel.SSHURL
