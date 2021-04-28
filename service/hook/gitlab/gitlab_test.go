@@ -62,6 +62,40 @@ const sampleMergeRequestData = `{
 	"state": "opened"
 }}`
 
+const sampleForkMergeRequestData = `{
+	"object_kind": "merge_request",
+	"user": {
+		"name": "Author Name"
+	},
+	"object_attributes": {
+		"target_branch": "develop",
+		"source_branch": "feature/gitlab-pr",
+		"title": "PR test",
+		"merge_status": "unchecked",
+		"iid": 12,
+		"description": "PR text body",
+		"merge_error": null,
+		"merge_commit_sha": null,
+		"source": {
+			"git_ssh_url": "git@gitlab.com:oss-contributor/fork-bitrise-webhooks.git",
+			"git_http_url": "https://gitlab.com/oss-contributor/fork-bitrise-webhooks.git",
+			"namespace":"oss-contributor",
+			"visibility_level": 20
+		},
+		"target": {
+			"git_ssh_url": "git@gitlab.com:bitrise-io/bitrise-webhooks.git",
+			"git_http_url": "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+			"namespace":"bitrise-io",
+			"visibility_level": 20
+		},
+		"last_commit": {
+			"id": "da966425f32973b6290dcff6a443103c7ff2a8cb"
+		},
+		"action": "update",
+		"oldrev": "3c86b996d8014000a93f3c202fc0963e81e56c4c",
+		"state": "opened"
+	}}`
+
 func Test_detectContentTypeAndEventID(t *testing.T) {
 	t.Log("Code Push event")
 	{
@@ -453,6 +487,8 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 					Branch:                   "feature/gitlab-pr",
 					BranchDest:               "master",
 					PullRequestID:            pointers.NewIntPtr(12),
+					BaseRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+					HeadRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestHeadBranch:    "merge-requests/12/head",
 				},
@@ -500,6 +536,8 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 					Branch:                   "feature/gitlab-pr",
 					BranchDest:               "master",
 					PullRequestID:            pointers.NewIntPtr(12),
+					BaseRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+					HeadRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestHeadBranch:    "merge-requests/12/head",
 				},
@@ -665,7 +703,42 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					BranchDest:               "develop",
 					BranchDestRepoOwner:      "bitrise-team",
 					PullRequestID:            pointers.NewIntPtr(12),
+					BaseRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+					HeadRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+					PullRequestAuthor:        "Author Name",
+					PullRequestHeadBranch:    "merge-requests/12/head",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Fork Merge Request - should be handled")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Gitlab-Event": {"Merge Request Hook"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleForkMergeRequestData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "da966425f32973b6290dcff6a443103c7ff2a8cb",
+					CommitMessage:            "PR test\n\nPR text body",
+					Branch:                   "feature/gitlab-pr",
+					BranchRepoOwner:          "oss-contributor",
+					BranchDest:               "develop",
+					BranchDestRepoOwner:      "bitrise-io",
+					PullRequestID:            pointers.NewIntPtr(12),
+					BaseRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+					HeadRepositoryURL:        "https://gitlab.com/oss-contributor/fork-bitrise-webhooks.git",
+					PullRequestRepositoryURL: "https://gitlab.com/oss-contributor/fork-bitrise-webhooks.git",
 					PullRequestAuthor:        "Author Name",
 					PullRequestHeadBranch:    "merge-requests/12/head",
 				},
