@@ -162,6 +162,49 @@ const (
   }
 }
 }`
+
+	sampleForkPullRequestData = `{
+"pullrequest":{
+	"description":"",
+	"type":"pullrequest",
+	"destination":{
+	"commit":{
+		"hash":"7b3172ca0cf8"
+	},
+	"branch":{
+		"name":"master"
+	},
+	"repository":{
+		"name":"prtest",
+		"full_name":"birmacher/prtest",
+		"owner": {
+		"nickname": "birmacher"
+		}
+	}
+	},
+	"title":"change",
+	"id":1,
+	"author": {
+		"nickname": "Author Name"
+	},
+	"state":"OPEN",
+	"source":{
+	"commit":{
+		"hash":"6a3451888d91"
+	},
+	"branch":{
+		"name":"feature/test"
+	},
+	"repository":{
+		"name":"nice-repo",
+		"full_name":"oss-contributor/nice-repo",
+		"owner": {
+		"nickname": "oss-contributor"
+		}
+	}
+	}
+}
+}`
 )
 
 func Test_detectContentTypeAttemptNumberAndEventKey(t *testing.T) {
@@ -281,7 +324,8 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 			RepositoryInfo: RepositoryInfoModel{
-				Scm: "git",
+				Scm:      "git",
+				FullName: "bitrise-io/nice-repo",
 			},
 		}
 
@@ -293,9 +337,10 @@ func Test_transformPushEvent(t *testing.T) {
 			require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 				{
 					BuildParams: bitriseapi.BuildParamsModel{
-						CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
-						CommitMessage: "auto-test",
-						Branch:        "master",
+						CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+						CommitMessage:     "auto-test",
+						Branch:            "master",
+						BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 					},
 				},
 			}, hookTransformResult.TriggerAPIParams)
@@ -332,7 +377,8 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 			RepositoryInfo: RepositoryInfoModel{
-				Scm: "git",
+				Scm:      "git",
+				FullName: "bitrise-io/nice-repo",
 			},
 		}
 		hookTransformResult := transformPushEvent(tagPushEvent)
@@ -341,9 +387,10 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:           "v0.0.2",
-					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
-					CommitMessage: "auto-test",
+					Tag:               "v0.0.2",
+					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					CommitMessage:     "auto-test",
+					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -380,7 +427,8 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 			RepositoryInfo: RepositoryInfoModel{
-				Scm: "git",
+				Scm:      "git",
+				FullName: "bitrise-io/nice-repo",
 			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
@@ -389,16 +437,18 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
-					CommitMessage: "auto-test",
-					Branch:        "master",
+					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					CommitMessage:     "auto-test",
+					Branch:            "master",
+					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "178de4f94efbfa99abede5cf0f1868924222839e",
-					CommitMessage: "auto-test 2",
-					Branch:        "test",
+					CommitHash:        "178de4f94efbfa99abede5cf0f1868924222839e",
+					CommitMessage:     "auto-test 2",
+					Branch:            "test",
+					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -435,7 +485,8 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 			RepositoryInfo: RepositoryInfoModel{
-				Scm: "git",
+				Scm:      "git",
+				FullName: "bitrise-io/nice-repo",
 			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
@@ -444,16 +495,18 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:           "v0.0.2",
-					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
-					CommitMessage: "auto-test",
+					Tag:               "v0.0.2",
+					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					CommitMessage:     "auto-test",
+					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:           "v0.0.1",
-					CommitHash:    "178de4f94efbfa99abede5cf0f1868924222839e",
-					CommitMessage: "auto-test 2",
+					Tag:               "v0.0.1",
+					CommitHash:        "178de4f94efbfa99abede5cf0f1868924222839e",
+					CommitMessage:     "auto-test 2",
+					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -490,7 +543,8 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 			RepositoryInfo: RepositoryInfoModel{
-				Scm: "git",
+				Scm:      "git",
+				FullName: "bitrise-io/nice-repo",
 			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
@@ -499,9 +553,10 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "178de4f94efbfa99abede5cf0f1868924222839e",
-					CommitMessage: "auto-test 2",
-					Branch:        "test",
+					CommitHash:        "178de4f94efbfa99abede5cf0f1868924222839e",
+					CommitMessage:     "auto-test 2",
+					Branch:            "test",
+					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -538,7 +593,8 @@ func Test_transformPushEvent(t *testing.T) {
 				},
 			},
 			RepositoryInfo: RepositoryInfoModel{
-				Scm: "git",
+				Scm:      "git",
+				FullName: "bitrise-io/nice-repo",
 			},
 		}
 		hookTransformResult := transformPushEvent(pushEvent)
@@ -547,9 +603,10 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "178de4f94efbfa99abede5cf0f1868924222839e",
-					CommitMessage: "auto-test 2",
-					Branch:        "test",
+					CommitHash:        "178de4f94efbfa99abede5cf0f1868924222839e",
+					CommitMessage:     "auto-test 2",
+					Branch:            "test",
+					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -704,6 +761,8 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					Branch:                   "branch2",
 					BranchDest:               "master",
 					PullRequestID:            pointers.NewIntPtr(1),
+					BaseRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
+					HeadRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
 					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
 					PullRequestAuthor:        "Author Name",
 				},
@@ -757,6 +816,8 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					Branch:                   "branch2",
 					BranchDest:               "master",
 					PullRequestID:            pointers.NewIntPtr(1),
+					BaseRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
+					HeadRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
 					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
 				},
 			},
@@ -866,16 +927,18 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
-					CommitMessage: "auto-test",
-					Branch:        "master",
+					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					CommitMessage:     "auto-test",
+					Branch:            "master",
+					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "19934139a2cf799bbd0f5061ab02e4760902e93f",
-					CommitMessage: "auto-test 2",
-					Branch:        "test",
+					CommitHash:        "19934139a2cf799bbd0f5061ab02e4760902e93f",
+					CommitMessage:     "auto-test 2",
+					Branch:            "test",
+					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -898,16 +961,18 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
-					CommitMessage: "auto-test",
-					Branch:        "master",
+					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					CommitMessage:     "auto-test",
+					Branch:            "master",
+					BaseRepositoryURL: "git@bitbucket.org:test/hg-testrepo.git",
 				},
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "19934139a2cf799bbd0f5061ab02e4760902e93f",
-					CommitMessage: "auto-test 2",
-					Branch:        "test",
+					CommitHash:        "19934139a2cf799bbd0f5061ab02e4760902e93f",
+					CommitMessage:     "auto-test 2",
+					Branch:            "test",
+					BaseRepositoryURL: "git@bitbucket.org:test/hg-testrepo.git",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -929,16 +994,18 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:           "v0.0.2",
-					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
-					CommitMessage: "auto-test",
+					Tag:               "v0.0.2",
+					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					CommitMessage:     "auto-test",
+					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:           "v0.0.1",
-					CommitHash:    "19934139a2cf799bbd0f5061ab02e4760902e93f",
-					CommitMessage: "auto-test 2",
+					Tag:               "v0.0.1",
+					CommitHash:        "19934139a2cf799bbd0f5061ab02e4760902e93f",
+					CommitMessage:     "auto-test 2",
+					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -968,7 +1035,42 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					BranchDest:               "master",
 					BranchDestRepoOwner:      "birmacher",
 					PullRequestID:            pointers.NewIntPtr(1),
+					BaseRepositoryURL:        "https://bitbucket.org/birmacher/prtest.git",
+					HeadRepositoryURL:        "https://bitbucket.org/birmacher/prtest.git",
 					PullRequestRepositoryURL: "https://bitbucket.org/birmacher/prtest.git",
+					PullRequestAuthor:        "Author Name",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Test with Sample Fork Pull Request data")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":      {"pullrequest:created"},
+				"Content-Type":     {"application/json"},
+				"X-Attempt-Number": {"1"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleForkPullRequestData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "6a3451888d91",
+					CommitMessage:            "change",
+					Branch:                   "feature/test",
+					BranchRepoOwner:          "oss-contributor",
+					BranchDest:               "master",
+					BranchDestRepoOwner:      "birmacher",
+					PullRequestID:            pointers.NewIntPtr(1),
+					BaseRepositoryURL:        "https://bitbucket.org/birmacher/prtest.git",
+					HeadRepositoryURL:        "git@bitbucket.org:oss-contributor/nice-repo.git",
+					PullRequestRepositoryURL: "git@bitbucket.org:oss-contributor/nice-repo.git",
 					PullRequestAuthor:        "Author Name",
 				},
 			},
@@ -992,16 +1094,18 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
-					CommitMessage: "auto-test",
-					Branch:        "master",
+					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					CommitMessage:     "auto-test",
+					Branch:            "master",
+					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "19934139a2cf799bbd0f5061ab02e4760902e93f",
-					CommitMessage: "auto-test 2",
-					Branch:        "test",
+					CommitHash:        "19934139a2cf799bbd0f5061ab02e4760902e93f",
+					CommitMessage:     "auto-test 2",
+					Branch:            "test",
+					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
