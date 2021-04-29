@@ -156,9 +156,10 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			}
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch:        aNewItm.Name,
-					CommitHash:    aNewItm.Target.CommitHash,
-					CommitMessage: aNewItm.Target.CommitMessage,
+					Branch:            aNewItm.Name,
+					CommitHash:        aNewItm.Target.CommitHash,
+					CommitMessage:     aNewItm.Target.CommitMessage,
+					BaseRepositoryURL: pushEvent.RepositoryInfo.getRepositoryURL(),
 				},
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
@@ -169,9 +170,10 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			}
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:           aNewItm.Name,
-					CommitHash:    aNewItm.Target.CommitHash,
-					CommitMessage: aNewItm.Target.CommitMessage,
+					Tag:               aNewItm.Name,
+					CommitHash:        aNewItm.Target.CommitHash,
+					CommitMessage:     aNewItm.Target.CommitMessage,
+					BaseRepositoryURL: pushEvent.RepositoryInfo.getRepositoryURL(),
 				},
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
@@ -224,14 +226,6 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.IsPrivate = (res.StatusCode != 200)
 	}
 
-	sourceRepositoryURL := ""
-	if pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.IsPrivate {
-		sourceRepositoryURL = fmt.Sprintf("git@bitbucket.org:%s.git", pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.FullName)
-	} else {
-		sourceRepoFullName := pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.FullName
-		sourceRepositoryURL = fmt.Sprintf("https://bitbucket.org/%s.git", sourceRepoFullName)
-	}
-
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
@@ -243,12 +237,22 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					BranchDest:               pullRequest.PullRequestInfo.DestinationInfo.BranchInfo.Name,
 					BranchDestRepoOwner:      pullRequest.PullRequestInfo.DestinationInfo.RepositoryInfo.Owner.Nickname,
 					PullRequestID:            &pullRequest.PullRequestInfo.ID,
-					PullRequestRepositoryURL: sourceRepositoryURL,
+					BaseRepositoryURL:        pullRequest.PullRequestInfo.DestinationInfo.RepositoryInfo.getRepositoryURL(),
+					HeadRepositoryURL:        pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.getRepositoryURL(),
+					PullRequestRepositoryURL: pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.getRepositoryURL(),
 					PullRequestAuthor:        pullRequest.PullRequestInfo.Author.Nickname,
 				},
 			},
 		},
 	}
+}
+
+func (repository RepositoryInfoModel) getRepositoryURL() string {
+	if repository.IsPrivate {
+		return fmt.Sprintf("git@bitbucket.org:%s.git", repository.FullName)
+	}
+
+	return fmt.Sprintf("https://bitbucket.org/%s.git", repository.FullName)
 }
 
 func isAcceptEventType(eventKey string) bool {

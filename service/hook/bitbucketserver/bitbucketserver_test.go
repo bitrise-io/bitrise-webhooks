@@ -293,7 +293,7 @@ const (
 }
 }`
 
-samplePullRequestFromRefUpdatedData = `{
+	samplePullRequestFromRefUpdatedData = `{
 "eventKey":"pr:from_ref_updated",
 "date":"2017-09-19T09:58:11+1000",
 "actor":{
@@ -494,7 +494,7 @@ samplePullRequestFromRefUpdatedData = `{
 	}
 }`
 
-  samplePingData = `{
+	samplePingData = `{
 	"test": true
 }`
 )
@@ -1317,7 +1317,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
-	
+
 	t.Log("Test with Sample Pull Request merged data")
 	{
 		request := http.Request{
