@@ -51,9 +51,10 @@ import (
 // --- Webhook Data Model ---
 
 const (
-	tagPushEventID      = "Tag Push Hook"
-	codePushEventID     = "Push Hook"
-	mergeRequestEventID = "Merge Request Hook"
+	tagPushEventID              = "Tag Push Hook"
+	codePushEventID             = "Push Hook"
+	mergeRequestEventID         = "Merge Request Hook"
+	gitlabPublicVisibilityLevel = 20
 )
 
 // CommitModel ...
@@ -163,14 +164,14 @@ func isAcceptMergeRequestAction(prAction string, prOldrev string) bool {
 }
 
 func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
-	if branchInfoModel.VisibilityLevel == 20 {
+	if branchInfoModel.VisibilityLevel == gitlabPublicVisibilityLevel {
 		return branchInfoModel.GitHTTPURL
 	}
 	return branchInfoModel.GitSSHURL
 }
 
 func (repository RepositoryModel) getRepositoryURL() string {
-	if repository.VisibilityLevel == 20 {
+	if repository.VisibilityLevel == gitlabPublicVisibilityLevel {
 		return repository.GitHTTPURL
 	}
 	return repository.GitSSHURL
