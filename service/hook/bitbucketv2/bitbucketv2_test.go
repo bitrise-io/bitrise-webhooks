@@ -168,19 +168,19 @@ const (
 	"description":"",
 	"type":"pullrequest",
 	"destination":{
-	"commit":{
-		"hash":"7b3172ca0cf8"
-	},
-	"branch":{
-		"name":"master"
-	},
-	"repository":{
-		"name":"prtest",
-		"full_name":"birmacher/prtest",
-		"owner": {
-		"nickname": "birmacher"
+		"commit":{
+			"hash":"7b3172ca0cf8"
+		},
+		"branch":{
+			"name":"master"
+		},
+		"repository":{
+			"name":"prtest",
+			"full_name":"birmacher/prtest",
+			"owner": {
+				"nickname": "birmacher"
+			}
 		}
-	}
 	},
 	"title":"change",
 	"id":1,
@@ -189,19 +189,19 @@ const (
 	},
 	"state":"OPEN",
 	"source":{
-	"commit":{
-		"hash":"6a3451888d91"
-	},
-	"branch":{
-		"name":"feature/test"
-	},
-	"repository":{
-		"name":"nice-repo",
-		"full_name":"oss-contributor/nice-repo",
-		"owner": {
-		"nickname": "oss-contributor"
+		"commit":{
+			"hash":"6a3451888d91"
+		},
+		"branch":{
+			"name":"feature/test"
+		},
+		"repository":{
+			"name":"nice-repo",
+			"full_name":"oss-contributor/nice-repo",
+			"owner": {
+				"nickname": "oss-contributor"
+			}
 		}
-	}
 	}
 }
 }`
