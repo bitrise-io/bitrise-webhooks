@@ -49,8 +49,12 @@ type BuildParamsModel struct {
 	Tag string `json:"tag,omitempty"`
 	// pull request id, exposed for pull requests from the provider's serivce
 	PullRequestID *int `json:"pull_request_id,omitempty"`
-	// repository url that holds the source for the pull request
+	// Deprecated: Use HeadRepositoryURL instead
 	PullRequestRepositoryURL string `json:"pull_request_repository_url,omitempty"`
+	// URL of the base repository
+	BaseRepositoryURL string `json:"base_repository_url,omitempty"`
+	// URL of the head repository
+	HeadRepositoryURL string `json:"head_repository_url,omitempty"`
 	// pre-merged branch if the provider supports it, exposed for pull requests
 	PullRequestMergeBranch string `json:"pull_request_merge_branch,omitempty"`
 	// source branch mapped to the original repository if the provider supports it, exposed for pull requests

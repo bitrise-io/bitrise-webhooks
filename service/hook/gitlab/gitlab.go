@@ -51,9 +51,10 @@ import (
 // --- Webhook Data Model ---
 
 const (
-	tagPushEventID      = "Tag Push Hook"
-	codePushEventID     = "Push Hook"
-	mergeRequestEventID = "Merge Request Hook"
+	tagPushEventID              = "Tag Push Hook"
+	codePushEventID             = "Push Hook"
+	mergeRequestEventID         = "Merge Request Hook"
+	gitlabPublicVisibilityLevel = 20
 )
 
 // CommitModel ...
@@ -64,17 +65,26 @@ type CommitModel struct {
 
 // CodePushEventModel ...
 type CodePushEventModel struct {
-	ObjectKind  string        `json:"object_kind"`
-	Ref         string        `json:"ref"`
-	CheckoutSHA string        `json:"checkout_sha"`
-	Commits     []CommitModel `json:"commits"`
+	ObjectKind  string          `json:"object_kind"`
+	Ref         string          `json:"ref"`
+	CheckoutSHA string          `json:"checkout_sha"`
+	Commits     []CommitModel   `json:"commits"`
+	Repository  RepositoryModel `json:"respository"`
+}
+
+// RepositoryModel ...
+type RepositoryModel struct {
+	VisibilityLevel int    `json:"visibility_level"`
+	GitSSHURL       string `json:"git_ssh_url"`
+	GitHTTPURL      string `json:"git_http_url"`
 }
 
 // TagPushEventModel ...
 type TagPushEventModel struct {
-	ObjectKind  string `json:"object_kind"`
-	Ref         string `json:"ref"`
-	CheckoutSHA string `json:"checkout_sha"`
+	ObjectKind  string          `json:"object_kind"`
+	Ref         string          `json:"ref"`
+	CheckoutSHA string          `json:"checkout_sha"`
+	Repository  RepositoryModel `json:"respository"`
 }
 
 // BranchInfoModel ...
@@ -154,10 +164,17 @@ func isAcceptMergeRequestAction(prAction string, prOldrev string) bool {
 }
 
 func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
-	if branchInfoModel.VisibilityLevel == 20 {
+	if branchInfoModel.VisibilityLevel == gitlabPublicVisibilityLevel {
 		return branchInfoModel.GitHTTPURL
 	}
 	return branchInfoModel.GitSSHURL
+}
+
+func (repository RepositoryModel) getRepositoryURL() string {
+	if repository.VisibilityLevel == gitlabPublicVisibilityLevel {
+		return repository.GitHTTPURL
+	}
+	return repository.GitSSHURL
 }
 
 func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
@@ -192,9 +209,10 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    lastCommit.CommitHash,
-					CommitMessage: lastCommit.CommitMessage,
-					Branch:        branch,
+					CommitHash:        lastCommit.CommitHash,
+					CommitMessage:     lastCommit.CommitMessage,
+					Branch:            branch,
+					BaseRepositoryURL: codePushEvent.Repository.getRepositoryURL(),
 				},
 			},
 		},
@@ -230,8 +248,9 @@ func transformTagPushEvent(tagPushEvent TagPushEventModel) hookCommon.TransformR
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:        tag,
-					CommitHash: tagPushEvent.CheckoutSHA,
+					Tag:               tag,
+					CommitHash:        tagPushEvent.CheckoutSHA,
+					BaseRepositoryURL: tagPushEvent.Repository.getRepositoryURL(),
 				},
 			},
 		},
@@ -304,6 +323,8 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 					BranchDest:               mergeRequest.ObjectAttributes.TargetBranch,
 					BranchDestRepoOwner:      mergeRequest.ObjectAttributes.Target.Namespace,
 					PullRequestID:            &mergeRequest.ObjectAttributes.ID,
+					BaseRepositoryURL:        mergeRequest.ObjectAttributes.Target.getRepositoryURL(),
+					HeadRepositoryURL:        mergeRequest.ObjectAttributes.Source.getRepositoryURL(),
 					PullRequestRepositoryURL: mergeRequest.ObjectAttributes.Source.getRepositoryURL(),
 					PullRequestAuthor:        mergeRequest.User.Name,
 					PullRequestHeadBranch:    fmt.Sprintf("merge-requests/%d/head", mergeRequest.ObjectAttributes.ID),
