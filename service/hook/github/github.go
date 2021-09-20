@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
@@ -64,6 +65,7 @@ type PullRequestInfoModel struct {
 	Body           string          `json:"body"`
 	Merged         bool            `json:"merged"`
 	Mergeable      *bool           `json:"mergeable"`
+	Draft          bool            `json:"draft"`
 	DiffURL        string          `json:"diff_url"`
 	User           UserModel       `json:"user"`
 }
@@ -225,6 +227,13 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					PullRequestMergeBranch:   fmt.Sprintf("pull/%d/merge", pullRequest.PullRequestID),
 					PullRequestHeadBranch:    fmt.Sprintf("pull/%d/head", pullRequest.PullRequestID),
 					DiffURL:                  pullRequest.PullRequestInfo.DiffURL,
+					Environments: []bitriseapi.EnvironmentItem{
+						{
+							Name:     "GITHUB_PR_IS_DRAFT",
+							Value:    strconv.FormatBool(pullRequest.PullRequestInfo.Draft),
+							IsExpand: false,
+						},
+					},
 				},
 			},
 		},
