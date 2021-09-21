@@ -65,7 +65,7 @@ type PullRequestInfoModel struct {
 	Body           string          `json:"body"`
 	Merged         bool            `json:"merged"`
 	Mergeable      *bool           `json:"mergeable"`
-	Draft          bool            `json:"draft"`
+	Draft          *bool           `json:"draft"`
 	DiffURL        string          `json:"diff_url"`
 	User           UserModel       `json:"user"`
 }
@@ -230,7 +230,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					Environments: []bitriseapi.EnvironmentItem{
 						{
 							Name:     "GITHUB_PR_IS_DRAFT",
-							Value:    strconv.FormatBool(pullRequest.PullRequestInfo.Draft),
+							Value:    strconv.FormatBool(*pullRequest.PullRequestInfo.Draft),
 							IsExpand: false,
 						},
 					},
