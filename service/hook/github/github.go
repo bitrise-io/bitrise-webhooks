@@ -209,6 +209,15 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		commitMsg = fmt.Sprintf("%s\n\n%s", commitMsg, pullRequest.PullRequestInfo.Body)
 	}
 
+	buildEnvs := make([]bitriseapi.EnvironmentItem, 0)
+	if pullRequest.PullRequestInfo.Draft != nil && *pullRequest.PullRequestInfo.Draft {
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "GITHUB_PR_IS_DRAFT",
+			Value:    strconv.FormatBool(*pullRequest.PullRequestInfo.Draft),
+			IsExpand: false,
+		})
+	}
+
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
@@ -227,13 +236,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					PullRequestMergeBranch:   fmt.Sprintf("pull/%d/merge", pullRequest.PullRequestID),
 					PullRequestHeadBranch:    fmt.Sprintf("pull/%d/head", pullRequest.PullRequestID),
 					DiffURL:                  pullRequest.PullRequestInfo.DiffURL,
-					Environments: []bitriseapi.EnvironmentItem{
-						{
-							Name:     "GITHUB_PR_IS_DRAFT",
-							Value:    strconv.FormatBool(*pullRequest.PullRequestInfo.Draft),
-							IsExpand: false,
-						},
-					},
+					Environments:             buildEnvs,
 				},
 			},
 		},

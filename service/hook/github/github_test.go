@@ -552,13 +552,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					HeadRepositoryURL:        "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
 					PullRequestHeadBranch:    "pull/12/head",
-					Environments: []bitriseapi.EnvironmentItem{
-						{
-							Name:     "GITHUB_PR_IS_DRAFT",
-							Value:    "false",
-							IsExpand: false,
-						},
-					},
+					Environments:             make([]bitriseapi.EnvironmentItem, 0),
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -611,13 +605,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					HeadRepositoryURL:        "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
 					PullRequestHeadBranch:    "pull/12/head",
-					Environments: []bitriseapi.EnvironmentItem{
-						{
-							Name:     "GITHUB_PR_IS_DRAFT",
-							Value:    "false",
-							IsExpand: false,
-						},
-					},
+					Environments:             make([]bitriseapi.EnvironmentItem, 0),
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -671,13 +659,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					HeadRepositoryURL:        "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
 					PullRequestHeadBranch:    "pull/12/head",
-					Environments: []bitriseapi.EnvironmentItem{
-						{
-							Name:     "GITHUB_PR_IS_DRAFT",
-							Value:    "false",
-							IsExpand: false,
-						},
-					},
+					Environments:             make([]bitriseapi.EnvironmentItem, 0),
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -797,7 +779,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Body:      "PR text body",
 				Merged:    false,
 				Mergeable: pointers.NewBoolPtr(true),
-				Draft:     pointers.NewBoolPtr(false),
+				Draft:     nil,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
 					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
@@ -839,13 +821,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					HeadRepositoryURL:        "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
 					PullRequestHeadBranch:    "pull/12/head",
-					Environments: []bitriseapi.EnvironmentItem{
-						{
-							Name:     "GITHUB_PR_IS_DRAFT",
-							Value:    "false",
-							IsExpand: false,
-						},
-					},
+					Environments:             make([]bitriseapi.EnvironmentItem, 0),
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -947,13 +923,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					HeadRepositoryURL:        "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
 					PullRequestHeadBranch:    "pull/12/head",
-					Environments: []bitriseapi.EnvironmentItem{
-						{
-							Name:     "GITHUB_PR_IS_DRAFT",
-							Value:    "false",
-							IsExpand: false,
-						},
-					},
+					Environments:             make([]bitriseapi.EnvironmentItem, 0),
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -1155,13 +1125,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestAuthor:        "Author Name",
 					PullRequestMergeBranch:   "pull/12/merge",
 					PullRequestHeadBranch:    "pull/12/head",
-					Environments: []bitriseapi.EnvironmentItem{
-						{
-							Name:     "GITHUB_PR_IS_DRAFT",
-							Value:    "false",
-							IsExpand: false,
-						},
-					},
+					Environments:             make([]bitriseapi.EnvironmentItem, 0),
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -1235,13 +1199,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					HeadRepositoryURL:        "https://github.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "pull/12/merge",
 					PullRequestHeadBranch:    "pull/12/head",
-					Environments: []bitriseapi.EnvironmentItem{
-						{
-							Name:     "GITHUB_PR_IS_DRAFT",
-							Value:    "false",
-							IsExpand: false,
-						},
-					},
+					Environments:             make([]bitriseapi.EnvironmentItem, 0),
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
