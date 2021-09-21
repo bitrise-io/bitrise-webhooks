@@ -65,7 +65,7 @@ type PullRequestInfoModel struct {
 	Body           string          `json:"body"`
 	Merged         bool            `json:"merged"`
 	Mergeable      *bool           `json:"mergeable"`
-	Draft          *bool           `json:"draft"`
+	Draft          bool            `json:"draft"`
 	DiffURL        string          `json:"diff_url"`
 	User           UserModel       `json:"user"`
 }
@@ -210,10 +210,10 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	}
 
 	buildEnvs := make([]bitriseapi.EnvironmentItem, 0)
-	if pullRequest.PullRequestInfo.Draft != nil && *pullRequest.PullRequestInfo.Draft {
+	if pullRequest.PullRequestInfo.Draft {
 		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
 			Name:     "GITHUB_PR_IS_DRAFT",
-			Value:    strconv.FormatBool(*pullRequest.PullRequestInfo.Draft),
+			Value:    strconv.FormatBool(pullRequest.PullRequestInfo.Draft),
 			IsExpand: false,
 		})
 	}

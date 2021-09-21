@@ -515,7 +515,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Title:     "PR test",
 				Merged:    false,
 				Mergeable: nil,
-				Draft:     pointers.NewBoolPtr(false),
+				Draft:     false,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
 					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
@@ -568,7 +568,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Title:     "PR test",
 				Merged:    false,
 				Mergeable: pointers.NewBoolPtr(true),
-				Draft:     pointers.NewBoolPtr(false),
+				Draft:     false,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
 					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
@@ -622,7 +622,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Body:      "PR text body",
 				Merged:    false,
 				Mergeable: pointers.NewBoolPtr(true),
-				Draft:     pointers.NewBoolPtr(false),
+				Draft:     false,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
 					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
@@ -676,7 +676,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Body:      "PR text body",
 				Merged:    false,
 				Mergeable: nil,
-				Draft:     pointers.NewBoolPtr(true),
+				Draft:     true,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
 					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
@@ -736,7 +736,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Body:      "PR text body",
 				Merged:    false,
 				Mergeable: pointers.NewBoolPtr(true),
-				Draft:     pointers.NewBoolPtr(false),
+				Draft:     false,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
 					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
@@ -779,7 +779,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Body:      "PR text body",
 				Merged:    false,
 				Mergeable: pointers.NewBoolPtr(true),
-				Draft:     nil,
+				Draft:     false,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
 					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
@@ -838,7 +838,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Body:      "PR text body",
 				Merged:    false,
 				Mergeable: pointers.NewBoolPtr(true),
-				Draft:     pointers.NewBoolPtr(false),
+				Draft:     false,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
 					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
@@ -881,7 +881,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Body:      "PR text body",
 				Merged:    false,
 				Mergeable: pointers.NewBoolPtr(true),
-				Draft:     pointers.NewBoolPtr(false),
+				Draft:     false,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
 					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
