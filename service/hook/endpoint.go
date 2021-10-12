@@ -103,6 +103,14 @@ func respondWithResults(w http.ResponseWriter, provider *hookCommon.Provider, re
 func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitriseapi.TriggerAPIParamsModel) (bitriseapi.TriggerAPIResponseModel, bool, error) {
 	logger := logging.WithContext(nil)
 	defer func() {
+		if err := recover(); err != nil {
+			//panic happened
+			formattedError := fmt.Errorf("%s", err)
+			logger.Error("PANIC happened ", zap.Error(formattedError))
+		}
+	}()
+
+	defer func() {
 		err := logger.Sync()
 		if err != nil {
 			fmt.Println("Failed to Sync logger")
