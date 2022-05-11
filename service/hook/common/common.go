@@ -12,11 +12,16 @@ const (
 	ContentTypeApplicationJSON string = "application/json"
 	// ContentTypeApplicationXWWWFormURLEncoded ...
 	ContentTypeApplicationXWWWFormURLEncoded string = "application/x-www-form-urlencoded"
+	// DefaultTriggeredBy ...
+	DefaultTriggeredBy = "webhook"
 )
 
 // GenerateTriggeredBy ...
 func GenerateTriggeredBy(providerID, username string) string {
-	return fmt.Sprintf("%s-%s/%s", "webhook", providerID, username)
+	if providerID == "" || username == "" {
+		return DefaultTriggeredBy
+	}
+	return fmt.Sprintf("%s-%s/%s", DefaultTriggeredBy, providerID, username)
 }
 
 // TransformResultModel ...

@@ -224,7 +224,7 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 
 			triggerBuildAndPrepareRespondWith := func() {
 				if aBuildTriggerParam.TriggeredBy == "" {
-					aBuildTriggerParam.TriggeredBy = "webhook"
+					aBuildTriggerParam.TriggeredBy = hookCommon.DefaultTriggeredBy
 				}
 				if triggerResp, isSuccess, err := triggerBuild(triggerURL, apiToken, aBuildTriggerParam); err != nil {
 					respondWith.Errors = append(respondWith.Errors, fmt.Sprintf("Failed to Trigger Build: %s", err))
