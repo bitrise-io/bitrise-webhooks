@@ -67,11 +67,12 @@ type CommitModel struct {
 
 // CodePushEventModel ...
 type CodePushEventModel struct {
-	ObjectKind  string          `json:"object_kind"`
-	Ref         string          `json:"ref"`
-	CheckoutSHA string          `json:"checkout_sha"`
-	Commits     []CommitModel   `json:"commits"`
-	Repository  RepositoryModel `json:"respository"`
+	ObjectKind   string          `json:"object_kind"`
+	Ref          string          `json:"ref"`
+	CheckoutSHA  string          `json:"checkout_sha"`
+	Commits      []CommitModel   `json:"commits"`
+	Repository   RepositoryModel `json:"respository"`
+	UserUsername string          `json:"user_username"`
 }
 
 // RepositoryModel ...
@@ -83,10 +84,11 @@ type RepositoryModel struct {
 
 // TagPushEventModel ...
 type TagPushEventModel struct {
-	ObjectKind  string          `json:"object_kind"`
-	Ref         string          `json:"ref"`
-	CheckoutSHA string          `json:"checkout_sha"`
-	Repository  RepositoryModel `json:"respository"`
+	ObjectKind   string          `json:"object_kind"`
+	Ref          string          `json:"ref"`
+	CheckoutSHA  string          `json:"checkout_sha"`
+	Repository   RepositoryModel `json:"respository"`
+	UserUsername string          `json:"user_username"`
 }
 
 // BranchInfoModel ...
@@ -122,7 +124,8 @@ type ObjectAttributesInfoModel struct {
 
 // UserModel ...
 type UserModel struct {
-	Name string `json:"name"`
+	Name     string `json:"name"`
+	Username string `json:"username"`
 }
 
 // MergeRequestEventModel ...
@@ -216,6 +219,7 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 					Branch:            branch,
 					BaseRepositoryURL: codePushEvent.Repository.getRepositoryURL(),
 				},
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, codePushEvent.UserUsername),
 			},
 		},
 	}
@@ -254,6 +258,7 @@ func transformTagPushEvent(tagPushEvent TagPushEventModel) hookCommon.TransformR
 					CommitHash:        tagPushEvent.CheckoutSHA,
 					BaseRepositoryURL: tagPushEvent.Repository.getRepositoryURL(),
 				},
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, tagPushEvent.UserUsername),
 			},
 		},
 	}
@@ -331,6 +336,7 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 					PullRequestAuthor:        mergeRequest.User.Name,
 					PullRequestHeadBranch:    fmt.Sprintf("merge-requests/%d/head", mergeRequest.ObjectAttributes.ID),
 				},
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, mergeRequest.User.Username),
 			},
 		},
 	}
