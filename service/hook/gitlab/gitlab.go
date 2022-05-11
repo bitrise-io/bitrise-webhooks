@@ -56,6 +56,7 @@ const (
 	mergeRequestEventID         = "Merge Request Hook"
 	gitlabPublicVisibilityLevel = 20
 
+	// ProviderID ...
 	ProviderID = "gitlab"
 )
 

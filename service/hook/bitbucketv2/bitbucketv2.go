@@ -19,6 +19,7 @@ const (
 	scmGit       = "git"
 	scmMercurial = "hg"
 
+	// ProviderID ...
 	ProviderID = "bitbucket-v2"
 )
 

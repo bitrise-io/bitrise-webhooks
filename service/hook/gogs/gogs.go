@@ -27,6 +27,7 @@ const (
 	pushEventID   = "push"
 	createEventID = "create"
 
+	// ProviderID ...
 	ProviderID = "gogs"
 )
 

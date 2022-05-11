@@ -14,6 +14,7 @@ const (
 	ContentTypeApplicationXWWWFormURLEncoded string = "application/x-www-form-urlencoded"
 )
 
+// GenerateTriggeredBy ...
 func GenerateTriggeredBy(providerID, username string) string {
 	return fmt.Sprintf("%s-%s/%s", "webhook", providerID, username)
 }

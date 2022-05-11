@@ -19,6 +19,7 @@ const (
 
 	bodyCharsCountForCommitMsg = 1024
 
+	// ProviderID ...
 	ProviderID = "passthrough"
 )
 
