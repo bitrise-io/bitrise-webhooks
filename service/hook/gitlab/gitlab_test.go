@@ -16,6 +16,7 @@ const sampleCodePushData = `{
 "object_kind": "push",
 "ref": "refs/heads/develop",
 "checkout_sha": "1606d3dd4c4dc83ee8fed8d3cfd911da851bf740",
+"user_username": "test_user",
 "commits": [
 	{
 		"id": "29da60ce2c47a6696bc82f2e6ec4a075695eb7c3",
@@ -31,7 +32,8 @@ const sampleCodePushData = `{
 const sampleMergeRequestData = `{
 "object_kind": "merge_request",
 "user": {
-	"name": "Author Name"
+	"name": "Author Name",
+	"username": "test_user"
 },
 "object_attributes": {
 	"target_branch": "develop",
@@ -65,7 +67,8 @@ const sampleMergeRequestData = `{
 const sampleForkMergeRequestData = `{
 	"object_kind": "merge_request",
 	"user": {
-		"name": "Author Name"
+		"name": "Author Name",
+		"username": "test_user"
 	},
 	"object_attributes": {
 		"target_branch": "develop",
@@ -172,9 +175,10 @@ func Test_transformCodePushEvent(t *testing.T) {
 	t.Log("Do Transform - single commit")
 	{
 		codePush := CodePushEventModel{
-			ObjectKind:  "push",
-			Ref:         "refs/heads/master",
-			CheckoutSHA: "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
+			ObjectKind:   "push",
+			Ref:          "refs/heads/master",
+			CheckoutSHA:  "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
+			UserUsername: "test_user",
 			Commits: []CommitModel{
 				{
 					CommitHash:    "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
@@ -192,6 +196,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 					CommitMessage: `Response: omit the "failed_responses" array if empty`,
 					Branch:        "master",
 				},
+				TriggeredBy: "webhook-gitlab/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
@@ -200,9 +205,10 @@ func Test_transformCodePushEvent(t *testing.T) {
 	t.Log("Do Transform - multiple commits - CheckoutSHA match should trigger the build")
 	{
 		codePush := CodePushEventModel{
-			ObjectKind:  "push",
-			Ref:         "refs/heads/master",
-			CheckoutSHA: "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
+			ObjectKind:   "push",
+			Ref:          "refs/heads/master",
+			CheckoutSHA:  "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
+			UserUsername: "test_user",
 			Commits: []CommitModel{
 				{
 					CommitHash:    "7782203aaf0daabbd245ec0370c751eac6a4eb55",
@@ -228,6 +234,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 					CommitMessage: `Response: omit the "failed_responses" array if empty`,
 					Branch:        "master",
 				},
+				TriggeredBy: "webhook-gitlab/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
@@ -236,9 +243,10 @@ func Test_transformCodePushEvent(t *testing.T) {
 	t.Log("No commit matches CheckoutSHA")
 	{
 		codePush := CodePushEventModel{
-			ObjectKind:  "push",
-			Ref:         "refs/heads/master",
-			CheckoutSHA: "checkout-sha",
+			ObjectKind:   "push",
+			Ref:          "refs/heads/master",
+			CheckoutSHA:  "checkout-sha",
+			UserUsername: "test_user",
 			Commits: []CommitModel{
 				{
 					CommitHash:    "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
@@ -256,9 +264,10 @@ func Test_transformCodePushEvent(t *testing.T) {
 	t.Log("Not a head ref")
 	{
 		codePush := CodePushEventModel{
-			ObjectKind:  "push",
-			Ref:         "refs/not/head",
-			CheckoutSHA: "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
+			ObjectKind:   "push",
+			Ref:          "refs/not/head",
+			CheckoutSHA:  "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
+			UserUsername: "test_user",
 			Commits: []CommitModel{
 				{
 					CommitHash:    "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
@@ -278,9 +287,10 @@ func Test_transformTagPushEvent(t *testing.T) {
 	t.Log("Do Transform")
 	{
 		tagPush := TagPushEventModel{
-			ObjectKind:  "tag_push",
-			Ref:         "refs/tags/v0.0.2",
-			CheckoutSHA: "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b",
+			ObjectKind:   "tag_push",
+			Ref:          "refs/tags/v0.0.2",
+			CheckoutSHA:  "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b",
+			UserUsername: "test_user",
 		}
 		hookTransformResult := transformTagPushEvent(tagPush)
 		require.NoError(t, hookTransformResult.Error)
@@ -291,6 +301,7 @@ func Test_transformTagPushEvent(t *testing.T) {
 					Tag:        "v0.0.2",
 					CommitHash: "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b",
 				},
+				TriggeredBy: "webhook-gitlab/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
@@ -299,9 +310,10 @@ func Test_transformTagPushEvent(t *testing.T) {
 	t.Log("No CheckoutSHA (tag delete)")
 	{
 		tagPush := TagPushEventModel{
-			ObjectKind:  "tag_push",
-			Ref:         "refs/tags/v0.0.2",
-			CheckoutSHA: "",
+			ObjectKind:   "tag_push",
+			Ref:          "refs/tags/v0.0.2",
+			CheckoutSHA:  "",
+			UserUsername: "test_user",
 		}
 		hookTransformResult := transformTagPushEvent(tagPush)
 		require.EqualError(t, hookTransformResult.Error, "This is a Tag Deleted event, no build is required")
@@ -313,9 +325,10 @@ func Test_transformTagPushEvent(t *testing.T) {
 	t.Log("Not a tags ref")
 	{
 		tagPush := TagPushEventModel{
-			ObjectKind:  "tag_push",
-			Ref:         "refs/not/a/tag",
-			CheckoutSHA: "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b",
+			ObjectKind:   "tag_push",
+			Ref:          "refs/not/a/tag",
+			CheckoutSHA:  "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b",
+			UserUsername: "test_user",
 		}
 		hookTransformResult := transformTagPushEvent(tagPush)
 		require.EqualError(t, hookTransformResult.Error, "Ref (refs/not/a/tag) is not a tags ref")
@@ -327,9 +340,10 @@ func Test_transformTagPushEvent(t *testing.T) {
 	t.Log("Not a tag_push object")
 	{
 		tagPush := TagPushEventModel{
-			ObjectKind:  "not-a-tag_push",
-			Ref:         "refs/tags/v0.0.2",
-			CheckoutSHA: "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b",
+			ObjectKind:   "not-a-tag_push",
+			Ref:          "refs/tags/v0.0.2",
+			CheckoutSHA:  "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b",
+			UserUsername: "test_user",
 		}
 		hookTransformResult := transformTagPushEvent(tagPush)
 		require.EqualError(t, hookTransformResult.Error, "Not a Tag Push object: not-a-tag_push")
@@ -452,6 +466,9 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 	t.Log("Not yet merged")
 	{
 		mergeRequest := MergeRequestEventModel{
+			User: UserModel{
+				Username: "test_user",
+			},
 			ObjectKind: "merge_request",
 			ObjectAttributes: ObjectAttributesInfoModel{
 				ID:     12,
@@ -492,6 +509,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestHeadBranch:    "merge-requests/12/head",
 				},
+				TriggeredBy: "webhook-gitlab/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
@@ -500,6 +518,9 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 	t.Log("Pull Request - Title & Body")
 	{
 		mergeRequest := MergeRequestEventModel{
+			User: UserModel{
+				Username: "test_user",
+			},
 			ObjectKind: "merge_request",
 			ObjectAttributes: ObjectAttributesInfoModel{
 				ID:          12,
@@ -541,6 +562,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestHeadBranch:    "merge-requests/12/head",
 				},
+				TriggeredBy: "webhook-gitlab/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
@@ -629,6 +651,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitMessage: "second commit message",
 					Branch:        "develop",
 				},
+				TriggeredBy: "webhook-gitlab/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
@@ -644,7 +667,8 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(`{
   "object_kind": "tag_push",
   "ref": "refs/tags/v0.0.2",
-  "checkout_sha": "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b"
+  "checkout_sha": "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b",
+  "user_username": "test_user"
 }`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
@@ -656,6 +680,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					Tag:        "v0.0.2",
 					CommitHash: "7f29cdf31fdff43d7f31a279eec06c9f19ae0d6b",
 				},
+				TriggeredBy: "webhook-gitlab/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
@@ -671,7 +696,8 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(`{
   "object_kind": "tag_push",
   "ref": "refs/tags/v0.0.2",
-  "checkout_sha": null
+  "checkout_sha": null,
+  "user_username": "test_user"
 }`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
@@ -709,6 +735,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestAuthor:        "Author Name",
 					PullRequestHeadBranch:    "merge-requests/12/head",
 				},
+				TriggeredBy: "webhook-gitlab/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
@@ -742,6 +769,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestAuthor:        "Author Name",
 					PullRequestHeadBranch:    "merge-requests/12/head",
 				},
+				TriggeredBy: "webhook-gitlab/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)

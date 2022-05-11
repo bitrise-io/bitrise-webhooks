@@ -13,6 +13,9 @@ import (
 
 const (
 	sampleCodePushData = `{
+"actor": {
+    "username": "test_user"
+},
 "push": {
 	"changes": [
 		{
@@ -49,6 +52,9 @@ const (
 }`
 
 	sampleMercurialCodePushData = `{
+"actor": {
+    "username": "test_user"
+},
 "push": {
 	"changes": [
 		{
@@ -85,6 +91,9 @@ const (
 }`
 
 	sampleTagPushData = `{
+"actor": {
+    "username": "test_user"
+},
 "push": {
 	"changes": [
 		{
@@ -124,6 +133,9 @@ const (
 "pullrequest":{
   "description":"",
   "type":"pullrequest",
+  "author": {
+    "username": "test_user"
+  },
   "destination":{
     "commit":{
       "hash":"7b3172ca0cf8"
@@ -167,6 +179,9 @@ const (
 "pullrequest":{
 	"description":"",
 	"type":"pullrequest",
+	"author": {
+		"username": "test_user"
+	},
 	"destination":{
 		"commit":{
 			"hash":"7b3172ca0cf8"
@@ -308,6 +323,9 @@ func Test_transformPushEvent(t *testing.T) {
 	t.Log("Do Transform - single change - code push")
 	{
 		pushEvent := PushEventModel{
+			ActorInfo: UserInfoModel{
+				Username: "test_user",
+			},
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
 					{
@@ -342,6 +360,7 @@ func Test_transformPushEvent(t *testing.T) {
 						Branch:            "master",
 						BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 					},
+					TriggeredBy: "webhook-bitbucket-v2/test_user",
 				},
 			}, hookTransformResult.TriggerAPIParams)
 			require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -361,6 +380,9 @@ func Test_transformPushEvent(t *testing.T) {
 	t.Log("Do Transform - single change - tag")
 	{
 		tagPushEvent := PushEventModel{
+			ActorInfo: UserInfoModel{
+				Username: "test_user",
+			},
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
 					{
@@ -392,6 +414,7 @@ func Test_transformPushEvent(t *testing.T) {
 					CommitMessage:     "auto-test",
 					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -400,6 +423,9 @@ func Test_transformPushEvent(t *testing.T) {
 	t.Log("Do Transform - multiple changes - code push")
 	{
 		pushEvent := PushEventModel{
+			ActorInfo: UserInfoModel{
+				Username: "test_user",
+			},
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
 					{
@@ -442,6 +468,7 @@ func Test_transformPushEvent(t *testing.T) {
 					Branch:            "master",
 					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
@@ -450,6 +477,7 @@ func Test_transformPushEvent(t *testing.T) {
 					Branch:            "test",
 					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -458,6 +486,9 @@ func Test_transformPushEvent(t *testing.T) {
 	t.Log("Do Transform - multiple changes - tag push")
 	{
 		pushEvent := PushEventModel{
+			ActorInfo: UserInfoModel{
+				Username: "test_user",
+			},
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
 					{
@@ -500,6 +531,7 @@ func Test_transformPushEvent(t *testing.T) {
 					CommitMessage:     "auto-test",
 					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
@@ -508,6 +540,7 @@ func Test_transformPushEvent(t *testing.T) {
 					CommitMessage:     "auto-test 2",
 					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -516,6 +549,9 @@ func Test_transformPushEvent(t *testing.T) {
 	t.Log("Multiple changes, one of the changes is a not supported (type) change")
 	{
 		pushEvent := PushEventModel{
+			ActorInfo: UserInfoModel{
+				Username: "test_user",
+			},
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
 					{
@@ -558,6 +594,7 @@ func Test_transformPushEvent(t *testing.T) {
 					Branch:            "test",
 					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -566,6 +603,9 @@ func Test_transformPushEvent(t *testing.T) {
 	t.Log("One of the changes.Target is not a type=commit change")
 	{
 		pushEvent := PushEventModel{
+			ActorInfo: UserInfoModel{
+				Username: "test_user",
+			},
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
 					{
@@ -608,6 +648,7 @@ func Test_transformPushEvent(t *testing.T) {
 					Branch:            "test",
 					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -722,8 +763,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Type:  "pullrequest",
 				Title: "Title of pull request",
 				State: "OPEN",
-				Author: OwnerInfoModel{
+				Author: UserInfoModel{
 					Nickname: "Author Name",
+					Username: "test_user",
 				},
 				SourceInfo: PullRequestBranchInfoModel{
 					BranchInfo: BranchInfoModel{
@@ -766,6 +808,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
 					PullRequestAuthor:        "Author Name",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -780,6 +823,10 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Title:       "Title of pull request",
 				Description: "Description of pull request",
 				State:       "OPEN",
+				Author: UserInfoModel{
+					Nickname: "Author Name",
+					Username: "test_user",
+				},
 				SourceInfo: PullRequestBranchInfoModel{
 					BranchInfo: BranchInfoModel{
 						Name: "branch2",
@@ -815,11 +862,13 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage:            "Title of pull request\n\nDescription of pull request",
 					Branch:                   "branch2",
 					BranchDest:               "master",
+					PullRequestAuthor:        "Author Name",
 					PullRequestID:            pointers.NewIntPtr(1),
 					BaseRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
 					HeadRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
 					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -932,6 +981,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					Branch:            "master",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
@@ -940,6 +990,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					Branch:            "test",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -966,6 +1017,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					Branch:            "master",
 					BaseRepositoryURL: "git@bitbucket.org:test/hg-testrepo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
@@ -974,6 +1026,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					Branch:            "test",
 					BaseRepositoryURL: "git@bitbucket.org:test/hg-testrepo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -999,6 +1052,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitMessage:     "auto-test",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
@@ -1007,6 +1061,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitMessage:     "auto-test 2",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1040,6 +1095,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestRepositoryURL: "https://bitbucket.org/birmacher/prtest.git",
 					PullRequestAuthor:        "Author Name",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1073,6 +1129,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestRepositoryURL: "git@bitbucket.org:oss-contributor/nice-repo.git",
 					PullRequestAuthor:        "Author Name",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1099,6 +1156,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					Branch:            "master",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
@@ -1107,6 +1165,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					Branch:            "test",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
+				TriggeredBy: "webhook-bitbucket-v2/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
