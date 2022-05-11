@@ -180,7 +180,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 					CommitMessage:     aNewItm.Target.CommitMessage,
 					BaseRepositoryURL: pushEvent.RepositoryInfo.getRepositoryURL(),
 				},
-				// todo: do we need website-provider/user here?
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.ActorInfo.Username),
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 		} else {
@@ -248,6 +248,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					PullRequestRepositoryURL: pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.getRepositoryURL(),
 					PullRequestAuthor:        pullRequest.PullRequestInfo.Author.Nickname,
 				},
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.PullRequestInfo.Author.Username),
 			},
 		},
 	}

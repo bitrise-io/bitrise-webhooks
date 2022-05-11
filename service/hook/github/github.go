@@ -33,7 +33,6 @@ type PushEventModel struct {
 	CommitPaths []bitriseapi.CommitPaths `json:"commits"`
 	Repo        RepoInfoModel            `json:"repository"`
 	Pusher      PusherModel              `json:"pusher"`
-	Sender      UserModel                `json:"sender"`
 }
 
 // UserModel ...
