@@ -11,6 +11,8 @@ import (
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 )
 
+const ProviderID = "deveo"
+
 // --------------------------
 // --- Webhook Data Model ---
 

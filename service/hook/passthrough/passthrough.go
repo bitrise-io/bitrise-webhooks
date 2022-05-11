@@ -18,6 +18,8 @@ const (
 	maxBodySizeBytes   = 20 * 1024
 
 	bodyCharsCountForCommitMsg = 1024
+
+	ProviderID = "passthrough"
 )
 
 // HookProvider ...

@@ -13,6 +13,8 @@ import (
 	"github.com/bitrise-io/go-utils/sliceutil"
 )
 
+const ProviderID = "github"
+
 // --------------------------
 // --- Webhook Data Model ---
 

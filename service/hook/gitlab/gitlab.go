@@ -55,6 +55,8 @@ const (
 	codePushEventID             = "Push Hook"
 	mergeRequestEventID         = "Merge Request Hook"
 	gitlabPublicVisibilityLevel = 20
+
+	ProviderID = "gitlab"
 )
 
 // CommitModel ...

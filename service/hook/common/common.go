@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
@@ -12,6 +13,10 @@ const (
 	// ContentTypeApplicationXWWWFormURLEncoded ...
 	ContentTypeApplicationXWWWFormURLEncoded string = "application/x-www-form-urlencoded"
 )
+
+func GenerateTriggeredBy(providerID, username string) string {
+	return fmt.Sprintf("%s-%s/%s", "webhook", providerID, username)
+}
 
 // TransformResultModel ...
 type TransformResultModel struct {

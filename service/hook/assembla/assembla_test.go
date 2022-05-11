@@ -58,7 +58,6 @@ func Test_transformPushEvent(t *testing.T) {
 						Branch:        "branchname",
 						CommitHash:    "sha1chars11",
 					},
-					TriggeredBy: "webhook",
 				},
 			}, hookTransformResult.TriggerAPIParams)
 			require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -210,7 +209,6 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					Branch:        "branchname",
 					CommitHash:    "sha1chars11",
 				},
-				TriggeredBy: "webhook",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)

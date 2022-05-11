@@ -10,6 +10,8 @@ import (
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 )
 
+const ProviderID = "slack"
+
 // ---------------------------------------
 // --- Webhook Provider Implementation ---
 

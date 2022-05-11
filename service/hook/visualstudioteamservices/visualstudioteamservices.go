@@ -14,6 +14,8 @@ import (
 
 const (
 	emptyCommitHash = "0000000000000000000000000000000000000000"
+
+	ProviderID = "visualstudio"
 )
 
 // --------------------------

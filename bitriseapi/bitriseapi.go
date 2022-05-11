@@ -94,6 +94,9 @@ func (triggerParams TriggerAPIParamsModel) Validate() error {
 	if triggerParams.BuildParams.Branch == "" && triggerParams.BuildParams.WorkflowID == "" && triggerParams.BuildParams.Tag == "" {
 		return errors.New("Missing Branch, Tag and WorkflowID parameters - at least one of these is required")
 	}
+	if triggerParams.TriggeredBy == "" {
+		return errors.New("Missing TriggeredBy parameter")
+	}
 	return nil
 }
 
@@ -127,8 +130,6 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	if err := params.Validate(); err != nil {
 		return TriggerAPIResponseModel{}, false, errors.Wrap(err, "TriggerBuild: build trigger parameter invalid")
 	}
-
-	params.TriggeredBy = "webhook"
 
 	jsonStr, err := json.Marshal(params)
 	if err != nil {

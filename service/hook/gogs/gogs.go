@@ -26,6 +26,8 @@ import (
 const (
 	pushEventID   = "push"
 	createEventID = "create"
+
+	ProviderID = "gogs"
 )
 
 // CommitModel ...

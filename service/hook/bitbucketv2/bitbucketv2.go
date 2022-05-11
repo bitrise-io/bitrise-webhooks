@@ -18,6 +18,8 @@ import (
 const (
 	scmGit       = "git"
 	scmMercurial = "hg"
+
+	ProviderID = "bitbucket-v2"
 )
 
 // --------------------------
@@ -49,12 +51,14 @@ type PushInfoModel struct {
 
 // PushEventModel ...
 type PushEventModel struct {
+	ActorInfo      UserInfoModel       `json:"actor"`
 	PushInfo       PushInfoModel       `json:"push"`
 	RepositoryInfo RepositoryInfoModel `json:"repository"`
 }
 
-// OwnerInfoModel ...
-type OwnerInfoModel struct {
+// UserInfoModel ...
+type UserInfoModel struct {
+	Username string `json:"username"`
 	Nickname string `json:"nickname"`
 }
 
@@ -63,8 +67,8 @@ type RepositoryInfoModel struct {
 	FullName  string `json:"full_name"`
 	IsPrivate bool   `json:"is_private"`
 	// Scm - The type repository: Git (git) or Mercurial (hg).
-	Scm   string         `json:"scm"`
-	Owner OwnerInfoModel `json:"owner"`
+	Scm   string        `json:"scm"`
+	Owner UserInfoModel `json:"owner"`
 }
 
 // CommitInfoModel ...
@@ -91,7 +95,7 @@ type PullRequestInfoModel struct {
 	Title           string                     `json:"title"`
 	Description     string                     `json:"description"`
 	State           string                     `json:"state"`
-	Author          OwnerInfoModel             `json:"author"`
+	Author          UserInfoModel              `json:"author"`
 	SourceInfo      PullRequestBranchInfoModel `json:"source"`
 	DestinationInfo PullRequestBranchInfoModel `json:"destination"`
 }
@@ -161,6 +165,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 					CommitMessage:     aNewItm.Target.CommitMessage,
 					BaseRepositoryURL: pushEvent.RepositoryInfo.getRepositoryURL(),
 				},
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.ActorInfo.Username),
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 		} else if aNewItm.Type == "tag" {
@@ -175,6 +180,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 					CommitMessage:     aNewItm.Target.CommitMessage,
 					BaseRepositoryURL: pushEvent.RepositoryInfo.getRepositoryURL(),
 				},
+				// todo: do we need website-provider/user here?
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 		} else {
