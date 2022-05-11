@@ -18,6 +18,9 @@ import (
 
 const (
 	scmGit = "git"
+
+	// ProviderID ...
+	ProviderID = "bitbucket-server"
 )
 
 // --------------------------

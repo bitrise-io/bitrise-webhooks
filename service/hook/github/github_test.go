@@ -40,6 +40,9 @@ const (
 	"owner": {
 		"login": "bitrise-team"
 	}
+  },
+  "pusher": {
+    "name": "test_user"
   }
 }`
 
@@ -71,6 +74,9 @@ const (
 	"owner": {
 		"login": "bitrise-team"
 	}
+  },
+  "pusher": {
+    "name": "test_user"
   }
 }`
 
@@ -111,7 +117,10 @@ const (
 		"user": {
 			"login": "Author Name"
 		}
-	}
+	},
+	"sender": {
+        "login": "test_user"
+    }
 }`
 
 	samplePullRequestEditedData = `{
@@ -157,6 +166,9 @@ const (
         "from": "bac0e53691fd6fbc5e8c4f00144bf61069b80087"
       }
     }
+  },
+  "sender": {
+	"login": "test_user"
   }
 }`
 
@@ -197,6 +209,9 @@ const (
 			"user": {
 				"login": "Author Name"
 			}
+		},
+		"sender": {
+			"login": "test_user"
 		}
 	}`
 )
@@ -283,6 +298,9 @@ func Test_transformPushEvent(t *testing.T) {
 				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 				CommitMessage: "re-structuring Hook Providers, with added tests",
 			},
+			Pusher: PusherModel{
+				Name: "test_user",
+			},
 		}
 		hookTransformResult := transformPushEvent(codePush)
 		require.NoError(t, hookTransformResult.Error)
@@ -294,6 +312,7 @@ func Test_transformPushEvent(t *testing.T) {
 					CommitMessage: "re-structuring Hook Providers, with added tests",
 					Branch:        "master",
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -308,6 +327,9 @@ func Test_transformPushEvent(t *testing.T) {
 				CommitHash:    "2e197ebd2330183ae11338151cf3a75db0c23c92",
 				CommitMessage: "generalize Push Event (previously Code Push)",
 			},
+			Pusher: PusherModel{
+				Name: "test_user",
+			},
 		}
 		hookTransformResult := transformPushEvent(tagPush)
 		require.NoError(t, hookTransformResult.Error)
@@ -319,6 +341,7 @@ func Test_transformPushEvent(t *testing.T) {
 					CommitHash:    "2e197ebd2330183ae11338151cf3a75db0c23c92",
 					CommitMessage: "generalize Push Event (previously Code Push)",
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -333,6 +356,9 @@ func Test_transformPushEvent(t *testing.T) {
 				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 				CommitMessage: "re-structuring Hook Providers, with added tests",
 			},
+			Pusher: PusherModel{
+				Name: "test_user",
+			},
 		}
 		hookTransformResult := transformPushEvent(codePush)
 		require.NoError(t, hookTransformResult.Error)
@@ -344,6 +370,7 @@ func Test_transformPushEvent(t *testing.T) {
 					CommitMessage: "re-structuring Hook Providers, with added tests",
 					Branch:        "master",
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -358,6 +385,9 @@ func Test_transformPushEvent(t *testing.T) {
 				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 				CommitMessage: "re-structuring Hook Providers, with added tests",
 			},
+			Pusher: PusherModel{
+				Name: "test_user",
+			},
 		}
 		hookTransformResult := transformPushEvent(tagPush)
 		require.NoError(t, hookTransformResult.Error)
@@ -369,6 +399,7 @@ func Test_transformPushEvent(t *testing.T) {
 					CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 					CommitMessage: "re-structuring Hook Providers, with added tests",
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -381,6 +412,9 @@ func Test_transformPushEvent(t *testing.T) {
 			HeadCommit: CommitModel{
 				Distinct:      true,
 				CommitMessage: "re-structuring Hook Providers, with added tests",
+			},
+			Pusher: PusherModel{
+				Name: "test_user",
 			},
 		}
 		hookTransformResult := transformPushEvent(codePush)
@@ -397,6 +431,9 @@ func Test_transformPushEvent(t *testing.T) {
 			HeadCommit: CommitModel{
 				Distinct:      true,
 				CommitMessage: "re-structuring Hook Providers, with added tests",
+			},
+			Pusher: PusherModel{
+				Name: "test_user",
 			},
 		}
 		hookTransformResult := transformPushEvent(tagPush)
@@ -416,6 +453,9 @@ func Test_transformPushEvent(t *testing.T) {
 				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 				CommitMessage: "re-structuring Hook Providers, with added tests",
 			},
+			Pusher: PusherModel{
+				Name: "test_user",
+			},
 		}
 		hookTransformResult := transformPushEvent(codePush)
 		require.True(t, hookTransformResult.ShouldSkip)
@@ -434,6 +474,9 @@ func Test_transformPushEvent(t *testing.T) {
 				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 				CommitMessage: "re-structuring Hook Providers, with added tests",
 			},
+			Pusher: PusherModel{
+				Name: "test_user",
+			},
 		}
 		hookTransformResult := transformPushEvent(tagPush)
 		require.True(t, hookTransformResult.ShouldSkip)
@@ -450,6 +493,9 @@ func Test_transformPushEvent(t *testing.T) {
 				Distinct:      true,
 				CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 				CommitMessage: "re-structuring Hook Providers, with added tests",
+			},
+			Pusher: PusherModel{
+				Name: "test_user",
 			},
 		}
 		hookTransformResult := transformPushEvent(codePush)
@@ -535,6 +581,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					},
 				},
 			},
+			Sender: UserModel{
+				Login: "test_user",
+			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
 		require.False(t, hookTransformResult.ShouldSkip)
@@ -554,6 +603,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestHeadBranch:    "pull/12/head",
 					Environments:             make([]bitriseapi.EnvironmentItem, 0),
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -588,6 +638,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					},
 				},
 			},
+			Sender: UserModel{
+				Login: "test_user",
+			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
 		require.NoError(t, hookTransformResult.Error)
@@ -607,6 +660,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestHeadBranch:    "pull/12/head",
 					Environments:             make([]bitriseapi.EnvironmentItem, 0),
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -642,6 +696,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					},
 				},
 			},
+			Sender: UserModel{
+				Login: "test_user",
+			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
 		require.NoError(t, hookTransformResult.Error)
@@ -661,6 +718,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestHeadBranch:    "pull/12/head",
 					Environments:             make([]bitriseapi.EnvironmentItem, 0),
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -696,6 +754,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					},
 				},
 			},
+			Sender: UserModel{
+				Login: "test_user",
+			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
 		require.NoError(t, hookTransformResult.Error)
@@ -721,6 +782,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 						},
 					},
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -760,6 +822,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Title: PullRequestChangeFromItemModel{
 					From: "previous title",
 				},
+			},
+			Sender: UserModel{
+				Login: "test_user",
 			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
@@ -804,6 +869,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					From: "previous title with [skip ci] in it",
 				},
 			},
+			Sender: UserModel{
+				Login: "test_user",
+			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
 		require.NoError(t, hookTransformResult.Error)
@@ -823,6 +891,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestHeadBranch:    "pull/12/head",
 					Environments:             make([]bitriseapi.EnvironmentItem, 0),
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -862,6 +931,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Body: PullRequestChangeFromItemModel{
 					From: "previous body",
 				},
+			},
+			Sender: UserModel{
+				Login: "test_user",
 			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
@@ -906,6 +978,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					From: "previous body with [skip ci] in it",
 				},
 			},
+			Sender: UserModel{
+				Login: "test_user",
+			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
 		require.NoError(t, hookTransformResult.Error)
@@ -925,6 +1000,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestHeadBranch:    "pull/12/head",
 					Environments:             make([]bitriseapi.EnvironmentItem, 0),
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1059,6 +1135,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					},
 					BaseRepositoryURL: "https://github.com/bitrise-team/bitrise-webhooks.git",
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1091,6 +1168,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					},
 					BaseRepositoryURL: "https://github.com/bitrise-team/bitrise-webhooks.git",
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1127,6 +1205,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestHeadBranch:    "pull/12/head",
 					Environments:             make([]bitriseapi.EnvironmentItem, 0),
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1169,6 +1248,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 						},
 					},
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1201,6 +1281,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestHeadBranch:    "pull/12/head",
 					Environments:             make([]bitriseapi.EnvironmentItem, 0),
 				},
+				TriggeredBy: "webhook-github/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)

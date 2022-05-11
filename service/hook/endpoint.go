@@ -30,16 +30,16 @@ import (
 
 func supportedProviders() map[string]hookCommon.Provider {
 	return map[string]hookCommon.Provider{
-		"github":           github.HookProvider{},
-		"bitbucket-v2":     bitbucketv2.HookProvider{},
-		"bitbucket-server": bitbucketserver.HookProvider{},
-		"slack":            slack.HookProvider{},
-		"visualstudio":     visualstudioteamservices.HookProvider{},
-		"gitlab":           gitlab.HookProvider{},
-		"gogs":             gogs.HookProvider{},
-		"deveo":            deveo.HookProvider{},
-		"assembla":         assembla.HookProvider{},
-		"passthrough":      passthrough.HookProvider{},
+		github.ProviderID:                   github.HookProvider{},
+		bitbucketv2.ProviderID:              bitbucketv2.HookProvider{},
+		bitbucketserver.ProviderID:          bitbucketserver.HookProvider{},
+		slack.ProviderID:                    slack.HookProvider{},
+		visualstudioteamservices.ProviderID: visualstudioteamservices.HookProvider{},
+		gitlab.ProviderID:                   gitlab.HookProvider{},
+		gogs.ProviderID:                     gogs.HookProvider{},
+		deveo.ProviderID:                    deveo.HookProvider{},
+		assembla.ProviderID:                 assembla.HookProvider{},
+		passthrough.ProviderID:              passthrough.HookProvider{},
 	}
 }
 
@@ -223,6 +223,9 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			triggerBuildAndPrepareRespondWith := func() {
+				if aBuildTriggerParam.TriggeredBy == "" {
+					aBuildTriggerParam.TriggeredBy = hookCommon.DefaultTriggeredBy
+				}
 				if triggerResp, isSuccess, err := triggerBuild(triggerURL, apiToken, aBuildTriggerParam); err != nil {
 					respondWith.Errors = append(respondWith.Errors, fmt.Sprintf("Failed to Trigger Build: %s", err))
 				} else if isSuccess {

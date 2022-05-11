@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
@@ -11,7 +12,17 @@ const (
 	ContentTypeApplicationJSON string = "application/json"
 	// ContentTypeApplicationXWWWFormURLEncoded ...
 	ContentTypeApplicationXWWWFormURLEncoded string = "application/x-www-form-urlencoded"
+	// DefaultTriggeredBy ...
+	DefaultTriggeredBy = "webhook"
 )
+
+// GenerateTriggeredBy ...
+func GenerateTriggeredBy(providerID, username string) string {
+	if providerID == "" || username == "" {
+		return DefaultTriggeredBy
+	}
+	return fmt.Sprintf("%s-%s/%s", DefaultTriggeredBy, providerID, username)
+}
 
 // TransformResultModel ...
 type TransformResultModel struct {

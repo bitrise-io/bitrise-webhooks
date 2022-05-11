@@ -32,6 +32,19 @@ func Test_TriggerAPIParamsModel_Validate(t *testing.T) {
 		err := triggerParams.Validate()
 		require.EqualError(t, err, "Missing Branch, Tag and WorkflowID parameters - at least one of these is required")
 	}
+	t.Log("Missing TriggeredBy")
+	{
+		triggerParams := TriggerAPIParamsModel{
+			BuildParams: BuildParamsModel{
+				Branch:     "develop",
+				WorkflowID: "my-wf",
+				Tag:        "v0.0.2",
+			},
+		}
+
+		err := triggerParams.Validate()
+		require.EqualError(t, err, "Missing TriggeredBy parameter")
+	}
 
 	t.Log("Minimal valid, with branch")
 	{
@@ -39,6 +52,7 @@ func Test_TriggerAPIParamsModel_Validate(t *testing.T) {
 			BuildParams: BuildParamsModel{
 				Branch: "develop",
 			},
+			TriggeredBy: "webhook",
 		}
 
 		err := triggerParams.Validate()
@@ -51,6 +65,7 @@ func Test_TriggerAPIParamsModel_Validate(t *testing.T) {
 			BuildParams: BuildParamsModel{
 				WorkflowID: "my-wf",
 			},
+			TriggeredBy: "webhook",
 		}
 
 		err := triggerParams.Validate()
@@ -63,6 +78,7 @@ func Test_TriggerAPIParamsModel_Validate(t *testing.T) {
 			BuildParams: BuildParamsModel{
 				Tag: "v0.0.2",
 			},
+			TriggeredBy: "webhook",
 		}
 
 		err := triggerParams.Validate()
@@ -92,6 +108,7 @@ func TestTriggerBuild(t *testing.T) {
 			BuildParams: BuildParamsModel{
 				Branch: "develop",
 			},
+			TriggeredBy: "webhook",
 		}
 
 		apiResponse, isSuccess, err := TriggerBuild(url, "api-token", triggerParams, true)
@@ -109,6 +126,7 @@ func TestTriggerBuild(t *testing.T) {
 			BuildParams: BuildParamsModel{
 				WorkflowID: "my-wf",
 			},
+			TriggeredBy: "webhook",
 		}
 
 		apiResponse, isSuccess, err := TriggerBuild(url, "api-token", triggerParams, true)
@@ -126,6 +144,7 @@ func TestTriggerBuild(t *testing.T) {
 			BuildParams: BuildParamsModel{
 				Tag: "v0.0.2",
 			},
+			TriggeredBy: "webhook",
 		}
 
 		apiResponse, isSuccess, err := TriggerBuild(url, "api-token", triggerParams, true)

@@ -14,6 +14,11 @@ import (
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 )
 
+const (
+	// ProviderID ...
+	ProviderID = "assembla"
+)
+
 // --------------------------
 // --- Webhook Data Model ---
 
@@ -114,7 +119,6 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 				Branch:        pushEvent.GitEventModel.Branch,
 				CommitHash:    pushEvent.GitEventModel.CommitID,
 			},
-			TriggeredBy: "webhook",
 		},
 	}
 

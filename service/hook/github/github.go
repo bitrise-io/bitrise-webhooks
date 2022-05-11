@@ -13,6 +13,12 @@ import (
 	"github.com/bitrise-io/go-utils/sliceutil"
 )
 
+const (
+
+	// ProviderID ...
+	ProviderID = "github"
+)
+
 // --------------------------
 // --- Webhook Data Model ---
 
@@ -30,11 +36,17 @@ type PushEventModel struct {
 	HeadCommit  CommitModel              `json:"head_commit"`
 	CommitPaths []bitriseapi.CommitPaths `json:"commits"`
 	Repo        RepoInfoModel            `json:"repository"`
+	Pusher      PusherModel              `json:"pusher"`
 }
 
 // UserModel ...
 type UserModel struct {
 	Login string `json:"login"`
+}
+
+// PusherModel ...
+type PusherModel struct {
+	Name string `json:"name"`
 }
 
 // RepoInfoModel ...
@@ -88,6 +100,7 @@ type PullRequestEventModel struct {
 	PullRequestID   int                         `json:"number"`
 	PullRequestInfo PullRequestInfoModel        `json:"pull_request"`
 	Changes         PullRequestChangesInfoModel `json:"changes"`
+	Sender          UserModel                   `json:"sender"`
 }
 
 // ---------------------------------------
@@ -129,6 +142,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 						PushCommitPaths:   pushEvent.CommitPaths,
 						BaseRepositoryURL: pushEvent.Repo.getRepositoryURL(),
 					},
+					TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Pusher.Name),
 				},
 			},
 		}
@@ -152,6 +166,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 						PushCommitPaths:   pushEvent.CommitPaths,
 						BaseRepositoryURL: pushEvent.Repo.getRepositoryURL(),
 					},
+					TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Pusher.Name),
 				},
 			},
 		}
@@ -238,6 +253,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					DiffURL:                  pullRequest.PullRequestInfo.DiffURL,
 					Environments:             buildEnvs,
 				},
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Sender.Login),
 			},
 		},
 	}
