@@ -14,7 +14,7 @@ import (
 const (
 	sampleCodePushData = `{
 "actor": {
-    "username": "test_user"
+    "nickname": "test_user"
 },
 "push": {
 	"changes": [
@@ -53,7 +53,7 @@ const (
 
 	sampleMercurialCodePushData = `{
 "actor": {
-    "username": "test_user"
+    "nickname": "test_user"
 },
 "push": {
 	"changes": [
@@ -92,7 +92,7 @@ const (
 
 	sampleTagPushData = `{
 "actor": {
-    "username": "test_user"
+    "nickname": "test_user"
 },
 "push": {
 	"changes": [
@@ -134,7 +134,7 @@ const (
   "description":"",
   "type":"pullrequest",
   "author": {
-    "username": "test_user"
+    "nickname": "test_user"
   },
   "destination":{
     "commit":{
@@ -180,7 +180,7 @@ const (
 	"description":"",
 	"type":"pullrequest",
 	"author": {
-		"username": "test_user"
+		"nickname": "test_user"
 	},
 	"destination":{
 		"commit":{
@@ -324,7 +324,7 @@ func Test_transformPushEvent(t *testing.T) {
 	{
 		pushEvent := PushEventModel{
 			ActorInfo: UserInfoModel{
-				Username: "test_user",
+				Nickname: "test_user",
 			},
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
@@ -381,7 +381,7 @@ func Test_transformPushEvent(t *testing.T) {
 	{
 		tagPushEvent := PushEventModel{
 			ActorInfo: UserInfoModel{
-				Username: "test_user",
+				Nickname: "test_user",
 			},
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
@@ -424,7 +424,7 @@ func Test_transformPushEvent(t *testing.T) {
 	{
 		pushEvent := PushEventModel{
 			ActorInfo: UserInfoModel{
-				Username: "test_user",
+				Nickname: "test_user",
 			},
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
@@ -487,7 +487,7 @@ func Test_transformPushEvent(t *testing.T) {
 	{
 		pushEvent := PushEventModel{
 			ActorInfo: UserInfoModel{
-				Username: "test_user",
+				Nickname: "test_user",
 			},
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
@@ -550,7 +550,7 @@ func Test_transformPushEvent(t *testing.T) {
 	{
 		pushEvent := PushEventModel{
 			ActorInfo: UserInfoModel{
-				Username: "test_user",
+				Nickname: "test_user",
 			},
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
@@ -604,7 +604,7 @@ func Test_transformPushEvent(t *testing.T) {
 	{
 		pushEvent := PushEventModel{
 			ActorInfo: UserInfoModel{
-				Username: "test_user",
+				Nickname: "test_user",
 			},
 			PushInfo: PushInfoModel{
 				Changes: []ChangeInfoModel{
@@ -765,7 +765,6 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				State: "OPEN",
 				Author: UserInfoModel{
 					Nickname: "Author Name",
-					Username: "test_user",
 				},
 				SourceInfo: PullRequestBranchInfoModel{
 					BranchInfo: BranchInfoModel{
@@ -808,7 +807,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
 					PullRequestAuthor:        "Author Name",
 				},
-				TriggeredBy: "webhook-bitbucket-v2/test_user",
+				TriggeredBy: "webhook-bitbucket-v2/Author Name",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -825,7 +824,6 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				State:       "OPEN",
 				Author: UserInfoModel{
 					Nickname: "Author Name",
-					Username: "test_user",
 				},
 				SourceInfo: PullRequestBranchInfoModel{
 					BranchInfo: BranchInfoModel{
@@ -868,7 +866,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					HeadRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
 					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
 				},
-				TriggeredBy: "webhook-bitbucket-v2/test_user",
+				TriggeredBy: "webhook-bitbucket-v2/Author Name",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1095,7 +1093,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestRepositoryURL: "https://bitbucket.org/birmacher/prtest.git",
 					PullRequestAuthor:        "Author Name",
 				},
-				TriggeredBy: "webhook-bitbucket-v2/test_user",
+				TriggeredBy: "webhook-bitbucket-v2/Author Name",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1129,7 +1127,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestRepositoryURL: "git@bitbucket.org:oss-contributor/nice-repo.git",
 					PullRequestAuthor:        "Author Name",
 				},
-				TriggeredBy: "webhook-bitbucket-v2/test_user",
+				TriggeredBy: "webhook-bitbucket-v2/Author Name",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
