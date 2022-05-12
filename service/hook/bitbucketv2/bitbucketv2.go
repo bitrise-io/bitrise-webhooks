@@ -166,7 +166,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 					CommitMessage:     aNewItm.Target.CommitMessage,
 					BaseRepositoryURL: pushEvent.RepositoryInfo.getRepositoryURL(),
 				},
-				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.ActorInfo.Username),
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.ActorInfo.Nickname),
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 		} else if aNewItm.Type == "tag" {
@@ -181,7 +181,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 					CommitMessage:     aNewItm.Target.CommitMessage,
 					BaseRepositoryURL: pushEvent.RepositoryInfo.getRepositoryURL(),
 				},
-				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.ActorInfo.Username),
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.ActorInfo.Nickname),
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 		} else {
@@ -249,7 +249,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					PullRequestRepositoryURL: pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.getRepositoryURL(),
 					PullRequestAuthor:        pullRequest.PullRequestInfo.Author.Nickname,
 				},
-				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.PullRequestInfo.Author.Username),
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.PullRequestInfo.Author.Nickname),
 			},
 		},
 	}
