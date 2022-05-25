@@ -651,8 +651,8 @@ func Test_transformPullRequestEvent(t *testing.T) {
 }`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.True(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "Pull request contains merge conflicts")
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Pull request is not mergeable")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
 	}
@@ -686,7 +686,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 }`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.True(t, hookTransformResult.ShouldSkip)
+		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Missing source reference name")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
@@ -721,7 +721,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 }`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.True(t, hookTransformResult.ShouldSkip)
+		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Missing target reference name")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
@@ -757,7 +757,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 }`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.True(t, hookTransformResult.ShouldSkip)
+		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Invalid source reference name")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
@@ -793,7 +793,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 }`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.True(t, hookTransformResult.ShouldSkip)
+		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Invalid target reference name")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
@@ -826,7 +826,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 }`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.True(t, hookTransformResult.ShouldSkip)
+		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Missing last source branch commit details")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.False(t, hookTransformResult.DontWaitForTriggerResponse)

@@ -238,9 +238,75 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 }
 
 // transformPullRequestEvent ...
-func transformPullRequestEvent(pullRquestEvent PullRequestEventModel) hookCommon.TransformResultModel {
+func transformPullRequestEvent(pullRequestEvent PullRequestEventModel) hookCommon.TransformResultModel {
+	if pullRequestEvent.ResourceVersion != "1.0" {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Unsupported resource version"),
+		}
+	}
+
+	pullRequest := pullRequestEvent.Resource
+	if pullRequest.Status == "completed" {
+		return hookCommon.TransformResultModel{
+			Error:      fmt.Errorf("Pull request already completed"),
+			ShouldSkip: true,
+		}
+	}
+
+	if pullRequest.MergeStatus != "succeeded" {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Pull request is not mergeable"),
+		}
+	}
+
+	if pullRequest.SourceReferenceName == "" {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Missing source reference name"),
+		}
+	}
+
+	if !strings.HasPrefix(pullRequest.SourceReferenceName, "refs/heads/") {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Invalid source reference name"),
+		}
+	}
+
+	if pullRequest.TargetReferenceName == "" {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Missing target reference name"),
+		}
+	}
+
+	if !strings.HasPrefix(pullRequest.TargetReferenceName, "refs/heads/") {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Invalid target reference name"),
+		}
+	}
+
+	if pullRequest.LastSourceCommit == (CommitModel{}) || pullRequest.LastSourceCommit.CommitID == "" {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Missing last source branch commit details"),
+		}
+	}
+
+	var buildParams = bitriseapi.BuildParamsModel{
+		CommitHash:        pullRequest.LastSourceCommit.CommitID,
+		CommitMessage:     pullRequestEvent.Message.Text,
+		Branch:            strings.TrimPrefix(pullRequest.SourceReferenceName, "refs/heads/"),
+		BranchDest:        strings.TrimPrefix(pullRequest.TargetReferenceName, "refs/heads/"),
+		PullRequestAuthor: pullRequest.CreatedBy.DisplayName,
+	}
+
+	if pullRequest.PullRequestId != 0 {
+		buildParams.PullRequestID = &pullRequest.PullRequestId
+	}
+
 	return hookCommon.TransformResultModel{
-		Error: fmt.Errorf("Not implemented!"),
+		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: buildParams,
+			},
+		},
 	}
 }
 
