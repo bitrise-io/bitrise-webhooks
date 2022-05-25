@@ -120,15 +120,6 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		}
 	}
 
-	if pushEvent.SubscriptionID == "00000000-0000-0000-0000-000000000000" {
-		return hookCommon.TransformResultModel{
-			Error:      fmt.Errorf("Initial (test) event detected, skipping"),
-			ShouldSkip: true,
-		}
-	}
-
-	// VSO sends separate events for separate event (branches, tags, etc.)
-
 	if len(pushEvent.Resource.RefUpdates) != 1 {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Can't detect branch information (resource.refUpdates is empty), can't start a build"),
@@ -354,6 +345,13 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	if event.PublisherID != "tfs" {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Not a Team Foundation Server notification, can't start a build"),
+		}
+	}
+
+	if event.SubscriptionID == "00000000-0000-0000-0000-000000000000" {
+		return hookCommon.TransformResultModel{
+			Error:      fmt.Errorf("Initial (test) event detected, skipping"),
+			ShouldSkip: true,
 		}
 	}
 
