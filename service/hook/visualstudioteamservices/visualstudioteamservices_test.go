@@ -1,12 +1,13 @@
 package visualstudioteamservices
 
 import (
+	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
+	"github.com/bitrise-io/go-utils/pointers"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 
-	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,6 +26,15 @@ const (
 		"id": "daae438c-296b-4512-b08e-571910874e9b",
 		"eventType": "message.posted",
 		"publisherId": "tfs"
+	}`
+
+	sampleCodeGitPushBadResourceVersion = `{
+		"subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+		"notificationId": 4,
+		"id": "daae438c-296b-4512-b08e-571910874e9b",
+		"eventType": "git.push",
+		"publisherId": "tfs"
+		"resourceVersion": "1.0-preview.1"
 	}`
 
 	sampleCodeGitPushBadPublisherID = `{
@@ -232,146 +242,10 @@ func Test_detectContentType(t *testing.T) {
 	}
 }
 
-func Test_HookProvider_TransformRequest(t *testing.T) {
+func Test_transformPushEvent(t *testing.T) {
 	provider := HookProvider{}
 
-	t.Log("Unsupported Content-Type")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"Content-Type": {"application/x-www-form-urlencoded"},
-			},
-		}
-		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Content-Type is not supported: application/x-www-form-urlencoded")
-	}
-
-	t.Log("Missing Content-Type")
-	{
-		request := http.Request{
-			Header: http.Header{},
-		}
-		hookTransformResult := provider.TransformRequest(&request)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "No Content-Type Header found")
-	}
-
-	t.Log("No Request Body")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"Content-Type": {"application/json; charset=utf-8"},
-			},
-		}
-		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
-	}
-
-	t.Log("Initial Subscription ID")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"Content-Type": {"application/json; charset=utf-8"},
-			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleCodeEmptySubscriptionID)),
-		}
-		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Initial (test) event detected, skipping")
-		require.True(t, hookTransformResult.ShouldSkip)
-		require.Nil(t, hookTransformResult.TriggerAPIParams)
-		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
-	}
-
-	t.Log("Bad publisher id")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"Content-Type": {"application/json; charset=utf-8"},
-			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushBadPublisherID)),
-		}
-		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Not a Team Foundation Server notification, can't start a build")
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.Nil(t, hookTransformResult.TriggerAPIParams)
-		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
-	}
-
-	t.Log("Bad event type")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"Content-Type": {"application/json; charset=utf-8"},
-			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushBadEventType)),
-		}
-		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Not a push event, can't start a build")
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.Nil(t, hookTransformResult.TriggerAPIParams)
-		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
-	}
-
-	t.Log("Empty commits & no refUpdates")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"Content-Type": {"application/json; charset=utf-8"},
-			},
-			Body: ioutil.NopCloser(strings.NewReader(`{
-	  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
-	  "notificationId": 10,
-	  "id": "03c164c2-8912-4d5e-8009-3707d5f83734",
-	  "eventType": "git.push",
-	  "publisherId": "tfs",
-	  "resource": {
-	    "commits": [],
-	    "refUpdates": [
-	      {
-	        "name": "refs/heads/master"
-	      }
-	    ]
-	  }
-	}`)),
-		}
-		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "No 'commits' included in the webhook, can't start a build")
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.Nil(t, hookTransformResult.TriggerAPIParams)
-		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
-	}
-
-	t.Log("Empty branch information")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"Content-Type": {"application/json; charset=utf-8"},
-			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushWithNoBranchInformation)),
-		}
-		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Can't detect branch information (resource.refUpdates is empty), can't start a build")
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.Nil(t, hookTransformResult.TriggerAPIParams)
-		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
-	}
-
-	t.Log("Badly formatted branch information")
-	{
-		request := http.Request{
-			Header: http.Header{
-				"Content-Type": {"application/json; charset=utf-8"},
-			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushWithBadlyFormattedBranchInformation)),
-		}
-		hookTransformResult := provider.TransformRequest(&request)
-		require.EqualError(t, hookTransformResult.Error, "Unsupported refs/, can't start a build: refs/invalid")
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.Nil(t, hookTransformResult.TriggerAPIParams)
-		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
-	}
-
-	t.Log("Git.push with one commit")
+	t.Log("Push with one commit")
 	{
 		request := http.Request{
 			Header: http.Header{
@@ -394,7 +268,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
-	t.Log("Git.push with multiple commits - only the first one (latest commit) should be picked")
+	t.Log("Push with multiple commits - only the first one (latest commit) should be picked")
 	{
 		request := http.Request{
 			Header: http.Header{
@@ -417,7 +291,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
-	t.Log("Git.push - Tag (create)")
+	t.Log("Tag create")
 	{
 		request := http.Request{
 			Header: http.Header{
@@ -452,7 +326,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
-	t.Log("Git.push - Tag Delete")
+	t.Log("Tag deleted")
 	{
 		request := http.Request{
 			Header: http.Header{
@@ -480,7 +354,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
-	t.Log("Git.push - Branch Delete")
+	t.Log("Branch deleted")
 	{
 		request := http.Request{
 			Header: http.Header{
@@ -508,7 +382,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
-	t.Log("Git.push - Branch Created")
+	t.Log("Branch created")
 	{
 		request := http.Request{
 			Header: http.Header{
@@ -585,6 +459,537 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Empty commits & no refUpdates")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+	  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+	  "notificationId": 10,
+	  "id": "03c164c2-8912-4d5e-8009-3707d5f83734",
+	  "eventType": "git.push",
+	  "publisherId": "tfs",
+	  "resource": {
+	    "commits": [],
+	    "refUpdates": [
+	      {
+	        "name": "refs/heads/master"
+	      }
+	    ]
+	  }
+	}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.EqualError(t, hookTransformResult.Error, "No 'commits' included in the webhook, can't start a build")
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Empty branch information")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushWithNoBranchInformation)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.EqualError(t, hookTransformResult.Error, "Can't detect branch information (resource.refUpdates is empty), can't start a build")
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Badly formatted branch information")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushWithBadlyFormattedBranchInformation)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.EqualError(t, hookTransformResult.Error, "Unsupported refs/, can't start a build: refs/invalid")
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+}
+
+func Test_transformPullRequestEvent(t *testing.T) {
+	provider := HookProvider{}
+
+	t.Log("PR created")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.pullrequest.created",
+  "publisherId": "tfs",
+  "message": {
+    "text": "Jamal Hartnett created a new pull request"
+  },
+  "resource": {
+    "status": "active",
+    "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
+    "targetRefName": "refs/heads/master",
+    "mergeStatus": "succeeded",
+    "pullRequestId": 14,
+    "lastMergeSourceCommit": {
+      "commitId": "53d54ac915144006c2c9e90d2c7d3880920db49c"
+    },
+    "createdBy": {
+      "displayName": "Jamal Hartnett"
+    }
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:        "53d54ac915144006c2c9e90d2c7d3880920db49c",
+					CommitMessage:     "Jamal Hartnett created a new pull request",
+					Branch:            "feature/addAzureDevOpsPullRequestSupport",
+					BranchDest:        "master",
+					PullRequestID:     pointers.NewIntPtr(14),
+					PullRequestAuthor: "Jamal Hartnett",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Already completed")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.pullrequest.created",
+  "publisherId": "tfs",
+  "message": {
+    "text": "Jamal Hartnett marked the pull request as completed"
+  },
+  "resource": {
+    "status": "completed",
+    "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
+    "targetRefName": "refs/heads/master",
+    "mergeStatus": "succeeded",
+    "pullRequestId": 14,
+    "lastMergeSourceCommit": {
+      "commitId": "53d54ac915144006c2c9e90d2c7d3880920db49c"
+    },
+    "createdBy": {
+      "displayName": "Jamal Hartnett"
+    }
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Pull request already completed")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Not mergeable")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.pullrequest.created",
+  "publisherId": "tfs",
+  "message": {
+    "text": "Jamal Hartnett marked the pull request as completed"
+  },
+  "resource": {
+    "status": "active",
+    "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
+    "targetRefName": "refs/heads/master",
+    "mergeStatus": "conflicts",
+    "pullRequestId": 14,
+    "lastMergeSourceCommit": {
+      "commitId": "53d54ac915144006c2c9e90d2c7d3880920db49c"
+    },
+    "createdBy": {
+      "displayName": "Jamal Hartnett"
+    }
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Pull request contains merge conflicts")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Missing source reference name")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.pullrequest.created",
+  "publisherId": "tfs",
+  "message": {
+    "text": "Jamal Hartnett created a new pull request"
+  },
+  "resource": {
+    "status": "active",
+    "targetRefName": "refs/heads/master",
+    "mergeStatus": "succeeded",
+    "pullRequestId": 14,
+    "lastMergeSourceCommit": {
+      "commitId": "53d54ac915144006c2c9e90d2c7d3880920db49c"
+    },
+    "createdBy": {
+      "displayName": "Jamal Hartnett"
+    }
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Missing source reference name")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Missing target reference name")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.pullrequest.created",
+  "publisherId": "tfs",
+  "message": {
+    "text": "Jamal Hartnett created a new pull request"
+  },
+  "resource": {
+    "status": "active",
+    "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
+    "mergeStatus": "succeeded",
+    "pullRequestId": 14,
+    "lastMergeSourceCommit": {
+      "commitId": "53d54ac915144006c2c9e90d2c7d3880920db49c"
+    },
+    "createdBy": {
+      "displayName": "Jamal Hartnett"
+    }
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Missing target reference name")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Invalid source reference name")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.pullrequest.created",
+  "publisherId": "tfs",
+  "message": {
+    "text": "Jamal Hartnett created a new pull request"
+  },
+  "resource": {
+    "status": "active",
+    "sourceRefName": "refs/invalid",
+    "targetRefName": "refs/heads/master",
+    "mergeStatus": "succeeded",
+    "pullRequestId": 14,
+    "lastMergeSourceCommit": {
+      "commitId": "53d54ac915144006c2c9e90d2c7d3880920db49c"
+    },
+    "createdBy": {
+      "displayName": "Jamal Hartnett"
+    }
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Invalid source reference name")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Invalid target reference name")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.pullrequest.created",
+  "publisherId": "tfs",
+  "message": {
+    "text": "Jamal Hartnett created a new pull request"
+  },
+  "resource": {
+    "status": "active",
+    "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
+    "targetRefName": "refs/invalid",
+    "mergeStatus": "succeeded",
+    "pullRequestId": 14,
+    "lastMergeSourceCommit": {
+      "commitId": "53d54ac915144006c2c9e90d2c7d3880920db49c"
+    },
+    "createdBy": {
+      "displayName": "Jamal Hartnett"
+    }
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Invalid target reference name")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Missing last commit")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.pullrequest.created",
+  "publisherId": "tfs",
+  "message": {
+    "text": "Jamal Hartnett created a new pull request"
+  },
+  "resource": {
+    "status": "active",
+    "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
+    "targetRefName": "refs/heads/master",
+    "mergeStatus": "succeeded",
+    "pullRequestId": 14,
+    "createdBy": {
+      "displayName": "Jamal Hartnett"
+    }
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Missing last source branch commit details")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("PR without optional metadata")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.pullrequest.created",
+  "publisherId": "tfs",
+  "message": {
+    "text": "Jamal Hartnett created a new pull request"
+  },
+  "resource": {
+    "status": "active",
+    "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
+    "targetRefName": "refs/heads/master",
+    "mergeStatus": "succeeded",
+    "lastMergeSourceCommit": {
+      "commitId": "53d54ac915144006c2c9e90d2c7d3880920db49c"
+    }
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    "53d54ac915144006c2c9e90d2c7d3880920db49c",
+					CommitMessage: "Jamal Hartnett created a new pull request",
+					Branch:        "feature/addAzureDevOpsPullRequestSupport",
+					BranchDest:    "master",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("PR updated")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(`{
+  "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
+  "eventType": "git.pullrequest.updated",
+  "publisherId": "tfs",
+  "message": {
+    "text": "Jamal Hartnett updated the source branch of pull request 14"
+  },
+  "resource": {
+    "status": "active",
+    "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
+    "targetRefName": "refs/heads/master",
+    "mergeStatus": "succeeded",
+    "pullRequestId": 14,
+    "lastMergeSourceCommit": {
+      "commitId": "53d54ac915144006c2c9e90d2c7d3880920db49c"
+    },
+    "createdBy": {
+      "displayName": "Jamal Hartnett"
+    }
+  }
+}`)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:        "53d54ac915144006c2c9e90d2c7d3880920db49c",
+					CommitMessage:     "Jamal Hartnett updated the source branch of pull request 14",
+					Branch:            "feature/addAzureDevOpsPullRequestSupport",
+					BranchDest:        "master",
+					PullRequestID:     pointers.NewIntPtr(14),
+					PullRequestAuthor: "Jamal Hartnett",
+				},
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
+	}
+}
+
+func Test_HookProvider_TransformRequest(t *testing.T) {
+	provider := HookProvider{}
+
+	t.Log("Unsupported Content-Type")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/x-www-form-urlencoded"},
+			},
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.EqualError(t, hookTransformResult.Error, "Content-Type is not supported: application/x-www-form-urlencoded")
+	}
+
+	t.Log("Missing Content-Type")
+	{
+		request := http.Request{
+			Header: http.Header{},
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "No Content-Type Header found")
+	}
+
+	t.Log("No Request Body")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
+	}
+
+	t.Log("Initial Subscription ID")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleCodeEmptySubscriptionID)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.EqualError(t, hookTransformResult.Error, "Initial (test) event detected, skipping")
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Bad publisher id")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushBadPublisherID)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.EqualError(t, hookTransformResult.Error, "Not a Team Foundation Server notification, can't start a build")
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Unsupported event type")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushBadEventType)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.EqualError(t, hookTransformResult.Error, "Unsupported event type")
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Unsupported resource version")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushBadResourceVersion)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.EqualError(t, hookTransformResult.Error, "Unsupported resource version")
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
