@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
@@ -17,15 +18,24 @@ const (
 
 	// ProviderID ...
 	ProviderID = "visualstudio"
+
+	Push              string = "git.push"
+	PullRequestCreate        = "git.pullrequest.created"
+	PullRequestUpdate        = "git.pullrequest.updated"
 )
 
 // --------------------------
 // --- Webhook Data Model ---
 
-// CommitsModel ...
-type CommitsModel struct {
+// CommitModel ...
+type CommitModel struct {
 	CommitID string `json:"commitId"`
 	Comment  string `json:"comment"`
+}
+
+// AuthorModel ...
+type AuthorModel struct {
+	DisplayName string `json:"displayName"`
 }
 
 // RefUpdatesModel ...
@@ -35,10 +45,21 @@ type RefUpdatesModel struct {
 	NewObjectID string `json:"newObjectId"`
 }
 
-// ResourceModel ...
-type ResourceModel struct {
-	Commits    []CommitsModel    `json:"commits"`
+// PushResourceModel ...
+type PushResourceModel struct {
+	Commits    []CommitModel     `json:"commits"`
 	RefUpdates []RefUpdatesModel `json:"refUpdates"`
+}
+
+// PullRequestResourceModel ...
+type PullRequestResourceModel struct {
+	SourceReferenceName string      `json:"sourceRefName"`
+	TargetReferenceName string      `json:"targetRefName"`
+	MergeStatus         string      `json:"mergeStatus"`
+	LastSourceCommit    CommitModel `json:"lastMergeSourceCommit"`
+	CreatedBy           AuthorModel `json:"createdBy"`
+	Status              string      `json:"status"`
+	PullRequestId       int         `json:"pullRequestId"`
 }
 
 // EventMessage ...
@@ -46,13 +67,33 @@ type EventMessage struct {
 	Text string `json:"text"`
 }
 
+// EventModel ...
+type EventModel struct {
+	SubscriptionID string `json:"subscriptionId"`
+	EventType      string `json:"eventType"`
+	PublisherID    string `json:"publisherId"`
+}
+
 // PushEventModel ...
 type PushEventModel struct {
-	SubscriptionID  string        `json:"subscriptionId"`
-	EventType       string        `json:"eventType"`
-	PublisherID     string        `json:"publisherId"`
-	Resource        ResourceModel `json:"resource"`
-	DetailedMessage EventMessage  `json:"detailedMessage"`
+	SubscriptionID  string            `json:"subscriptionId"`
+	EventType       string            `json:"eventType"`
+	PublisherID     string            `json:"publisherId"`
+	Resource        PushResourceModel `json:"resource"`
+	ResourceVersion string            `json:"resourceVersion"`
+	DetailedMessage EventMessage      `json:"detailedMessage"`
+	Message         EventMessage      `json:"message"`
+}
+
+// PullRequestEventModel ...
+type PullRequestEventModel struct {
+	SubscriptionID  string                   `json:"subscriptionId"`
+	EventType       string                   `json:"eventType"`
+	PublisherID     string                   `json:"publisherId"`
+	Resource        PullRequestResourceModel `json:"resource"`
+	ResourceVersion string                   `json:"resourceVersion"`
+	DetailedMessage EventMessage             `json:"detailedMessage"`
+	Message         EventMessage             `json:"message"`
 }
 
 // ---------------------------------------
@@ -61,6 +102,7 @@ type PushEventModel struct {
 // HookProvider ...
 type HookProvider struct{}
 
+// detectContentType ...
 func detectContentType(header http.Header) (string, error) {
 	contentType := header.Get("Content-Type")
 	if contentType == "" {
@@ -72,15 +114,9 @@ func detectContentType(header http.Header) (string, error) {
 
 // transformPushEvent ...
 func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
-	if pushEvent.PublisherID != "tfs" {
+	if pushEvent.ResourceVersion != "1.0" {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Not a Team Foundation Server notification, can't start a build"),
-		}
-	}
-
-	if pushEvent.EventType != "git.push" {
-		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Not a push event, can't start a build"),
+			Error: fmt.Errorf("Unsupported resource version"),
 		}
 	}
 
@@ -201,6 +237,13 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 }
 
+// transformPullRequestEvent ...
+func transformPullRequestEvent(pullRquestEvent PullRequestEventModel) hookCommon.TransformResultModel {
+	return hookCommon.TransformResultModel{
+		Error: fmt.Errorf("Not implemented!"),
+	}
+}
+
 // TransformRequest ...
 func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformResultModel {
 	contentType, err := detectContentType(r.Header)
@@ -228,12 +271,46 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 	}
 
-	var pushEvent PushEventModel
-	if err := json.NewDecoder(r.Body).Decode(&pushEvent); err != nil {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Failed to read request body"),
+		}
+	}
+
+	var event EventModel
+	if err := json.Unmarshal(body, &event); err != nil {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Failed to parse request body as JSON: %s", err),
 		}
 	}
 
-	return transformPushEvent(pushEvent)
+	if event.PublisherID != "tfs" {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Not a Team Foundation Server notification, can't start a build"),
+		}
+	}
+
+	if event.EventType == Push {
+		var pushEvent PushEventModel
+		if err := json.Unmarshal(body, &pushEvent); err != nil {
+			return hookCommon.TransformResultModel{
+				Error: fmt.Errorf("Failed to parse request body as JSON: %s", err),
+			}
+		}
+		return transformPushEvent(pushEvent)
+	} else if event.EventType == PullRequestCreate || event.EventType == PullRequestUpdate {
+		var pullRequestEvent PullRequestEventModel
+		if err := json.Unmarshal(body, &pullRequestEvent); err != nil {
+			return hookCommon.TransformResultModel{
+				Error: fmt.Errorf("Failed to parse request body as JSON: %s", err),
+			}
+		}
+		return transformPullRequestEvent(pullRequestEvent)
+	} else {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("Unsupported event type"),
+		}
+	}
+
 }

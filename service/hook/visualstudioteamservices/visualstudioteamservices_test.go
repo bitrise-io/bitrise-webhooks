@@ -17,15 +17,17 @@ const (
 		"notificationId": 4,
 		"id": "daae438c-296b-4512-b08e-571910874e9b",
 		"eventType": "git.push",
-		"publisherId": "tfs"
+		"publisherId": "tfs",
+		"resourceVersion": "1.0"
 	}`
 
-	sampleCodeGitPushBadEventType = `{
+	sampleCodeBadEventType = `{
 		"subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
 		"notificationId": 4,
 		"id": "daae438c-296b-4512-b08e-571910874e9b",
 		"eventType": "message.posted",
-		"publisherId": "tfs"
+		"publisherId": "tfs",
+		"resourceVersion": "1.0"
 	}`
 
 	sampleCodeGitPushBadResourceVersion = `{
@@ -33,7 +35,7 @@ const (
 		"notificationId": 4,
 		"id": "daae438c-296b-4512-b08e-571910874e9b",
 		"eventType": "git.push",
-		"publisherId": "tfs"
+		"publisherId": "tfs",
 		"resourceVersion": "1.0-preview.1"
 	}`
 
@@ -42,7 +44,8 @@ const (
 		"notificationId": 4,
 		"id": "daae438c-296b-4512-b08e-571910874e9b",
 		"eventType": "git.push",
-		"publisherId": "-"
+		"publisherId": "-",
+		"resourceVersion": "1.0"
 	}`
 
 	sampleCodeGitPushWithNoBranchInformation = `{
@@ -51,6 +54,7 @@ const (
 	  "id": "03c164c2-8912-4d5e-8009-3707d5f83734",
 	  "eventType": "git.push",
 	  "publisherId": "tfs",
+      "resourceVersion": "1.0",
 	  "resource": {
 	    "commits": [
 				{
@@ -79,6 +83,7 @@ const (
 	  "id": "03c164c2-8912-4d5e-8009-3707d5f83734",
 	  "eventType": "git.push",
 	  "publisherId": "tfs",
+      "resourceVersion": "1.0",
 	  "resource": {
 	    "commits": [
 				{
@@ -123,6 +128,7 @@ const (
 	    "html": "Jamal Hartnett pushed 1 commit to branch <a href=\"https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_git/Fabrikam-Fiber-Git/#version=GBmaster\">master</a> of repository <a href=\"https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_git/Fabrikam-Fiber-Git/\">Fabrikam-Fiber-Git</a>.\n<ul>\n<li>Fixed bug <a href=\"https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_git/Fabrikam-Fiber-Git/commit/33b55f7cb7e7e245323987634f960cf4a6e6bc74\">33b55f7c</a>\n</ul>",
 	    "markdown": "Jamal Hartnett pushed 1 commit to branch [master](https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_git/Fabrikam-Fiber-Git/#version=GBmaster) of repository [Fabrikam-Fiber-Git](https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_git/Fabrikam-Fiber-Git/).\n* Fixed bug [33b55f7c](https://fabrikam-fiber-inc.visualstudio.com/DefaultCollection/_git/Fabrikam-Fiber-Git/commit/33b55f7cb7e7e245323987634f960cf4a6e6bc74)"
 	  },
+      "resourceVersion": "1.0",
 	  "resource": {
 	    "commits": [
 	      {
@@ -179,6 +185,7 @@ const (
     "id": "03c164c2-8912-4d5e-8009-3707d5f83734",
     "eventType": "git.push",
     "publisherId": "tfs",
+    "resourceVersion": "1.0",
     "resource": {
       "commits": [
         {
@@ -301,6 +308,7 @@ func Test_transformPushEvent(t *testing.T) {
   "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
   "eventType": "git.push",
   "publisherId": "tfs",
+  "resourceVersion": "1.0",
   "resource": {
     "refUpdates": [
       {
@@ -336,6 +344,7 @@ func Test_transformPushEvent(t *testing.T) {
   "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
   "eventType": "git.push",
   "publisherId": "tfs",
+  "resourceVersion": "1.0",
   "resource": {
     "refUpdates": [
       {
@@ -364,6 +373,7 @@ func Test_transformPushEvent(t *testing.T) {
   "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
   "eventType": "git.push",
   "publisherId": "tfs",
+  "resourceVersion": "1.0",
   "resource": {
     "refUpdates": [
       {
@@ -392,6 +402,7 @@ func Test_transformPushEvent(t *testing.T) {
   "subscriptionId": "f0c23515-bcd1-4e30-9613-56a0a129c732",
   "eventType": "git.push",
   "publisherId": "tfs",
+  "resourceVersion": "1.0",
   "resource": {
     "refUpdates": [
       {
@@ -436,6 +447,7 @@ func Test_transformPushEvent(t *testing.T) {
   "detailedMessage": {
     "text": "Author Name pushed 4 commits to branch master of test project\r\n - PR 3: Merge feature/new-branch-test to master 293d9ead ..."
   },
+  "resourceVersion": "1.0",
   "resource": {
     "refUpdates": [
       {
@@ -474,6 +486,7 @@ func Test_transformPushEvent(t *testing.T) {
 	  "id": "03c164c2-8912-4d5e-8009-3707d5f83734",
 	  "eventType": "git.push",
 	  "publisherId": "tfs",
+      "resourceVersion": "1.0",
 	  "resource": {
 	    "commits": [],
 	    "refUpdates": [
@@ -538,6 +551,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
   "message": {
     "text": "Jamal Hartnett created a new pull request"
   },
+  "resourceVersion": "1.0",
   "resource": {
     "status": "active",
     "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
@@ -584,6 +598,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
   "message": {
     "text": "Jamal Hartnett marked the pull request as completed"
   },
+  "resourceVersion": "1.0",
   "resource": {
     "status": "completed",
     "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
@@ -619,6 +634,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
   "message": {
     "text": "Jamal Hartnett marked the pull request as completed"
   },
+  "resourceVersion": "1.0",
   "resource": {
     "status": "active",
     "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
@@ -654,6 +670,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
   "message": {
     "text": "Jamal Hartnett created a new pull request"
   },
+  "resourceVersion": "1.0",
   "resource": {
     "status": "active",
     "targetRefName": "refs/heads/master",
@@ -688,6 +705,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
   "message": {
     "text": "Jamal Hartnett created a new pull request"
   },
+  "resourceVersion": "1.0",
   "resource": {
     "status": "active",
     "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
@@ -722,6 +740,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
   "message": {
     "text": "Jamal Hartnett created a new pull request"
   },
+  "resourceVersion": "1.0",
   "resource": {
     "status": "active",
     "sourceRefName": "refs/invalid",
@@ -757,6 +776,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
   "message": {
     "text": "Jamal Hartnett created a new pull request"
   },
+  "resourceVersion": "1.0",
   "resource": {
     "status": "active",
     "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
@@ -792,6 +812,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
   "message": {
     "text": "Jamal Hartnett created a new pull request"
   },
+  "resourceVersion": "1.0",
   "resource": {
     "status": "active",
     "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
@@ -824,6 +845,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
   "message": {
     "text": "Jamal Hartnett created a new pull request"
   },
+  "resourceVersion": "1.0",
   "resource": {
     "status": "active",
     "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
@@ -864,6 +886,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
   "message": {
     "text": "Jamal Hartnett updated the source branch of pull request 14"
   },
+  "resourceVersion": "1.0",
   "resource": {
     "status": "active",
     "sourceRefName": "refs/heads/feature/addAzureDevOpsPullRequestSupport",
@@ -969,7 +992,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Header: http.Header{
 				"Content-Type": {"application/json; charset=utf-8"},
 			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleCodeGitPushBadEventType)),
+			Body: ioutil.NopCloser(strings.NewReader(sampleCodeBadEventType)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.EqualError(t, hookTransformResult.Error, "Unsupported event type")
