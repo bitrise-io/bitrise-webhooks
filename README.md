@@ -24,7 +24,7 @@ If the (commit) message includes `[skip ci]` or `[ci skip]` no build will be tri
   * handled on the path: `/h/bitbucket-server/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * [Slack](https://slack.com) (both outgoing webhooks & slash commands)
   * handled on the path: `/h/slack/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
-* [Visual Studio Team Services](https://www.visualstudio.com/products/visual-studio-team-services-vs)
+* [Visual Studio Team Services](https://www.visualstudio.com/products/visual-studio-team-services-vs) & [Azure DevOps](https://dev.azure.com)
   * handled on the path: `/h/visualstudio/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * [GitLab](https://gitlab.com)
   * handled on the path: `/h/gitlab/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
@@ -134,7 +134,7 @@ That's all! The next time you __push code__
 a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 
-### Visual Studio Online / Visual Studio Team Services - setup & usage:
+### Visual Studio Online / Visual Studio Team Services / Azure DevOps - setup & usage:
 
 All you have to do is register your `bitrise-webhooks` URL for
 a [visualstudio.com](https://visualstudio.com) *project* as a `Service Hooks` integration.
@@ -144,12 +144,12 @@ on [visualstudio.com 's documentations site](https://www.visualstudio.com/en-us/
 
 A short step-by-step guide:
 
-1. Open your *project* on [visualstudio.com](https://visualstudio.com)
-2. Go to the *Admin/Control panel* of the *project*
+1. Open your *project* on [visualstudio.com](https://visualstudio.com) or [dev.azure.com](https://dev.azure.com)
+2. Go to the *Admin/Control panel* or *Project settings* of the *project*
 3. Select `Service Hooks`
 4. Create a service integration
   * In the Service list select the `Web Hooks` option
-  * Select the `Code pushed` event as the *Trigger*
+  * Select the `Code pushed`, `Pull request created` or `Pull request updated` event as the *Trigger*
   * In the `Filters` section select the `Repository` you want to integrate
   * You can leave the other filters on default
   * Click `Next`
