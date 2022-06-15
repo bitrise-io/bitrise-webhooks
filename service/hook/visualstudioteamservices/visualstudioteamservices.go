@@ -19,9 +19,12 @@ const (
 	// ProviderID ...
 	ProviderID = "visualstudio"
 
-	Push              string = "git.push"
-	PullRequestCreate        = "git.pullrequest.created"
-	PullRequestUpdate        = "git.pullrequest.updated"
+	// Push event name
+	Push string = "git.push"
+	// PullRequestCreate event name
+	PullRequestCreate = "git.pullrequest.created"
+	// PullRequestUpdate event name
+	PullRequestUpdate = "git.pullrequest.updated"
 )
 
 // --------------------------
@@ -59,7 +62,7 @@ type PullRequestResourceModel struct {
 	LastSourceCommit    CommitModel `json:"lastMergeSourceCommit"`
 	CreatedBy           AuthorModel `json:"createdBy"`
 	Status              string      `json:"status"`
-	PullRequestId       int         `json:"pullRequestId"`
+	PullRequestID       int         `json:"pullRequestId"`
 }
 
 // EventMessage ...
@@ -288,8 +291,8 @@ func transformPullRequestEvent(pullRequestEvent PullRequestEventModel) hookCommo
 		PullRequestAuthor: pullRequest.CreatedBy.DisplayName,
 	}
 
-	if pullRequest.PullRequestId != 0 {
-		buildParams.PullRequestID = &pullRequest.PullRequestId
+	if pullRequest.PullRequestID != 0 {
+		buildParams.PullRequestID = &pullRequest.PullRequestID
 	}
 
 	return hookCommon.TransformResultModel{
