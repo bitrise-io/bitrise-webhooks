@@ -340,6 +340,8 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, mergeRequest.User.Username),
 			},
 		},
+		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(mergeRequest.ObjectAttributes.Title) &&
+			hookCommon.IsSkipBuildByCommitMessage(mergeRequest.ObjectAttributes.Description),
 	}
 }
 
@@ -382,7 +384,8 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 			if err := json.NewDecoder(r.Body).Decode(&codePushEvent); err != nil {
 				return hookCommon.TransformResultModel{
 					DontWaitForTriggerResponse: true,
-					Error:                      fmt.Errorf("Failed to parse request body: %s", err)}
+					Error:                      fmt.Errorf("Failed to parse request body: %s", err),
+				}
 			}
 		}
 		return transformCodePushEvent(codePushEvent)
@@ -393,7 +396,8 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 			if err := json.NewDecoder(r.Body).Decode(&tagPushEvent); err != nil {
 				return hookCommon.TransformResultModel{
 					DontWaitForTriggerResponse: true,
-					Error:                      fmt.Errorf("Failed to parse request body: %s", err)}
+					Error:                      fmt.Errorf("Failed to parse request body: %s", err),
+				}
 			}
 		}
 		return transformTagPushEvent(tagPushEvent)
@@ -402,7 +406,8 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		if err := json.NewDecoder(r.Body).Decode(&mergeRequestEvent); err != nil {
 			return hookCommon.TransformResultModel{
 				DontWaitForTriggerResponse: true,
-				Error:                      fmt.Errorf("Failed to parse request body as JSON: %s", err)}
+				Error:                      fmt.Errorf("Failed to parse request body as JSON: %s", err),
+			}
 		}
 
 		return transformMergeRequestEvent(mergeRequestEvent)
