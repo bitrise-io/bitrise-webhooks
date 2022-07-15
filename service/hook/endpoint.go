@@ -6,6 +6,10 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
+
 	"github.com/bitrise-io/api-utils/logging"
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	"github.com/bitrise-io/bitrise-webhooks/config"
@@ -23,9 +27,6 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/slack"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/visualstudioteamservices"
 	"github.com/bitrise-io/go-utils/colorstring"
-	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
 )
 
 func supportedProviders() map[string]hookCommon.Provider {
@@ -199,6 +200,10 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	if buildTriggerCount == 0 {
 		respondWithErrorString(w, &hookProvider, "After processing the webhook we failed to detect any event in it which could be turned into a build.")
 		return
+	}
+
+	if hookTransformResult.SkippedByPrDescription {
+		logger.Warn(fmt.Sprintf("[skipped by pr description] app: %s, service: %s", appSlug, serviceID))
 	}
 
 	respondWith := hookCommon.TransformResponseInputModel{

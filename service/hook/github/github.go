@@ -256,6 +256,8 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Sender.Login),
 			},
 		},
+		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(pullRequest.PullRequestInfo.Title) &&
+			hookCommon.IsSkipBuildByCommitMessage(pullRequest.PullRequestInfo.Body),
 	}
 }
 
