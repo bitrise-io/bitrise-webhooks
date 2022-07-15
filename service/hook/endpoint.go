@@ -203,7 +203,7 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if hookTransformResult.SkippedByPrDescription {
-		logger.Info(fmt.Sprintf("[skipped by pr description] app: %s, service: %s", appSlug, serviceID))
+		logger.Warn(fmt.Sprintf("[skipped by pr description] app: %s, service: %s", appSlug, serviceID))
 	}
 
 	respondWith := hookCommon.TransformResponseInputModel{
