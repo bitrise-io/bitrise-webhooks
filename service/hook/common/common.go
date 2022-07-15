@@ -38,6 +38,9 @@ type TransformResultModel struct {
 	//  but the handler won't wait for the response from the Trigger API,
 	//  it'll respond immediately after calling the Trigger API
 	DontWaitForTriggerResponse bool
+	// Used for logging if only pull request description contains [skip ci] or
+	//  [ci skip] but title doesn't
+	SkippedByPrDescription bool
 }
 
 // Provider ...
