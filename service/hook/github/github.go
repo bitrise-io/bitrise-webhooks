@@ -179,7 +179,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 }
 
 func isAcceptPullRequestAction(prAction string) bool {
-	return sliceutil.IsStringInSlice(prAction, []string{"opened", "reopened", "synchronize", "edited"})
+	return sliceutil.IsStringInSlice(prAction, []string{"opened", "reopened", "synchronize", "edited", "ready_for_review"})
 }
 
 func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.TransformResultModel {
