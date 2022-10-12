@@ -11,9 +11,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/bitrise-io/go-utils/sliceutil"
+
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/go-utils/sliceutil"
 )
 
 const (
@@ -26,7 +27,6 @@ const (
 // --------------------------
 // --- Webhook Data Model ---
 
-//PushEventModel ...
 type PushEventModel struct {
 	EventKey       string              `json:"eventKey"`
 	Date           string              `json:"date"`
@@ -35,7 +35,6 @@ type PushEventModel struct {
 	Changes        []ChangeItemModel   `json:"changes"`
 }
 
-//ChangeItemModel ...
 type ChangeItemModel struct {
 	RefID    string   `json:"refId"`
 	FromHash string   `json:"fromHash"`
@@ -44,19 +43,18 @@ type ChangeItemModel struct {
 	Ref      RefModel `json:"ref"`
 }
 
-//RefModel ...
 type RefModel struct {
 	ID        string `json:"id"`
 	DisplayID string `json:"displayId"`
 	Type      string `json:"type"`
 }
 
-//UserInfoModel ...
 type UserInfoModel struct {
+	Name        string `json:"name"`
+	Slug        string `json:"slug"`
 	DisplayName string `json:"displayName"`
 }
 
-//RepositoryInfoModel ...
 type RepositoryInfoModel struct {
 	Slug    string           `json:"slug"`
 	ID      int              `json:"id"`
@@ -66,7 +64,6 @@ type RepositoryInfoModel struct {
 	Project ProjectInfoModel `json:"owner"`
 }
 
-//ProjectInfoModel ...
 type ProjectInfoModel struct {
 	Key    string `json:"key"`
 	ID     int    `json:"id"`
@@ -75,7 +72,6 @@ type ProjectInfoModel struct {
 	Type   string `json:"type"`
 }
 
-//PullRequestInfoModel ...
 type PullRequestInfoModel struct {
 	ID          int                 `json:"id"`
 	Version     int                 `json:"version"`
@@ -89,7 +85,6 @@ type PullRequestInfoModel struct {
 	ToRef       PullRequestRefModel `json:"toRef"`
 }
 
-//PullRequestEventModel ...
 type PullRequestEventModel struct {
 	EventKey    string               `json:"eventKey"`
 	Date        string               `json:"date"`
@@ -97,7 +92,6 @@ type PullRequestEventModel struct {
 	PullRequest PullRequestInfoModel `json:"pullRequest"`
 }
 
-//PullRequestRefModel ...
 type PullRequestRefModel struct {
 	ID           string              `json:"id"`
 	DisplayID    string              `json:"displayId"`
@@ -109,7 +103,6 @@ type PullRequestRefModel struct {
 // ---------------------------------------
 // --- Webhook Provider Implementation ---
 
-// HookProvider ...
 type HookProvider struct{}
 
 func detectContentTypeSecretAndEventKey(header http.Header) (string, string, string, error) {
@@ -146,7 +139,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 	}
 
 	triggerAPIParams := []bitriseapi.TriggerAPIParamsModel{}
-	errs := []string{}
+	var errs []string
 	for _, aChange := range pushEvent.Changes {
 		if pushEvent.RepositoryInfo.Scm == scmGit && aChange.Ref.Type == "BRANCH" {
 			if aChange.Type != "ADD" && aChange.Type != "UPDATE" {
@@ -158,6 +151,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 					Branch:     aChange.Ref.DisplayID,
 					CommitHash: aChange.ToHash,
 				},
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Actor.Slug),
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 		} else if aChange.Ref.Type == "TAG" { //tag
@@ -170,6 +164,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 					Tag:        aChange.Ref.DisplayID,
 					CommitHash: aChange.ToHash,
 				},
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Actor.Slug),
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 		} else {
@@ -207,17 +202,17 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					BranchDest:    pullRequest.PullRequest.ToRef.DisplayID,
 					PullRequestID: &pullRequest.PullRequest.ID,
 				},
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Actor.Slug),
 			},
 		},
 	}
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return (sliceutil.IsStringInSlice(eventKey,
-		[]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged", "diagnostics:ping", "pr:from_ref_updated"}))
+	return sliceutil.IsStringInSlice(eventKey,
+		[]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged", "diagnostics:ping", "pr:from_ref_updated"})
 }
 
-// TransformRequest ...
 func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformResultModel {
 	contentType, secret, eventKey, err := detectContentTypeSecretAndEventKey(r.Header)
 	if err != nil {
