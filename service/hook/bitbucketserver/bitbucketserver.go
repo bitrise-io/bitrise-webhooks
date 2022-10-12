@@ -27,6 +27,7 @@ const (
 // --------------------------
 // --- Webhook Data Model ---
 
+//PushEventModel ...
 type PushEventModel struct {
 	EventKey       string              `json:"eventKey"`
 	Date           string              `json:"date"`
@@ -35,6 +36,7 @@ type PushEventModel struct {
 	Changes        []ChangeItemModel   `json:"changes"`
 }
 
+//ChangeItemModel ...
 type ChangeItemModel struct {
 	RefID    string   `json:"refId"`
 	FromHash string   `json:"fromHash"`
@@ -43,17 +45,20 @@ type ChangeItemModel struct {
 	Ref      RefModel `json:"ref"`
 }
 
+//RefModel ...
 type RefModel struct {
 	ID        string `json:"id"`
 	DisplayID string `json:"displayId"`
 	Type      string `json:"type"`
 }
 
+//UserInfoModel ...
 type UserInfoModel struct {
 	Name        string `json:"name"`
 	DisplayName string `json:"displayName"`
 }
 
+//RepositoryInfoModel ...
 type RepositoryInfoModel struct {
 	Slug    string           `json:"slug"`
 	ID      int              `json:"id"`
@@ -63,6 +68,7 @@ type RepositoryInfoModel struct {
 	Project ProjectInfoModel `json:"owner"`
 }
 
+//ProjectInfoModel ...
 type ProjectInfoModel struct {
 	Key    string `json:"key"`
 	ID     int    `json:"id"`
@@ -71,6 +77,7 @@ type ProjectInfoModel struct {
 	Type   string `json:"type"`
 }
 
+//PullRequestInfoModel ...
 type PullRequestInfoModel struct {
 	ID          int                 `json:"id"`
 	Version     int                 `json:"version"`
@@ -84,6 +91,7 @@ type PullRequestInfoModel struct {
 	ToRef       PullRequestRefModel `json:"toRef"`
 }
 
+//PullRequestEventModel ...
 type PullRequestEventModel struct {
 	EventKey    string               `json:"eventKey"`
 	Date        string               `json:"date"`
@@ -91,6 +99,7 @@ type PullRequestEventModel struct {
 	PullRequest PullRequestInfoModel `json:"pullRequest"`
 }
 
+//PullRequestRefModel ...
 type PullRequestRefModel struct {
 	ID           string              `json:"id"`
 	DisplayID    string              `json:"displayId"`
@@ -102,6 +111,7 @@ type PullRequestRefModel struct {
 // ---------------------------------------
 // --- Webhook Provider Implementation ---
 
+// HookProvider ...
 type HookProvider struct{}
 
 func detectContentTypeSecretAndEventKey(header http.Header) (string, string, string, error) {
@@ -212,6 +222,7 @@ func isAcceptEventType(eventKey string) bool {
 		[]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged", "diagnostics:ping", "pr:from_ref_updated"})
 }
 
+// TransformRequest ...
 func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformResultModel {
 	contentType, secret, eventKey, err := detectContentTypeSecretAndEventKey(r.Header)
 	if err != nil {
