@@ -8,9 +8,6 @@ app:
       opts:
         description: |
           If set to "yes" we'll use github.com/codegangsta/gin to live-reload the code on change.
-      opts:
-        description: |
-          Optionally, define this in your .bitrise.secrets.yml, to send requests to the specified URL.
     - RELEASE_START_BRANCH: master	
     - RELEASE_DESTINATION_BRANCH: prod
 workflows:

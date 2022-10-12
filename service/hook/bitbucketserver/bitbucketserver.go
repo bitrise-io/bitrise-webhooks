@@ -11,9 +11,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/bitrise-io/go-utils/sliceutil"
+
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/go-utils/sliceutil"
 )
 
 const (
@@ -53,6 +54,7 @@ type RefModel struct {
 
 //UserInfoModel ...
 type UserInfoModel struct {
+	Name        string `json:"name"`
 	DisplayName string `json:"displayName"`
 }
 
@@ -146,7 +148,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 	}
 
 	triggerAPIParams := []bitriseapi.TriggerAPIParamsModel{}
-	errs := []string{}
+	var errs []string
 	for _, aChange := range pushEvent.Changes {
 		if pushEvent.RepositoryInfo.Scm == scmGit && aChange.Ref.Type == "BRANCH" {
 			if aChange.Type != "ADD" && aChange.Type != "UPDATE" {
@@ -158,6 +160,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 					Branch:     aChange.Ref.DisplayID,
 					CommitHash: aChange.ToHash,
 				},
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Actor.Name),
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 		} else if aChange.Ref.Type == "TAG" { //tag
@@ -170,6 +173,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 					Tag:        aChange.Ref.DisplayID,
 					CommitHash: aChange.ToHash,
 				},
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Actor.Name),
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 		} else {
@@ -207,14 +211,15 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					BranchDest:    pullRequest.PullRequest.ToRef.DisplayID,
 					PullRequestID: &pullRequest.PullRequest.ID,
 				},
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Actor.Name),
 			},
 		},
 	}
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return (sliceutil.IsStringInSlice(eventKey,
-		[]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged", "diagnostics:ping", "pr:from_ref_updated"}))
+	return sliceutil.IsStringInSlice(eventKey,
+		[]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged", "diagnostics:ping", "pr:from_ref_updated"})
 }
 
 // TransformRequest ...
