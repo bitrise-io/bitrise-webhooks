@@ -72,9 +72,9 @@ const (
   "eventKey": "repo:refs_changed",
   "date": "2017-12-08T12:19:44+0100",
   "actor": {
-	"name": "user",
+    "name": "user",
     "displayName": "User",
-	"slug": "user-slug"
+    "slug": "user-slug"
   },
   "repository": {
     "slug": "android",
