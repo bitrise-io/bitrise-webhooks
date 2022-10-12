@@ -577,7 +577,6 @@ func Test_transformPushEvent(t *testing.T) {
 			Actor: UserInfoModel{
 				Name:        "user",
 				DisplayName: "Username",
-				Slug:        "user-slug",
 			},
 			RepositoryInfo: RepositoryInfoModel{
 				Slug:   "android",
@@ -619,7 +618,7 @@ func Test_transformPushEvent(t *testing.T) {
 						CommitHash: "TO-966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 						Branch:     "master",
 					},
-					TriggeredBy: "webhook-bitbucket-server/user-slug",
+					TriggeredBy: "webhook-bitbucket-server/user",
 				},
 			}, hookTransformResult.TriggerAPIParams)
 			require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -644,7 +643,6 @@ func Test_transformPushEvent(t *testing.T) {
 			Actor: UserInfoModel{
 				Name:        "user",
 				DisplayName: "Username",
-				Slug:        "user-slug",
 			},
 			RepositoryInfo: RepositoryInfoModel{
 				Slug:   "android",
@@ -686,7 +684,7 @@ func Test_transformPushEvent(t *testing.T) {
 						CommitHash: "TO-966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 						Branch:     "newbranch",
 					},
-					TriggeredBy: "webhook-bitbucket-server/user-slug",
+					TriggeredBy: "webhook-bitbucket-server/user",
 				},
 			}, hookTransformResult.TriggerAPIParams)
 			require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -701,7 +699,6 @@ func Test_transformPushEvent(t *testing.T) {
 			Actor: UserInfoModel{
 				Name:        "user",
 				DisplayName: "Username",
-				Slug:        "user-slug",
 			},
 			RepositoryInfo: RepositoryInfoModel{
 				Slug:   "android",
@@ -740,7 +737,7 @@ func Test_transformPushEvent(t *testing.T) {
 					Tag:        "3.0.4",
 					CommitHash: "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 				},
-				TriggeredBy: "webhook-bitbucket-server/user-slug",
+				TriggeredBy: "webhook-bitbucket-server/user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -754,7 +751,6 @@ func Test_transformPushEvent(t *testing.T) {
 			Actor: UserInfoModel{
 				Name:        "user",
 				DisplayName: "Username",
-				Slug:        "user-slug",
 			},
 			RepositoryInfo: RepositoryInfoModel{
 				Slug:   "android",
@@ -805,14 +801,14 @@ func Test_transformPushEvent(t *testing.T) {
 					CommitHash: "to-hash-1",
 					Branch:     "master",
 				},
-				TriggeredBy: "webhook-bitbucket-server/user-slug",
+				TriggeredBy: "webhook-bitbucket-server/user",
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash: "to-hash-2",
 					Branch:     "test",
 				},
-				TriggeredBy: "webhook-bitbucket-server/user-slug",
+				TriggeredBy: "webhook-bitbucket-server/user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -826,7 +822,6 @@ func Test_transformPushEvent(t *testing.T) {
 			Actor: UserInfoModel{
 				Name:        "user",
 				DisplayName: "Username",
-				Slug:        "user-slug",
 			},
 			RepositoryInfo: RepositoryInfoModel{
 				Slug:   "android",
@@ -877,14 +872,14 @@ func Test_transformPushEvent(t *testing.T) {
 					Tag:        "3.0.4",
 					CommitHash: "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 				},
-				TriggeredBy: "webhook-bitbucket-server/user-slug",
+				TriggeredBy: "webhook-bitbucket-server/user",
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
 					Tag:        "3.0.5",
 					CommitHash: "966d0bfe79b80f97268c2f6bb45e65e79ef09b32",
 				},
-				TriggeredBy: "webhook-bitbucket-server/user-slug",
+				TriggeredBy: "webhook-bitbucket-server/user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -898,7 +893,6 @@ func Test_transformPushEvent(t *testing.T) {
 			Actor: UserInfoModel{
 				Name:        "user",
 				DisplayName: "Username",
-				Slug:        "user-slug",
 			},
 			RepositoryInfo: RepositoryInfoModel{
 				Slug:   "android",
@@ -948,7 +942,7 @@ func Test_transformPushEvent(t *testing.T) {
 					Tag:        "3.0.4",
 					CommitHash: "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 				},
-				TriggeredBy: "webhook-bitbucket-server/user-slug",
+				TriggeredBy: "webhook-bitbucket-server/user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		//require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Not a type=branch nor type=tag change. Change.Type was: not-branch-nor-tag]")
@@ -1089,7 +1083,6 @@ func Test_transformPullRequestEvent(t *testing.T) {
 			Actor: UserInfoModel{
 				Name:        "user",
 				DisplayName: "UserName",
-				Slug:        "user-slug",
 			},
 			PullRequest: PullRequestInfoModel{
 				ID:     1,
@@ -1122,7 +1115,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					BranchDest:    "master",
 					PullRequestID: pointers.NewIntPtr(1),
 				},
-				TriggeredBy: "webhook-bitbucket-server/user-slug",
+				TriggeredBy: "webhook-bitbucket-server/user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1266,7 +1259,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					Tag:        "3.0.4",
 					CommitHash: "2943d981c36ca9a241326a8c9520bec15edef8c5",
 				},
-				TriggeredBy: "webhook-bitbucket-server/user-slug",
+				TriggeredBy: "webhook-bitbucket-server/user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)

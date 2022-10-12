@@ -51,7 +51,6 @@ type RefModel struct {
 
 type UserInfoModel struct {
 	Name        string `json:"name"`
-	Slug        string `json:"slug"`
 	DisplayName string `json:"displayName"`
 }
 
@@ -151,7 +150,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 					Branch:     aChange.Ref.DisplayID,
 					CommitHash: aChange.ToHash,
 				},
-				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Actor.Slug),
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Actor.Name),
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 		} else if aChange.Ref.Type == "TAG" { //tag
@@ -164,7 +163,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 					Tag:        aChange.Ref.DisplayID,
 					CommitHash: aChange.ToHash,
 				},
-				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Actor.Slug),
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Actor.Name),
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
 		} else {
@@ -202,7 +201,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					BranchDest:    pullRequest.PullRequest.ToRef.DisplayID,
 					PullRequestID: &pullRequest.PullRequest.ID,
 				},
-				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Actor.Slug),
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Actor.Name),
 			},
 		},
 	}
