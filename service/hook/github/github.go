@@ -69,9 +69,9 @@ type BranchInfoModel struct {
 
 // PullRequestInfoModel ...
 type PullRequestInfoModel struct {
-	// source brach for the pull request
+	// source branch for the pull request
 	HeadBranchInfo BranchInfoModel `json:"head"`
-	// destination brach for the pull request
+	// destination branch for the pull request
 	BaseBranchInfo BranchInfoModel `json:"base"`
 	Title          string          `json:"title"`
 	Body           string          `json:"body"`
