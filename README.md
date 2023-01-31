@@ -476,8 +476,7 @@ response provider will be used.
   and in the response there will be no information about the Trigger API call's response.
   In this case the response is `{"did_not_wait_for_trigger_response": true}` with
   a HTTP `200` code.
-    * An example is the GitLab hook processor/provider, where GitLab does not store the returned
-      response, there's no history for webhook calls, and it does retry the webhook call
+    * An example is the GitLab hook processor/provider, where GitLab retries the webhook call
       if the response is too slow. So in case of GitLab we don't wait for the response of the Trigger API,
       we just return the did not wait response.
 
