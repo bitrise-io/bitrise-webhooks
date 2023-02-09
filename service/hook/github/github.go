@@ -212,11 +212,20 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 			ShouldSkip: true,
 		}
 	}
+
+	var triggerMergeabilityCheck bool
+	// https://docs.github.com/en/rest/guides/using-the-rest-api-to-interact-with-your-git-database?apiVersion=2022-11-28#checking-mergeability-of-pull-requests
 	if pullRequest.PullRequestInfo.Mergeable != nil && *pullRequest.PullRequestInfo.Mergeable == false {
+		// Mergeability check is ready and it's not mergeable
 		return hookCommon.TransformResultModel{
 			Error:      errors.New("Pull Request is not mergeable"),
 			ShouldSkip: true,
 		}
+	} else if pullRequest.PullRequestInfo.Mergeable == nil {
+		// Mergeability check is not ready yet
+		triggerMergeabilityCheck = true
+	} else if *pullRequest.PullRequestInfo.Mergeable {
+		triggerMergeabilityCheck = false
 	}
 
 	commitMsg := pullRequest.PullRequestInfo.Title
@@ -258,6 +267,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		},
 		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(pullRequest.PullRequestInfo.Title) &&
 			hookCommon.IsSkipBuildByCommitMessage(pullRequest.PullRequestInfo.Body),
+		TriggerMergeabilityCheck: triggerMergeabilityCheck
 	}
 }
 

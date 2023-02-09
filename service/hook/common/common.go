@@ -41,6 +41,8 @@ type TransformResultModel struct {
 	// Used for logging if only pull request description contains [skip ci] or
 	//  [ci skip] but title doesn't
 	SkippedByPrDescription bool
+
+	TriggerMergeabilityCheck bool
 }
 
 // Provider ...
