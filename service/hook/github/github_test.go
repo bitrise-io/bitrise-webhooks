@@ -772,7 +772,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestRepositoryURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
 					BaseRepositoryURL:        "https://github.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:        "https://github.com/bitrise-io/bitrise-webhooks.git",
-					PullRequestMergeBranch:   "pull/12/merge",
+					PullRequestMergeBranch:   "",
 					PullRequestHeadBranch:    "pull/12/head",
 					Environments: []bitriseapi.EnvironmentItem{
 						{
