@@ -212,7 +212,15 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 			ShouldSkip: true,
 		}
 	}
-	if pullRequest.PullRequestInfo.Mergeable != nil && *pullRequest.PullRequestInfo.Mergeable == false {
+	
+	// If `mergeable` is nil, the merge ref is not up to date, it's not safe to use for checkouts.
+	// Later we should trigger a refresh of the merge ref
+	mergeRefUpToDate := pullRequest.PullRequestInfo.Mergeable != nil
+	var mergeRefBuildParam string
+	if mergeRefUpToDate {
+		mergeRefBuildParam = fmt.Sprintf("pull/%d/merge", pullRequest.PullRequestID)
+	}
+	if mergeRefUpToDate && *pullRequest.PullRequestInfo.Mergeable == false {
 		return hookCommon.TransformResultModel{
 			Error:      errors.New("Pull Request is not mergeable"),
 			ShouldSkip: true,
@@ -248,7 +256,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					HeadRepositoryURL:        pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
 					PullRequestRepositoryURL: pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
 					PullRequestAuthor:        pullRequest.PullRequestInfo.User.Login,
-					PullRequestMergeBranch:   fmt.Sprintf("pull/%d/merge", pullRequest.PullRequestID),
+					PullRequestMergeBranch:   mergeRefBuildParam,
 					PullRequestHeadBranch:    fmt.Sprintf("pull/%d/head", pullRequest.PullRequestID),
 					DiffURL:                  pullRequest.PullRequestInfo.DiffURL,
 					Environments:             buildEnvs,
