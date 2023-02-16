@@ -1,0 +1,19 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: "bitrise-webhooks"
+  description: "Bitrise Webhooks"
+  annotations:
+    gcp.bitrise.io/dev-project-id: ip-web-monolith-dev
+    gcp.bitrise.io/dev-service-account: bitrise-webhooks@ip-web-monolith-dev.iam.gserviceaccount.com
+    gcp.bitrise.io/prod-project-id: ip-web-monolith-prod
+    gcp.bitrise.io/prod-service-account: bitrise-webhooks@ip-web-monolith-prod.iam.gserviceaccount.com
+spec:
+  type: service
+  lifecycle: experimental
+  owner: "bxp"
+  system: "web-monolith"
+  dependsOn:
+    []
+    
+
