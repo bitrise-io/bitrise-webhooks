@@ -1,0 +1,18 @@
+FROM golang:1.20-alpine3.17 AS builder
+
+ENV GO111MODULE=off CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO_PROJECT_PATH=github.com/bitrise-io/bitrise-webhooks
+
+COPY . $GOPATH/src/$GO_PROJECT_PATH
+
+RUN go install $GO_PROJECT_PATH
+
+
+FROM alpine:3.17
+
+RUN apk add -u ca-certificates && rm -rf /var/cache/apk/*
+
+EXPOSE 4000
+
+COPY --from=builder /go/bin/bitrise-webhooks .
+
+CMD ["/bitrise-webhooks"]
