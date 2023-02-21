@@ -112,7 +112,7 @@ type HookProvider struct{}
 func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
 	if pushEvent.Deleted {
 		return hookCommon.TransformResultModel{
-			Error: errors.New("this is a 'Deleted' event, no build can be started"),
+			Error: errors.New("This is a 'Deleted' event, no build can be started"),
 			// ShouldSkip because there's no reason to respond with a "red" / 4xx error for this event,
 			// but this event should never start a build either, so we mark this with `ShouldSkip`
 			// to return with the error message (above), but with a "green" / 2xx http code.
@@ -128,7 +128,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 		if len(headCommit.CommitHash) == 0 {
 			return hookCommon.TransformResultModel{
-				Error: fmt.Errorf("missing commit hash"),
+				Error: fmt.Errorf("Missing commit hash"),
 			}
 		}
 
@@ -152,7 +152,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 		if len(headCommit.CommitHash) == 0 {
 			return hookCommon.TransformResultModel{
-				Error: fmt.Errorf("missing commit hash"),
+				Error: fmt.Errorf("Missing commit hash"),
 			}
 		}
 
@@ -173,7 +173,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 	}
 
 	return hookCommon.TransformResultModel{
-		Error:      fmt.Errorf("ref (%s) is not a head nor a tag ref", pushEvent.Ref),
+		Error:      fmt.Errorf("Ref (%s) is not a head nor a tag ref", pushEvent.Ref),
 		ShouldSkip: true,
 	}
 }
@@ -185,13 +185,13 @@ func isAcceptPullRequestAction(prAction string) bool {
 func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.TransformResultModel {
 	if pullRequest.Action == "" {
 		return hookCommon.TransformResultModel{
-			Error:      errors.New("no Pull Request action specified"),
+			Error:      errors.New("No Pull Request action specified"),
 			ShouldSkip: true,
 		}
 	}
 	if !isAcceptPullRequestAction(pullRequest.Action) {
 		return hookCommon.TransformResultModel{
-			Error:      fmt.Errorf("pull Request action doesn't require a build: %s", pullRequest.Action),
+			Error:      fmt.Errorf("Pull Request action doesn't require a build: %s", pullRequest.Action),
 			ShouldSkip: true,
 		}
 	}
@@ -200,7 +200,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		if pullRequest.Changes.Base == nil {
 			if !hookCommon.IsSkipBuildByCommitMessage(pullRequest.Changes.Title.From) && !hookCommon.IsSkipBuildByCommitMessage(pullRequest.Changes.Body.From) {
 				return hookCommon.TransformResultModel{
-					Error:      errors.New("pull Request edit doesn't require a build: only title and/or description was changed, and previous one was not skipped"),
+					Error:      errors.New("Pull Request edit doesn't require a build: only title and/or description was changed, and previous one was not skipped"),
 					ShouldSkip: true,
 				}
 			}
@@ -208,22 +208,21 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	}
 	if pullRequest.PullRequestInfo.Merged {
 		return hookCommon.TransformResultModel{
-			Error:      errors.New("pull Request already merged"),
+			Error:      errors.New("Pull Request already merged"),
 			ShouldSkip: true,
 		}
 	}
-
-	headRefBuildParam := fmt.Sprintf("pull/%d/head", pullRequest.PullRequestID)
-	unverifiedMergeRefBuildParam := fmt.Sprintf("pull/%d/merge", pullRequest.PullRequestID)
-	// If `mergeable` is nil, the merge ref is not up-to-date, it's not safe to use for checkouts.
+	
+	// If `mergeable` is nil, the merge ref is not up to date, it's not safe to use for checkouts.
+	// Later we should trigger a refresh of the merge ref
 	mergeRefUpToDate := pullRequest.PullRequestInfo.Mergeable != nil
 	var mergeRefBuildParam string
 	if mergeRefUpToDate {
-		mergeRefBuildParam = unverifiedMergeRefBuildParam
+		mergeRefBuildParam = fmt.Sprintf("pull/%d/merge", pullRequest.PullRequestID)
 	}
 	if mergeRefUpToDate && *pullRequest.PullRequestInfo.Mergeable == false {
 		return hookCommon.TransformResultModel{
-			Error:      errors.New("pull Request is not mergeable"),
+			Error:      errors.New("Pull Request is not mergeable"),
 			ShouldSkip: true,
 		}
 	}
@@ -246,22 +245,21 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitMessage:                    commitMsg,
-					CommitHash:                       pullRequest.PullRequestInfo.HeadBranchInfo.CommitHash,
-					Branch:                           pullRequest.PullRequestInfo.HeadBranchInfo.Ref,
-					BranchRepoOwner:                  pullRequest.PullRequestInfo.HeadBranchInfo.Repo.Owner.Login,
-					BranchDest:                       pullRequest.PullRequestInfo.BaseBranchInfo.Ref,
-					BranchDestRepoOwner:              pullRequest.PullRequestInfo.BaseBranchInfo.Repo.Owner.Login,
-					PullRequestID:                    &pullRequest.PullRequestID,
-					BaseRepositoryURL:                pullRequest.PullRequestInfo.BaseBranchInfo.getRepositoryURL(),
-					HeadRepositoryURL:                pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
-					PullRequestRepositoryURL:         pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
-					PullRequestAuthor:                pullRequest.PullRequestInfo.User.Login,
-					PullRequestHeadBranch:            headRefBuildParam,
-					PullRequestMergeBranch:           mergeRefBuildParam,
-					PullRequestUnverifiedMergeBranch: unverifiedMergeRefBuildParam,
-					DiffURL:                          pullRequest.PullRequestInfo.DiffURL,
-					Environments:                     buildEnvs,
+					CommitMessage:            commitMsg,
+					CommitHash:               pullRequest.PullRequestInfo.HeadBranchInfo.CommitHash,
+					Branch:                   pullRequest.PullRequestInfo.HeadBranchInfo.Ref,
+					BranchRepoOwner:          pullRequest.PullRequestInfo.HeadBranchInfo.Repo.Owner.Login,
+					BranchDest:               pullRequest.PullRequestInfo.BaseBranchInfo.Ref,
+					BranchDestRepoOwner:      pullRequest.PullRequestInfo.BaseBranchInfo.Repo.Owner.Login,
+					PullRequestID:            &pullRequest.PullRequestID,
+					BaseRepositoryURL:        pullRequest.PullRequestInfo.BaseBranchInfo.getRepositoryURL(),
+					HeadRepositoryURL:        pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
+					PullRequestRepositoryURL: pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
+					PullRequestAuthor:        pullRequest.PullRequestInfo.User.Login,
+					PullRequestMergeBranch:   mergeRefBuildParam,
+					PullRequestHeadBranch:    fmt.Sprintf("pull/%d/head", pullRequest.PullRequestID),
+					DiffURL:                  pullRequest.PullRequestInfo.DiffURL,
+					Environments:             buildEnvs,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Sender.Login),
 			},
@@ -302,20 +300,20 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 
 	if ghEvent == "ping" {
 		return hookCommon.TransformResultModel{
-			Error:      fmt.Errorf("ping event received"),
+			Error:      fmt.Errorf("Ping event received"),
 			ShouldSkip: true,
 		}
 	}
 	if ghEvent != "push" && ghEvent != "pull_request" {
 		// Unsupported GitHub Event
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("unsupported GitHub Webhook event: %s", ghEvent),
+			Error: fmt.Errorf("Unsupported GitHub Webhook event: %s", ghEvent),
 		}
 	}
 
 	if r.Body == nil {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("failed to read content of request body: no or empty request body"),
+			Error: fmt.Errorf("Failed to read content of request body: no or empty request body"),
 		}
 	}
 
@@ -329,7 +327,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		} else if contentType == hookCommon.ContentTypeApplicationXWWWFormURLEncoded {
 			payloadValue := r.PostFormValue("payload")
 			if payloadValue == "" {
-				return hookCommon.TransformResultModel{Error: fmt.Errorf("failed to parse request body: empty payload")}
+				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: empty payload")}
 			}
 			if err := json.NewDecoder(strings.NewReader(payloadValue)).Decode(&pushEvent); err != nil {
 				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse payload: %s", err)}
@@ -350,7 +348,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		} else if contentType == hookCommon.ContentTypeApplicationXWWWFormURLEncoded {
 			payloadValue := r.PostFormValue("payload")
 			if payloadValue == "" {
-				return hookCommon.TransformResultModel{Error: fmt.Errorf("failed to parse request body: empty payload")}
+				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: empty payload")}
 			}
 			if err := json.NewDecoder(strings.NewReader(payloadValue)).Decode(&pullRequestEvent); err != nil {
 				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse payload: %s", err)}
