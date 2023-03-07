@@ -55,8 +55,14 @@ type BuildParamsModel struct {
 	BaseRepositoryURL string `json:"base_repository_url,omitempty"`
 	// URL of the head repository
 	HeadRepositoryURL string `json:"head_repository_url,omitempty"`
-	// pre-merged branch if the provider supports it, exposed for pull requests
+	// Pre-merged PR state, created by the git provider (if supported).
+	// IMPORTANT: This should only be defined if the state is already up-to-date with the latest PR head state
+	// Otherwise, use PullRequestUnverifiedMergeBranch.
 	PullRequestMergeBranch string `json:"pull_request_merge_branch,omitempty"`
+	// Similar to PullRequestMergeBranch, but this field contains a potentially stale state. One example is when a
+	// PR branch gets a new commit and the merge ref is not updated yet.
+	// A system using this field should check the freshness of the merge ref by other means before using it for checkouts.
+	PullRequestUnverifiedMergeBranch string `json:"pull_request_unverified_merge_branch,omitempty"`
 	// source branch mapped to the original repository if the provider supports it, exposed for pull requests
 	PullRequestHeadBranch string `json:"pull_request_head_branch,omitempty"`
 	// The creator of the pull request
