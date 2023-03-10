@@ -319,6 +319,12 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 		commitMsg = fmt.Sprintf("%s\n\n%s", commitMsg, mergeRequest.ObjectAttributes.Description)
 	}
 
+	var mergeRef string
+	mergeStatus := mergeRequest.ObjectAttributes.MergeStatus
+	if mergeStatus != "preparing" && mergeStatus != "unchecked" {
+		mergeRef = fmt.Sprintf("merge-requests/%d/merge", mergeRequest.ObjectAttributes.ID)
+	}
+
 	return hookCommon.TransformResultModel{
 		DontWaitForTriggerResponse: true,
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
@@ -335,7 +341,7 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 					HeadRepositoryURL:        mergeRequest.ObjectAttributes.Source.getRepositoryURL(),
 					PullRequestRepositoryURL: mergeRequest.ObjectAttributes.Source.getRepositoryURL(),
 					PullRequestAuthor:        mergeRequest.User.Name,
-					PullRequestMergeBranch:   fmt.Sprintf("merge-requests/%d/merge", mergeRequest.ObjectAttributes.ID),
+					PullRequestMergeBranch:   mergeRef,
 					PullRequestHeadBranch:    fmt.Sprintf("merge-requests/%d/head", mergeRequest.ObjectAttributes.ID),
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, mergeRequest.User.Username),

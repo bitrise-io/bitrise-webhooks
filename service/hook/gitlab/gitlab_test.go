@@ -74,7 +74,7 @@ const sampleForkMergeRequestData = `{
 		"target_branch": "develop",
 		"source_branch": "feature/gitlab-pr",
 		"title": "PR test",
-		"merge_status": "unchecked",
+		"merge_status": "can_be_merged",
 		"iid": 12,
 		"description": "PR text body",
 		"merge_error": null,
@@ -490,6 +490,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 				LastCommit: LastCommitInfoModel{
 					SHA: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 				},
+				MergeStatus: "unchecked",
 			},
 		}
 
@@ -507,7 +508,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 					BaseRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
-					PullRequestMergeBranch:   "merge-requests/12/merge",
+					PullRequestMergeBranch:   "",
 					PullRequestHeadBranch:    "merge-requests/12/head",
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
@@ -735,7 +736,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					HeadRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestAuthor:        "Author Name",
-					PullRequestMergeBranch:   "merge-requests/12/merge",
+					PullRequestMergeBranch:   "",
 					PullRequestHeadBranch:    "merge-requests/12/head",
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
