@@ -7,9 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	"github.com/bitrise-io/go-utils/pointers"
-	"github.com/stretchr/testify/require"
 )
 
 const sampleCodePushData = `{
@@ -257,6 +258,22 @@ func Test_transformCodePushEvent(t *testing.T) {
 		hookTransformResult := transformCodePushEvent(codePush)
 		require.EqualError(t, hookTransformResult.Error, "The commit specified by 'checkout_sha' was not included in the 'commits' array - no match found")
 		require.False(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Commit without CheckoutSHA (squashed merge request)")
+	{
+		codePush := CodePushEventModel{
+			ObjectKind:   "push",
+			Ref:          "refs/heads/master",
+			CheckoutSHA:  "",
+			UserUsername: "test_user",
+			Commits:      []CommitModel{},
+		}
+		hookTransformResult := transformCodePushEvent(codePush)
+		require.EqualError(t, hookTransformResult.Error, "The 'checkout_sha' field is not set - potential squashed merge request")
+		require.True(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
