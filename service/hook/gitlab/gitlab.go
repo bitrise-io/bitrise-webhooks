@@ -193,6 +193,18 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 	}
 	branch := strings.TrimPrefix(codePushEvent.Ref, "refs/heads/")
 
+	// In case of squashed merge requests, Gitlab sends 3 event hooks: a Push, a Merge Request and another Push.
+	// The 2nd Push event does not contain commits and its checkout_sha is set to null.
+	//
+	// Related issue: https://bitrise.atlassian.net/browse/SSW-127
+	if codePushEvent.CheckoutSHA == "" {
+		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
+			Error:                      fmt.Errorf("The 'checkout_sha' field is not set - potential squashed merge request"),
+			ShouldSkip:                 true,
+		}
+	}
+
 	lastCommit := CommitModel{}
 	isLastCommitFound := false
 	for _, aCommit := range codePushEvent.Commits {
