@@ -112,7 +112,7 @@ const (
   "eventKey":"pr:opened",
   "date":"2017-09-19T09:58:11+1000",
   "actor":{
-    "name":"admin",
+    "name":"admin_actor",
     "emailAddress":"admin@example.com",
     "id":1,
     "displayName":"Administrator",
@@ -148,7 +148,24 @@ const (
           "public":false,
           "type":"NORMAL"
         },
-        "public":false
+        "public":false,
+		"links": {
+			"clone": [
+			  {
+				"href": "https://bitbucket.org/bitrise-io/nice-repo.git",
+				"name": "http"
+			  },
+			  {
+				"href": "ssh://bitbucket.org/bitrise-io/nice-repo.git",
+				"name": "ssh"
+			  }
+			],
+			"self": [
+			  {
+				"href": "https://bitbucket.org/bitrise-io/nice-repo/browse"
+			  }
+			]
+		  }
       }
     },
     "toRef":{
@@ -170,18 +187,35 @@ const (
           "public":false,
           "type":"NORMAL"
         },
-        "public":false
+        "public":false,
+		"links": {
+			"clone": [
+			  {
+				"href": "https://bitbucket.org/bitrise-io/nice-repo.git",
+				"name": "http"
+			  },
+			  {
+				"href": "ssh://bitbucket.org/bitrise-io/nice-repo.git",
+				"name": "ssh"
+			  }
+			],
+			"self": [
+			  {
+				"href": "https://bitbucket.org/bitrise-io/nice-repo/browse"
+			  }
+			]
+		  }
       }
     },
     "locked":false,
     "author":{
       "user":{
-        "name":"admin",
+        "name":"admin_author",
         "emailAddress":"admin@example.com",
         "id":1,
         "displayName":"Administrator",
         "active":true,
-        "slug":"admin",
+        "slug":"admin_author_slug",
         "type":"NORMAL"
       },
       "role":"AUTHOR",
@@ -196,7 +230,9 @@ const (
     ],
     "links":{
       "self":[
-        null
+		{
+			"href": "https://stash.runtastic.com/projects/RAS/repos/test-library/pull-requests/48"
+		}
       ]
     }
   }
@@ -206,7 +242,7 @@ const (
 "eventKey":"pr:modified",
 "date":"2017-09-19T09:58:11+1000",
 "actor":{
-	"name":"admin",
+	"name":"admin_actor",
 	"emailAddress":"admin@example.com",
 	"id":1,
 	"displayName":"Administrator",
@@ -270,7 +306,7 @@ const (
 	"locked":false,
 	"author":{
 		"user":{
-			"name":"admin",
+			"name":"admin_author",
 			"emailAddress":"admin@example.com",
 			"id":1,
 			"displayName":"Administrator",
@@ -300,7 +336,7 @@ const (
 "eventKey":"pr:from_ref_updated",
 "date":"2017-09-19T09:58:11+1000",
 "actor":{
-"name":"admin",
+"name":"admin_actor",
 "emailAddress":"admin@example.com",
 "id":1,
 "displayName":"Administrator",
@@ -364,7 +400,7 @@ const (
 "locked":false,
 "author":{
 	"user":{
-		"name":"admin",
+		"name":"admin_author",
 		"emailAddress":"admin@example.com",
 		"id":1,
 		"displayName":"Administrator",
@@ -1100,8 +1136,26 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					DisplayID:    "master",
 					LatestCommit: "178864a7d521b6f5e720b386b2c2b0ef8563e0dc",
 				},
+				Author: AuthorModel{
+					User: UserInfoModel{
+						Name:        "author",
+						DisplayName: "Author Name",
+					},
+				},
 			},
 		}
+
+		buildEnvs := make([]bitriseapi.EnvironmentItem, 0)
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_ACTOR_NAME",
+			Value:    "user",
+			IsExpand: false,
+		})
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_OWNER_NAME",
+			Value:    "author",
+			IsExpand: false,
+		})
 
 		hookTransformResult := transformPullRequestEvent(pullRequest)
 		require.NoError(t, hookTransformResult.Error)
@@ -1114,6 +1168,8 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					Branch:        "a-branch",
 					BranchDest:    "master",
 					PullRequestID: pointers.NewIntPtr(1),
+					PullRequestAuthor: "author",
+					Environments:       buildEnvs,
 				},
 				TriggeredBy: "webhook-bitbucket-server/user",
 			},
@@ -1275,18 +1331,47 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestData)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
+
+		// Expected build params
+		buildEnvs := make([]bitriseapi.EnvironmentItem, 0)
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_ACTOR_NAME",
+			Value:    "admin_actor",
+			IsExpand: false,
+		})
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_ACTOR_SLUG",
+			Value:    "admin",
+			IsExpand: false,
+		})
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_OWNER_NAME",
+			Value:    "admin_author",
+			IsExpand: false,
+		})
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_OWNER_SLUG",
+			Value:    "admin_author_slug",
+			IsExpand: false,
+		})
+
+
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
-					CommitMessage: "a new file added",
-					Branch:        "a-branch",
-					BranchDest:    "master",
-					PullRequestID: pointers.NewIntPtr(1),
+					CommitHash:    		"ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+					CommitMessage: 		"a new file added",
+					Branch:        		"a-branch",
+					BranchDest:    		"master",
+					PullRequestID: 		pointers.NewIntPtr(1),
+					PullRequestAuthor:	"admin_author",
+					BaseRepositoryURL:  "https://bitbucket.org/bitrise-io/nice-repo.git",
+					HeadRepositoryURL: 	"https://bitbucket.org/bitrise-io/nice-repo.git",
+					Environments:       buildEnvs,
 				},
-				TriggeredBy: "webhook-bitbucket-server/admin",
+				TriggeredBy: "webhook-bitbucket-server/admin_actor",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1302,18 +1387,44 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestModifiedData)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
+
+		// Expected build params
+		buildEnvs := make([]bitriseapi.EnvironmentItem, 0)
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_ACTOR_NAME",
+			Value:    "admin_actor",
+			IsExpand: false,
+		})
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_ACTOR_SLUG",
+			Value:    "admin",
+			IsExpand: false,
+		})
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_OWNER_NAME",
+			Value:    "admin_author",
+			IsExpand: false,
+		})
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_OWNER_SLUG",
+			Value:    "admin",
+			IsExpand: false,
+		})
+
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
-					CommitMessage: "a new file added",
-					Branch:        "a-branch",
-					BranchDest:    "master",
-					PullRequestID: pointers.NewIntPtr(1),
+					CommitHash:    		"ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+					CommitMessage: 		"a new file added",
+					Branch:        		"a-branch",
+					BranchDest:    		"master",
+					PullRequestID: 		pointers.NewIntPtr(1),
+					PullRequestAuthor: 	"admin_author",
+					Environments:       buildEnvs,
 				},
-				TriggeredBy: "webhook-bitbucket-server/admin",
+				TriggeredBy: "webhook-bitbucket-server/admin_actor",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1329,6 +1440,30 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestFromRefUpdatedData)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
+
+
+		buildEnvs := make([]bitriseapi.EnvironmentItem, 0)
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_ACTOR_NAME",
+			Value:    "admin_actor",
+			IsExpand: false,
+		})
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_ACTOR_SLUG",
+			Value:    "admin",
+			IsExpand: false,
+		})
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_OWNER_NAME",
+			Value:    "admin_author",
+			IsExpand: false,
+		})
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_OWNER_SLUG",
+			Value:    "admin",
+			IsExpand: false,
+		})
+		
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -1339,8 +1474,10 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					Branch:        "a-branch",
 					BranchDest:    "master",
 					PullRequestID: pointers.NewIntPtr(1),
+					PullRequestAuthor: "admin_author",
+					Environments:       buildEnvs,
 				},
-				TriggeredBy: "webhook-bitbucket-server/admin",
+				TriggeredBy: "webhook-bitbucket-server/admin_actor",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)

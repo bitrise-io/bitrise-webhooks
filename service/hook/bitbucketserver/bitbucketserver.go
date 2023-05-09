@@ -56,16 +56,18 @@ type RefModel struct {
 type UserInfoModel struct {
 	Name        string `json:"name"`
 	DisplayName string `json:"displayName"`
+	Slug 		string `json:"slug"`
 }
 
 //RepositoryInfoModel ...
 type RepositoryInfoModel struct {
-	Slug    string           `json:"slug"`
-	ID      int              `json:"id"`
-	Name    string           `json:"name"`
-	Public  bool             `json:"public"`
-	Scm     string           `json:"scmId"`
-	Project ProjectInfoModel `json:"owner"`
+	Slug    string           		`json:"slug"`
+	ID      int              		`json:"id"`
+	Name    string           		`json:"name"`
+	Public  bool             		`json:"public"`
+	Scm     string           		`json:"scmId"`
+	Project ProjectInfoModel 		`json:"owner"`
+	Links   RepositoryLinksModel	`json:"links"`
 }
 
 //ProjectInfoModel ...
@@ -89,6 +91,12 @@ type PullRequestInfoModel struct {
 	UpdatedDate int64               `json:"updatedDate"`
 	FromRef     PullRequestRefModel `json:"fromRef"`
 	ToRef       PullRequestRefModel `json:"toRef"`
+	Author      AuthorModel        	`json:"author"`
+	Links       PRInfoLinksModel	`json:"links"`
+}
+
+type AuthorModel struct {
+	User   		UserInfoModel   	`json:"user"`
 }
 
 //PullRequestEventModel ...
@@ -108,11 +116,35 @@ type PullRequestRefModel struct {
 	Repository   RepositoryInfoModel `json:"repository"`
 }
 
+type RepositoryLinksModel struct {
+	Self []LinkModel `json:"self"`
+	Clone []LinkModel `json:"clone"`
+}
+
+type PRInfoLinksModel  struct {
+	Self []LinkModel `json:"self"`
+}
+
+type LinkModel struct {
+	Href string `json:"href"`
+}
+
+
 // ---------------------------------------
 // --- Webhook Provider Implementation ---
 
 // HookProvider ...
 type HookProvider struct{}
+
+func (repository RepositoryInfoModel) getRepositoryURL() string {
+	if len(repository.Links.Clone) > 0 {
+		return repository.Links.Clone[0].Href
+	}
+	if len(repository.Links.Self) > 0 {
+		return repository.Links.Self[0].Href
+	}
+	return ""
+}
 
 func detectContentTypeSecretAndEventKey(header http.Header) (string, string, string, error) {
 	contentType := header.Get("Content-Type")
@@ -200,16 +232,51 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	}
 
 	commitMsg := pullRequest.PullRequest.Title
+	
+	buildEnvs := make([]bitriseapi.EnvironmentItem, 0)
+	if(len(pullRequest.Actor.Name) > 0) {
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_ACTOR_NAME",
+			Value:    pullRequest.Actor.Name,
+			IsExpand: false,
+		})
+	}
+	if(len(pullRequest.Actor.Slug) > 0) {
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_ACTOR_SLUG",
+			Value:    pullRequest.Actor.Slug,
+			IsExpand: false,
+		})
+	}
+	if(len(pullRequest.PullRequest.Author.User.Name) > 0) {
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_OWNER_NAME",
+			Value:    pullRequest.PullRequest.Author.User.Name,
+			IsExpand: false,
+		})
+	}
+	if(len(pullRequest.PullRequest.Author.User.Slug) > 0) {
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "BITBUCKET_PR_OWNER_SLUG",
+			Value:    pullRequest.PullRequest.Author.User.Slug,
+			IsExpand: false,
+		})
+	}
+	
 
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitMessage: commitMsg,
-					CommitHash:    pullRequest.PullRequest.FromRef.LatestCommit,
-					Branch:        pullRequest.PullRequest.FromRef.DisplayID,
-					BranchDest:    pullRequest.PullRequest.ToRef.DisplayID,
-					PullRequestID: &pullRequest.PullRequest.ID,
+					CommitMessage: 		commitMsg,
+					CommitHash:    		pullRequest.PullRequest.FromRef.LatestCommit,
+					Branch:        		pullRequest.PullRequest.FromRef.DisplayID,
+					BranchDest:    		pullRequest.PullRequest.ToRef.DisplayID,
+					PullRequestID: 		&pullRequest.PullRequest.ID,
+					PullRequestAuthor: 	pullRequest.PullRequest.Author.User.Name,
+					BaseRepositoryURL: 	pullRequest.PullRequest.ToRef.Repository.getRepositoryURL(),
+					HeadRepositoryURL: 	pullRequest.PullRequest.FromRef.Repository.getRepositoryURL(),
+					Environments:       buildEnvs,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Actor.Name),
 			},
