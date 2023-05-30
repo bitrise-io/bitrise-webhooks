@@ -20,7 +20,7 @@ the middle`,
 			`[skip ci] this
 multi
 line too`,
-			`this has \\[skip ci\\] because of markdown`
+			`this has \\[skip ci\\] because of markdown`,
 		} {
 			t.Log(" * Commit message:", aCommitMsg)
 			require.Equal(t, true, IsSkipBuildByCommitMessage(aCommitMsg))
