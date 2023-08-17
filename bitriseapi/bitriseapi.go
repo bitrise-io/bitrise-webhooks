@@ -75,6 +75,8 @@ type BuildParamsModel struct {
 	DiffURL string `json:"diff_url"`
 	// paths of changes
 	PushCommitPaths []CommitPaths `json:"commit_paths"`
+	// Unity License Pool ID
+	LicensePoolID string `json:"license_pool_id,omitempty"`
 }
 
 // TriggerAPIParamsModel ...
@@ -122,9 +124,12 @@ func BuildTriggerURL(apiRootURL string, appSlug string) (*url.URL, error) {
 
 // TriggerBuild ...
 // Returns an error in case it can't send the request, or the response is
-//  not a HTTP success response.
+//
+//	not a HTTP success response.
+//
 // If the response is an HTTP success response then the whole response body
-//  will be returned, and error will be nil.
+//
+//	will be returned, and error will be nil.
 func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) (TriggerAPIResponseModel, bool, error) {
 	logger := logging.WithContext(nil)
 	defer func() {
