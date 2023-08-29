@@ -9,12 +9,13 @@ import (
 	"google.golang.org/api/option"
 )
 
+// Client ...
 type Client struct {
 	c             *pubsub.Client
 	pubsubTopicID string
 }
 
-// Init ...
+// NewClient ...
 func NewClient(projectID, serviceAccountJSON, pubsubTopicID string) (*Client, error) {
 	client, err := pubsub.NewClient(context.Background(), projectID, option.WithCredentialsJSON([]byte(serviceAccountJSON)))
 	if err != nil {
@@ -23,6 +24,7 @@ func NewClient(projectID, serviceAccountJSON, pubsubTopicID string) (*Client, er
 	return &Client{c: client, pubsubTopicID: pubsubTopicID}, nil
 }
 
+// PublishMetrics ...
 func (c *Client) PublishMetrics(metrics common.MetricsResultModel) (err error) {
 	if c == nil {
 		return nil
