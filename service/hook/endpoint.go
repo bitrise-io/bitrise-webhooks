@@ -30,6 +30,7 @@ import (
 	"github.com/bitrise-io/go-utils/colorstring"
 )
 
+// Client ...
 type Client struct {
 	PubsubClient *pubsub.Client
 }
