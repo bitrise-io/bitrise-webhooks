@@ -381,6 +381,7 @@ func (repoInfoModel RepoInfoModel) getRepositoryURL() string {
 	return repoInfoModel.CloneURL
 }
 
+// GatherMetrics ...
 func (hp HookProvider) GatherMetrics(r *http.Request) (measured bool, result hookCommon.MetricsResultModel) {
 	hook, err := github.New()
 	if err != nil {
