@@ -325,3 +325,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		Error: fmt.Errorf("Unsupported Bitbucket event type: %s", eventKey),
 	}
 }
+
+func (hp HookProvider) GatherMetrics(r *http.Request) (measured bool, result hookCommon.MetricsResultModel) {
+	return true, hookCommon.MetricsResultModel{}
+}

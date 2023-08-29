@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 )
@@ -43,6 +44,27 @@ type TransformResultModel struct {
 	SkippedByPrDescription bool
 }
 
+// MetricsResultModel ...
+type MetricsResultModel struct {
+	Event            string    `json:""`
+	GitRef           string    `json:""`
+	Status           string    `json:""`
+	Action           string    `json:""`
+	AppSlug          string    `json:""`
+	CommitID         string    `json:""`
+	Username         string    `json:""`
+	GitProvider      string    `json:""`
+	SourceBranch     string    `json:""`
+	TargetBranch     string    `json:""`
+	PullRequestID    string    `json:""`
+	RespositoryURL   string    `json:""`
+	NoOfCommits      int       `json:""`
+	NoOfAdditions    int       `json:""`
+	NoOfDeletions    int       `json:""`
+	NoOfChangedFiles int       `json:""`
+	Timestamp        time.Time `json:""`
+}
+
 // Provider ...
 type Provider interface {
 	// TransformRequest should transform the hook into a bitriseapi.TriggerAPIParamsModel
@@ -50,6 +72,7 @@ type Provider interface {
 	// It might still decide to skip the actual call - for more info
 	//  check the docs of TransformResultModel
 	TransformRequest(r *http.Request) TransformResultModel
+	GatherMetrics(r *http.Request) (measured bool, result MetricsResultModel)
 }
 
 // ---------------------------------------

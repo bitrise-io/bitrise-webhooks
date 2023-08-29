@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/bitrise-io/bitrise-webhooks/internal/pubsub"
 	"github.com/bitrise-io/bitrise-webhooks/metrics"
 	"github.com/bitrise-io/bitrise-webhooks/service"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook"
@@ -10,10 +11,11 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 )
 
-func setupRoutes() {
+func setupRoutes(pubsubClient *pubsub.Client) {
 	r := mux.NewRouter(mux.WithServiceName("webhooks"))
 	//
-	r.HandleFunc("/h/{service-id}/{app-slug}/{api-token}", metrics.WrapHandlerFunc(hook.HTTPHandler)).
+	hookClient := hook.Client{PubsubClient: pubsubClient}
+	r.HandleFunc("/h/{service-id}/{app-slug}/{api-token}", metrics.WrapHandlerFunc(hookClient.HTTPHandler)).
 		Methods("POST")
 	//
 	r.HandleFunc("/", metrics.WrapHandlerFunc(root.HTTPHandler)).

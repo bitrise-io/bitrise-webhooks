@@ -13,6 +13,7 @@ import (
 	"github.com/bitrise-io/api-utils/logging"
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	"github.com/bitrise-io/bitrise-webhooks/config"
+	"github.com/bitrise-io/bitrise-webhooks/internal/pubsub"
 	"github.com/bitrise-io/bitrise-webhooks/metrics"
 	"github.com/bitrise-io/bitrise-webhooks/service"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/assembla"
@@ -28,6 +29,10 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/visualstudioteamservices"
 	"github.com/bitrise-io/go-utils/colorstring"
 )
+
+type Client struct {
+	PubsubClient *pubsub.Client
+}
 
 func supportedProviders() map[string]hookCommon.Provider {
 	return map[string]hookCommon.Provider{
@@ -135,7 +140,7 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 // --- Main HTTP Handler code ---
 
 // HTTPHandler ...
-func HTTPHandler(w http.ResponseWriter, r *http.Request) {
+func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	serviceID := vars["service-id"]
 	appSlug := vars["app-slug"]
@@ -182,6 +187,23 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf(" (debug) %s", errMsg)
 		respondWithErrorString(w, &hookProvider, errMsg)
 		return
+	}
+
+	if c.PubsubClient != nil {
+		var metricsResult *hookCommon.MetricsResultModel
+
+		metrics.Trace("Hook: GatherMetrics", func() {
+			measured, result := hookProvider.GatherMetrics(r)
+			if measured {
+				metricsResult = &result
+			}
+		})
+
+		if metricsResult != nil {
+			if err := c.PubsubClient.PublishMetrics(*metricsResult); err != nil {
+				logger.Error(" [!] Exception: PublishMetrics: failed to publish metrics results", zap.Error(err))
+			}
+		}
 	}
 
 	// Let's Trigger a build / some builds!

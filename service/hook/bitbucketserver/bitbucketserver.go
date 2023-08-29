@@ -27,7 +27,7 @@ const (
 // --------------------------
 // --- Webhook Data Model ---
 
-//PushEventModel ...
+// PushEventModel ...
 type PushEventModel struct {
 	EventKey       string              `json:"eventKey"`
 	Date           string              `json:"date"`
@@ -36,7 +36,7 @@ type PushEventModel struct {
 	Changes        []ChangeItemModel   `json:"changes"`
 }
 
-//ChangeItemModel ...
+// ChangeItemModel ...
 type ChangeItemModel struct {
 	RefID    string   `json:"refId"`
 	FromHash string   `json:"fromHash"`
@@ -45,20 +45,20 @@ type ChangeItemModel struct {
 	Ref      RefModel `json:"ref"`
 }
 
-//RefModel ...
+// RefModel ...
 type RefModel struct {
 	ID        string `json:"id"`
 	DisplayID string `json:"displayId"`
 	Type      string `json:"type"`
 }
 
-//UserInfoModel ...
+// UserInfoModel ...
 type UserInfoModel struct {
 	Name        string `json:"name"`
 	DisplayName string `json:"displayName"`
 }
 
-//RepositoryInfoModel ...
+// RepositoryInfoModel ...
 type RepositoryInfoModel struct {
 	Slug    string           `json:"slug"`
 	ID      int              `json:"id"`
@@ -68,7 +68,7 @@ type RepositoryInfoModel struct {
 	Project ProjectInfoModel `json:"owner"`
 }
 
-//ProjectInfoModel ...
+// ProjectInfoModel ...
 type ProjectInfoModel struct {
 	Key    string `json:"key"`
 	ID     int    `json:"id"`
@@ -77,7 +77,7 @@ type ProjectInfoModel struct {
 	Type   string `json:"type"`
 }
 
-//PullRequestInfoModel ...
+// PullRequestInfoModel ...
 type PullRequestInfoModel struct {
 	ID          int                 `json:"id"`
 	Version     int                 `json:"version"`
@@ -91,7 +91,7 @@ type PullRequestInfoModel struct {
 	ToRef       PullRequestRefModel `json:"toRef"`
 }
 
-//PullRequestEventModel ...
+// PullRequestEventModel ...
 type PullRequestEventModel struct {
 	EventKey    string               `json:"eventKey"`
 	Date        string               `json:"date"`
@@ -99,7 +99,7 @@ type PullRequestEventModel struct {
 	PullRequest PullRequestInfoModel `json:"pullRequest"`
 }
 
-//PullRequestRefModel ...
+// PullRequestRefModel ...
 type PullRequestRefModel struct {
 	ID           string              `json:"id"`
 	DisplayID    string              `json:"displayId"`
@@ -283,4 +283,8 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	return hookCommon.TransformResultModel{
 		Error: fmt.Errorf("Unsupported Bitbucket event type: %s", eventKey),
 	}
+}
+
+func (hp HookProvider) GatherMetrics(r *http.Request) (measured bool, result hookCommon.MetricsResultModel) {
+	return false, hookCommon.MetricsResultModel{}
 }

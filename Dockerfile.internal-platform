@@ -1,10 +1,15 @@
 FROM golang:1.20-alpine3.17 AS builder
 
-ENV GO111MODULE=off CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO_PROJECT_PATH=github.com/bitrise-io/bitrise-webhooks
+WORKDIR /src/bitrise-webhooks
 
-COPY . $GOPATH/src/$GO_PROJECT_PATH
+COPY go.mod go.sum ./
 
-RUN go install $GO_PROJECT_PATH
+RUN go mod download && go mod verify
+
+COPY . .
+
+# Build the binaries.
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /go/bin/bitrise-webhooks
 
 
 FROM alpine:3.17

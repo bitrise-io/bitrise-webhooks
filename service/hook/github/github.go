@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/bitrise-io/go-utils/sliceutil"
+	"github.com/go-playground/webhooks/github"
 )
 
 const (
@@ -377,4 +379,59 @@ func (repoInfoModel RepoInfoModel) getRepositoryURL() string {
 		return repoInfoModel.SSHURL
 	}
 	return repoInfoModel.CloneURL
+}
+
+func (hp HookProvider) GatherMetrics(r *http.Request) (measured bool, result hookCommon.MetricsResultModel) {
+	hook, err := github.New()
+	if err != nil {
+		return false, hookCommon.MetricsResultModel{}
+	}
+
+	payload, err := hook.Parse(r, github.PullRequestEvent, github.PushEvent)
+	if err != nil {
+		if err == github.ErrEventNotFound {
+			return false, hookCommon.MetricsResultModel{}
+		}
+	}
+
+	metricsResult := hookCommon.MetricsResultModel{
+		AppSlug:     "",
+		GitProvider: ProviderID,
+	}
+
+	switch payload := payload.(type) {
+	case github.PullRequestPayload:
+		metricsResult.Action = payload.Action
+		metricsResult.Event = "pull_request"
+		metricsResult.GitRef = payload.PullRequest.Head.Ref
+		metricsResult.Status = payload.PullRequest.State
+		metricsResult.CommitID = *payload.PullRequest.MergeCommitSha // TODO
+		metricsResult.Username = payload.PullRequest.User.Login
+		metricsResult.SourceBranch = payload.PullRequest.Head.Ref
+		metricsResult.TargetBranch = payload.PullRequest.Base.Ref
+		metricsResult.PullRequestID = fmt.Sprintf("%d", payload.Number)
+		metricsResult.RespositoryURL = payload.Repository.URL
+		metricsResult.NoOfCommits = int(payload.PullRequest.Commits)
+		metricsResult.NoOfAdditions = int(payload.PullRequest.Additions)
+		metricsResult.NoOfDeletions = int(payload.PullRequest.Deletions)
+		metricsResult.NoOfChangedFiles = int(payload.PullRequest.ChangedFiles)
+		metricsResult.Timestamp = payload.PullRequest.UpdatedAt
+	case github.PushPayload:
+		ts, err := time.Parse("2006-01-02T15:04:05-0700", payload.HeadCommit.Timestamp)
+		if err != nil {
+			return false, hookCommon.MetricsResultModel{}
+		}
+		metricsResult.Event = "push"
+		metricsResult.GitRef = payload.Ref
+		metricsResult.CommitID = payload.HeadCommit.ID
+		metricsResult.Username = payload.Sender.Login
+		metricsResult.RespositoryURL = payload.Repository.URL
+		metricsResult.NoOfCommits = len(payload.Commits)
+		metricsResult.NoOfAdditions = len(payload.HeadCommit.Added) // TODO: is it file or line or what?
+		metricsResult.NoOfDeletions = len(payload.HeadCommit.Removed)
+		metricsResult.NoOfChangedFiles = len(payload.HeadCommit.Modified)
+		metricsResult.Timestamp = ts
+	}
+
+	return true, metricsResult
 }
