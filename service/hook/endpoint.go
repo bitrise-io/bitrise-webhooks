@@ -178,17 +178,6 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		hookTransformResult = hookProvider.TransformRequest(r)
 	})
 
-	if hookTransformResult.ShouldSkip {
-		respondWithSuccessMessage(w, &hookProvider, fmt.Sprintf("Acknowledged, but skipping. Reason: %s", hookTransformResult.Error))
-		return
-	}
-	if hookTransformResult.Error != nil {
-		errMsg := fmt.Sprintf("Failed to transform the webhook: %s", hookTransformResult.Error)
-		log.Printf(" (debug) %s", errMsg)
-		respondWithErrorString(w, &hookProvider, errMsg)
-		return
-	}
-
 	if c.PubsubClient != nil {
 		var metricsResult *hookCommon.MetricsResultModel
 
@@ -204,6 +193,17 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 				logger.Error(" [!] Exception: PublishMetrics: failed to publish metrics results", zap.Error(err))
 			}
 		}
+	}
+
+	if hookTransformResult.ShouldSkip {
+		respondWithSuccessMessage(w, &hookProvider, fmt.Sprintf("Acknowledged, but skipping. Reason: %s", hookTransformResult.Error))
+		return
+	}
+	if hookTransformResult.Error != nil {
+		errMsg := fmt.Sprintf("Failed to transform the webhook: %s", hookTransformResult.Error)
+		log.Printf(" (debug) %s", errMsg)
+		respondWithErrorString(w, &hookProvider, errMsg)
+		return
 	}
 
 	// Let's Trigger a build / some builds!
