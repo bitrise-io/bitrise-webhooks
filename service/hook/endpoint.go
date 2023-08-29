@@ -185,6 +185,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 			measured, result := hookProvider.GatherMetrics(r)
 			if measured {
 				metricsResult = &result
+				metricsResult.AppSlug = appSlug
 			}
 		})
 

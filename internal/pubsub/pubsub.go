@@ -40,5 +40,5 @@ func (c *Client) PublishMetrics(metrics common.MetricsResultModel) (err error) {
 }
 
 func transformMetricsToMessage(metrics common.MetricsResultModel) *pubsub.Message {
-	return nil
+	return nil // TODO:
 }
