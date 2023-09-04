@@ -44,6 +44,40 @@ type TransformResultModel struct {
 	SkippedByPrDescription bool
 }
 
+type PullRequestMetrics struct {
+	Timestamp       time.Time `json:""`
+	AppSlug         string    `json:""`
+	Action          string    `json:""`
+	PullRequestID   string    `json:""`
+	Email           string    `json:""`
+	Username        string    `json:""`
+	GitRef          string    `json:""`
+	CommitID        string    `json:""`
+	OriginalTrigger string    `json:""`
+}
+
+type PullRequestOpenedMetrics struct {
+	PullRequestMetrics
+	Status string `json:""`
+}
+
+type PullRequestClosed struct {
+	PullRequestMetrics
+	Status string `json:""`
+}
+
+type PullRequestUpdatedMetrics struct {
+	PullRequestOpenedMetrics
+	ChangedFiles int
+	Additions    int
+	Deletions    int
+	Commits      int
+}
+
+type PullRequestCommentMetrics struct {
+	PullRequestMetrics
+}
+
 // MetricsResultModel ...
 type MetricsResultModel struct {
 	Event            string    `json:""`
