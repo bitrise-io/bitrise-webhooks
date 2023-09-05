@@ -184,7 +184,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		})
 
 		if measured && webhookMetrics != nil {
-			if err := c.PubsubClient.PublishMetrics(*metricsResult); err != nil {
+			if err := c.PubsubClient.PublishMetrics(webhookMetrics); err != nil {
 				logger.Error(" [!] Exception: PublishMetrics: failed to publish metrics results", zap.Error(err))
 			}
 		}

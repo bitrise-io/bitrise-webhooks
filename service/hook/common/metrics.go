@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// GeneralMetrics ...
 type GeneralMetrics struct {
 	Timestamp       time.Time `json:""`
 	AppSlug         string    `json:""`
@@ -16,6 +17,7 @@ type GeneralMetrics struct {
 	GitRef          string    `json:""`
 }
 
+// PullRequestMetrics ...
 type PullRequestMetrics struct {
 	PullRequestID         string     `json:""` // PR number
 	CommitID              string     `json:""`
@@ -26,29 +28,34 @@ type PullRequestMetrics struct {
 	Commits               int        `json:""`
 }
 
+// PullRequestOpenedMetrics ...
 type PullRequestOpenedMetrics struct {
 	GeneralMetrics
 	PullRequestMetrics
 	Status string `json:""`
 }
 
+// PullRequestClosedMetrics ...
 type PullRequestClosedMetrics struct {
 	GeneralMetrics
 	PullRequestMetrics
 	Status string `json:""`
 }
 
+// PullRequestUpdatedMetrics ...
 type PullRequestUpdatedMetrics struct {
 	GeneralMetrics
 	PullRequestMetrics
 	Status string `json:""`
 }
 
+// PullRequestCommentMetrics ...
 type PullRequestCommentMetrics struct {
 	GeneralMetrics
 	PullRequestMetrics
 }
 
+// PushMetrics ...
 type PushMetrics struct {
 	GeneralMetrics
 	CommitIDAfter         string
@@ -56,42 +63,52 @@ type PushMetrics struct {
 	OldestCommitTimestamp *time.Time `json:""`
 }
 
+// Serialise ...
 func (m PullRequestOpenedMetrics) Serialise() ([]byte, error) {
 	return json.Marshal(m)
 }
 
+// String ...
 func (m PullRequestOpenedMetrics) String() string {
 	return stringer(m)
 }
 
+// Serialise ...
 func (m PullRequestClosedMetrics) Serialise() ([]byte, error) {
 	return json.Marshal(m)
 }
 
+// String ...
 func (m PullRequestClosedMetrics) String() string {
 	return stringer(m)
 }
 
+// Serialise ...
 func (m PullRequestUpdatedMetrics) Serialise() ([]byte, error) {
 	return json.Marshal(m)
 }
 
+// String ...
 func (m PullRequestUpdatedMetrics) String() string {
 	return stringer(m)
 }
 
+// Serialise ...
 func (m PullRequestCommentMetrics) Serialise() ([]byte, error) {
 	return json.Marshal(m)
 }
 
+// String ...
 func (m PullRequestCommentMetrics) String() string {
 	return stringer(m)
 }
 
+// Serialise ...
 func (m PushMetrics) Serialise() ([]byte, error) {
 	return json.Marshal(m)
 }
 
+// String ...
 func (m PushMetrics) String() string {
 	return stringer(m)
 }

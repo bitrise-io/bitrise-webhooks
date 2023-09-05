@@ -52,10 +52,12 @@ type Provider interface {
 	TransformRequest(r *http.Request) TransformResultModel
 }
 
+// Metrics ...
 type Metrics interface {
 	Serialise() ([]byte, error)
 }
 
+// MetricsProvider ...
 type MetricsProvider interface {
 	GatherMetrics(r *http.Request, appSlug string) (measured bool, metrics Metrics)
 }
