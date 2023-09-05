@@ -294,7 +294,6 @@ func newPullRequestMetrics(pullRequest *github.PullRequest) common.PullRequestMe
 var pullRequestOpenedTriggers = map[string][]string{
 	"pull_request": {
 		"opened",
-		"reopened",
 	},
 }
 
@@ -305,6 +304,7 @@ func isPullRequestOpenedAction(event, action string) bool {
 
 var pullRequestUpdatedTriggers = map[string][]string{
 	"pull_request": {
+		"reopened",
 		"synchronize",
 		"edited",
 		"assigned",
