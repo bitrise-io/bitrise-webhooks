@@ -56,20 +56,40 @@ type PushMetrics struct {
 	OldestCommitTimestamp *time.Time `json:""`
 }
 
+func (m PullRequestOpenedMetrics) Serialise() ([]byte, error) {
+	return json.Marshal(m)
+}
+
 func (m PullRequestOpenedMetrics) String() string {
 	return stringer(m)
+}
+
+func (m PullRequestClosedMetrics) Serialise() ([]byte, error) {
+	return json.Marshal(m)
 }
 
 func (m PullRequestClosedMetrics) String() string {
 	return stringer(m)
 }
 
+func (m PullRequestUpdatedMetrics) Serialise() ([]byte, error) {
+	return json.Marshal(m)
+}
+
 func (m PullRequestUpdatedMetrics) String() string {
 	return stringer(m)
 }
 
+func (m PullRequestCommentMetrics) Serialise() ([]byte, error) {
+	return json.Marshal(m)
+}
+
 func (m PullRequestCommentMetrics) String() string {
 	return stringer(m)
+}
+
+func (m PushMetrics) Serialise() ([]byte, error) {
+	return json.Marshal(m)
 }
 
 func (m PushMetrics) String() string {

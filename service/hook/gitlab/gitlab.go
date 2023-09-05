@@ -45,7 +45,6 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/bitrise-io/go-utils/sliceutil"
-	"github.com/go-playground/webhooks/gitlab"
 )
 
 // --------------------------
@@ -437,62 +436,4 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		DontWaitForTriggerResponse: true,
 		Error:                      fmt.Errorf("Unsupported GitLab event type: %s", eventID),
 	}
-}
-
-// GatherMetrics ...
-func (hp HookProvider) GatherMetrics(r *http.Request) (measured bool, result hookCommon.MetricsResultModel) {
-	hook, err := gitlab.New()
-	if err != nil {
-		return false, hookCommon.MetricsResultModel{}
-	}
-
-	payload, err := hook.Parse(r, gitlab.MergeRequestEvents, gitlab.PushEvents)
-	if err != nil {
-		if err == gitlab.ErrEventNotFound {
-			return false, hookCommon.MetricsResultModel{}
-		}
-	}
-
-	metricsResult := hookCommon.MetricsResultModel{
-		AppSlug:     "",
-		GitProvider: ProviderID,
-	}
-
-	switch payload := payload.(type) {
-	case gitlab.MergeRequestEventPayload:
-		metricsResult.Action = payload.ObjectAttributes.Action
-		metricsResult.Event = payload.ObjectKind
-		metricsResult.GitRef = payload.ObjectAttributes.Ref
-		metricsResult.Status = payload.ObjectAttributes.State
-		metricsResult.CommitID = payload.ObjectAttributes.CommitID
-		metricsResult.Username = payload.User.UserName
-		metricsResult.SourceBranch = payload.ObjectAttributes.SourceBranch
-		metricsResult.TargetBranch = payload.ObjectAttributes.TargetBranch
-		metricsResult.PullRequestID = fmt.Sprintf("%d", payload.ObjectAttributes.ID)
-		metricsResult.RespositoryURL = payload.Repository.URL
-		metricsResult.Timestamp = payload.ObjectAttributes.UpdatedAt.Time
-	case gitlab.PushEventPayload:
-		currentCommit := findCommit(payload.Commits, payload.CheckoutSHA)
-		metricsResult.Event = "push"
-		metricsResult.GitRef = payload.Ref
-		metricsResult.CommitID = payload.CheckoutSHA
-		metricsResult.Username = payload.UserUsername
-		metricsResult.RespositoryURL = payload.Repository.URL
-		metricsResult.NoOfCommits = int(payload.TotalCommitsCount)
-		metricsResult.NoOfAdditions = len(currentCommit.Added)
-		metricsResult.NoOfDeletions = len(currentCommit.Removed)
-		metricsResult.NoOfChangedFiles = len(currentCommit.Modified)
-		metricsResult.Timestamp = currentCommit.Timestamp.Time
-	}
-
-	return true, metricsResult
-}
-
-func findCommit(commits []gitlab.Commit, id string) *gitlab.Commit {
-	for _, commit := range commits {
-		if commit.ID == id {
-			return &commit
-		}
-	}
-	return nil
 }

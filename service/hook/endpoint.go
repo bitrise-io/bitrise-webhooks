@@ -174,28 +174,26 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hookTransformResult := hookCommon.TransformResultModel{}
-	metrics.Trace("Hook: Transform", func() {
-		hookTransformResult = hookProvider.TransformRequest(r)
-	})
-
-	if c.PubsubClient != nil {
-		var metricsResult *hookCommon.MetricsResultModel
+	metricsProvider, isMetricsProvider := hookProvider.(hookCommon.MetricsProvider)
+	if /*c.PubsubClient != nil &&*/ isMetricsProvider {
+		var webhookMetrics hookCommon.Metrics
+		var measured bool
 
 		metrics.Trace("Hook: GatherMetrics", func() {
-			measured, result := hookProvider.GatherMetrics(r)
-			if measured {
-				metricsResult = &result
-				metricsResult.AppSlug = appSlug
-			}
+			measured, webhookMetrics = metricsProvider.GatherMetrics(r, appSlug)
 		})
 
-		if metricsResult != nil {
+		if measured && webhookMetrics != nil {
 			if err := c.PubsubClient.PublishMetrics(*metricsResult); err != nil {
 				logger.Error(" [!] Exception: PublishMetrics: failed to publish metrics results", zap.Error(err))
 			}
 		}
 	}
+
+	hookTransformResult := hookCommon.TransformResultModel{}
+	metrics.Trace("Hook: Transform", func() {
+		hookTransformResult = hookProvider.TransformRequest(r)
+	})
 
 	if hookTransformResult.ShouldSkip {
 		respondWithSuccessMessage(w, &hookProvider, fmt.Sprintf("Acknowledged, but skipping. Reason: %s", hookTransformResult.Error))
