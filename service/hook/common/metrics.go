@@ -6,68 +6,70 @@ import (
 	"time"
 )
 
+type GeneralMetrics struct {
+	Timestamp       time.Time `json:""`
+	AppSlug         string    `json:""`
+	Action          string    `json:""`
+	OriginalTrigger string    `json:""`
+	Email           string    `json:""`
+	Username        string    `json:""`
+	GitRef          string    `json:""`
+}
+
 type PullRequestMetrics struct {
-	Timestamp             time.Time  `json:""`
-	AppSlug               string     `json:""`
-	Action                string     `json:""`
 	PullRequestID         string     `json:""` // PR number
-	Email                 string     `json:""`
-	Username              string     `json:""`
-	GitRef                string     `json:""`
 	CommitID              string     `json:""`
-	OriginalTrigger       string     `json:""`
 	OldestCommitTimestamp *time.Time `json:""`
-	ChangedFiles          int
-	Additions             int
-	Deletions             int
-	Commits               int
+	ChangedFiles          int        `json:""`
+	Additions             int        `json:""`
+	Deletions             int        `json:""`
+	Commits               int        `json:""`
 }
 
 type PullRequestOpenedMetrics struct {
+	GeneralMetrics
 	PullRequestMetrics
 	Status string `json:""`
+}
+
+type PullRequestClosedMetrics struct {
+	GeneralMetrics
+	PullRequestMetrics
+	Status string `json:""`
+}
+
+type PullRequestUpdatedMetrics struct {
+	GeneralMetrics
+	PullRequestMetrics
+	Status string `json:""`
+}
+
+type PullRequestCommentMetrics struct {
+	GeneralMetrics
+	PullRequestMetrics
+}
+
+type PushMetrics struct {
+	GeneralMetrics
+	CommitIDAfter         string
+	CommitIDBefore        string
+	OldestCommitTimestamp *time.Time `json:""`
 }
 
 func (m PullRequestOpenedMetrics) String() string {
 	return stringer(m)
 }
 
-type PullRequestClosedMetrics struct {
-	PullRequestMetrics
-	Status string `json:""`
-}
-
 func (m PullRequestClosedMetrics) String() string {
 	return stringer(m)
-}
-
-type PullRequestUpdatedMetrics struct {
-	PullRequestOpenedMetrics
 }
 
 func (m PullRequestUpdatedMetrics) String() string {
 	return stringer(m)
 }
 
-type PullRequestCommentMetrics struct {
-	PullRequestMetrics
-}
-
 func (m PullRequestCommentMetrics) String() string {
 	return stringer(m)
-}
-
-type PushMetrics struct {
-	Timestamp             time.Time `json:""`
-	AppSlug               string    `json:""`
-	Action                string    `json:""`
-	Email                 string    `json:""`
-	Username              string    `json:""`
-	GitRef                string    `json:""`
-	CommitIDAfter         string
-	CommitIDBefore        string
-	OriginalTrigger       string     `json:""`
-	OldestCommitTimestamp *time.Time `json:""`
 }
 
 func (m PushMetrics) String() string {
