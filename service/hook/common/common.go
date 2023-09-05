@@ -72,6 +72,9 @@ type Provider interface {
 	// It might still decide to skip the actual call - for more info
 	//  check the docs of TransformResultModel
 	TransformRequest(r *http.Request) TransformResultModel
+}
+
+type MetricsProvider interface {
 	GatherMetrics(r *http.Request) (measured bool, result MetricsResultModel)
 }
 

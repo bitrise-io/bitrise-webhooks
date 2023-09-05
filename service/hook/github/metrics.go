@@ -35,19 +35,19 @@ func (hp HookProvider) GatherMetrics(r *http.Request) (measured bool, result com
 		switch {
 		case isPullRequestOpenedAction(webhookType, event.GetAction()):
 			fmt.Printf("PR opened: %s:%s\n", webhookType, event.GetAction())
-			metrics = newPullRequestOpenedMetrics(event, webhookType) // OK
+			metrics = newPullRequestOpenedMetrics(event, webhookType)
 			fmt.Println(metrics)
 		case isPullRequestUpdatedAction(webhookType, event.GetAction()):
 			fmt.Printf("PR updated: %s:%s\n", webhookType, event.GetAction())
-			metrics = newPullRequestUpdatedMetrics(event, webhookType) // OK
+			metrics = newPullRequestUpdatedMetrics(event, webhookType)
 			fmt.Println(metrics)
 		case isPullRequestCommentAction(webhookType, event.GetAction()):
 			fmt.Printf("PR comment: %s:%s\n", webhookType, event.GetAction())
-			metrics = newPullRequestCommentMetrics(event, webhookType) // OK
+			metrics = newPullRequestCommentMetrics(event, webhookType)
 			fmt.Println(metrics)
 		case isPullRequestClosedAction(webhookType, event.GetAction()):
 			fmt.Printf("PR closed: %s:%s\n", webhookType, event.GetAction())
-			metrics = newPullRequestClosedMetrics(event, webhookType) // OK
+			metrics = newPullRequestClosedMetrics(event, webhookType)
 			fmt.Println(metrics)
 		}
 
@@ -57,16 +57,16 @@ func (hp HookProvider) GatherMetrics(r *http.Request) (measured bool, result com
 		switch {
 		case isPullRequestUpdatedAction(webhookType, event.GetAction()):
 			fmt.Printf("PR updated: %s:%s\n", webhookType, event.GetAction())
-			metrics = newPullRequestUpdatedMetrics(event, webhookType) // OK
+			metrics = newPullRequestUpdatedMetrics(event, webhookType)
 			fmt.Println(metrics)
 		}
-	case *github.PullRequestReviewCommentEvent: // OK
+	case *github.PullRequestReviewCommentEvent:
 		fmt.Println("action:", event.GetAction())
 
 		switch {
 		case isPullRequestCommentAction(webhookType, event.GetAction()):
 			fmt.Printf("PR comment: %s:%s\n", webhookType, event.GetAction())
-			metrics = newPullRequestCommentMetrics(event, webhookType) // OK
+			metrics = newPullRequestCommentMetrics(event, webhookType)
 			fmt.Println(metrics)
 		}
 	case *github.PullRequestReviewThreadEvent:
@@ -75,7 +75,7 @@ func (hp HookProvider) GatherMetrics(r *http.Request) (measured bool, result com
 		switch {
 		case isPullRequestCommentAction(webhookType, event.GetAction()):
 			fmt.Printf("PR comment: %s:%s\n", webhookType, event.GetAction())
-			metrics = newPullRequestCommentMetrics(event, webhookType) // OK
+			metrics = newPullRequestCommentMetrics(event, webhookType)
 			fmt.Println(metrics)
 		}
 	case *github.PushEvent:
@@ -84,7 +84,7 @@ func (hp HookProvider) GatherMetrics(r *http.Request) (measured bool, result com
 		switch {
 		case isPushAction(webhookType, event.GetAction()):
 			fmt.Printf("Push: %s:%s\n", webhookType, event.GetAction())
-			metrics = newPushMetrics(event, webhookType) // OK
+			metrics = newPushMetrics(event, webhookType)
 			fmt.Println(metrics)
 		}
 	}

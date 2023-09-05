@@ -69,8 +69,3 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		},
 	}
 }
-
-// GatherMetrics ...
-func (hp HookProvider) GatherMetrics(r *http.Request) (measured bool, result hookCommon.MetricsResultModel) {
-	return false, hookCommon.MetricsResultModel{}
-}

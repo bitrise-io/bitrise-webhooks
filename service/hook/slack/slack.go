@@ -268,8 +268,3 @@ func (hp HookProvider) TransformSuccessMessageResponse(msg string) hookCommon.Tr
 		HTTPStatusCode: 200,
 	}
 }
-
-// GatherMetrics ...
-func (hp HookProvider) GatherMetrics(r *http.Request) (measured bool, result hookCommon.MetricsResultModel) {
-	return false, hookCommon.MetricsResultModel{}
-}

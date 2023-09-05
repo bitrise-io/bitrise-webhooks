@@ -187,8 +187,3 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		Error: fmt.Errorf("Unsupported Webhook event: %s", eventID),
 	}
 }
-
-// GatherMetrics ...
-func (hp HookProvider) GatherMetrics(r *http.Request) (measured bool, result hookCommon.MetricsResultModel) {
-	return false, hookCommon.MetricsResultModel{}
-}
