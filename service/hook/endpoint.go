@@ -1,7 +1,9 @@
 package hook
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -180,7 +182,20 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		var measured bool
 
 		metrics.Trace("Hook: GatherMetrics", func() {
+			// GatherMetrics reads the request body, so it needs to be rewinded
+			var originalBody []byte
+			if r.Body != nil {
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					// TODO: handle error
+				}
+				originalBody = body
+			}
+			r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
+
 			measured, webhookMetrics = metricsProvider.GatherMetrics(r, appSlug)
+
+			r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
 		})
 
 		if measured && webhookMetrics != nil {
