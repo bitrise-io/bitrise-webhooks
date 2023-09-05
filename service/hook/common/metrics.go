@@ -8,7 +8,8 @@ import (
 
 // GeneralMetrics ...
 type GeneralMetrics struct {
-	Timestamp       time.Time `json:""`
+	TimeStamp       time.Time `json:""`
+	EventTimestamp  time.Time `json:""`
 	AppSlug         string    `json:""`
 	Action          string    `json:""`
 	OriginalTrigger string    `json:""`

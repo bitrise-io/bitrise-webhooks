@@ -114,7 +114,8 @@ func newPushMetrics(event *github.PushEvent, webhookType, appSlug string) common
 	// - CommitIDAfter: <commit_id>
 	return common.PushMetrics{
 		GeneralMetrics: common.GeneralMetrics{
-			Timestamp:       *timestamp,
+			TimeStamp:       time.Now(),
+			EventTimestamp:  *timestamp,
 			AppSlug:         appSlug,
 			Action:          action,
 			OriginalTrigger: originalTrigger,
@@ -139,7 +140,8 @@ func newPullRequestOpenedMetrics(event interface{}, webhookType, appSlug string)
 
 		return common.PullRequestOpenedMetrics{
 			GeneralMetrics: common.GeneralMetrics{
-				Timestamp:       *timestamp,
+				TimeStamp:       time.Now(),
+				EventTimestamp:  *timestamp,
 				AppSlug:         appSlug,
 				Action:          action,
 				OriginalTrigger: originalTrigger,
@@ -166,7 +168,8 @@ func newPullRequestUpdatedMetrics(event interface{}, webhookType, appSlug string
 
 		return common.PullRequestUpdatedMetrics{
 			GeneralMetrics: common.GeneralMetrics{
-				Timestamp:       *timestamp,
+				TimeStamp:       time.Now(),
+				EventTimestamp:  *timestamp,
 				AppSlug:         appSlug,
 				Action:          action,
 				OriginalTrigger: originalTrigger,
@@ -186,7 +189,8 @@ func newPullRequestUpdatedMetrics(event interface{}, webhookType, appSlug string
 
 		return common.PullRequestUpdatedMetrics{
 			GeneralMetrics: common.GeneralMetrics{
-				Timestamp:       *timestamp,
+				TimeStamp:       time.Now(),
+				EventTimestamp:  *timestamp,
 				AppSlug:         appSlug,
 				Action:          action,
 				OriginalTrigger: originalTrigger,
@@ -213,7 +217,8 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 
 		return common.PullRequestCommentMetrics{
 			GeneralMetrics: common.GeneralMetrics{
-				Timestamp:       *timestamp,
+				TimeStamp:       time.Now(),
+				EventTimestamp:  *timestamp,
 				AppSlug:         appSlug,
 				Action:          action,
 				OriginalTrigger: originalTrigger,
@@ -230,7 +235,8 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 
 		return common.PullRequestCommentMetrics{
 			GeneralMetrics: common.GeneralMetrics{
-				//Timestamp:       *timestamp, // TODO: what should be the timestamp here?
+				TimeStamp: time.Now(),
+				//EventTimestamp:       *timestamp, // TODO: what should be the EventTimestamp here?
 				AppSlug:         appSlug,
 				Action:          action,
 				OriginalTrigger: originalTrigger,
@@ -255,7 +261,8 @@ func newPullRequestClosedMetrics(event interface{}, webhookType, appSlug string)
 
 		return common.PullRequestClosedMetrics{
 			GeneralMetrics: common.GeneralMetrics{
-				Timestamp:       *timestamp,
+				TimeStamp:       time.Now(),
+				EventTimestamp:  *timestamp,
 				AppSlug:         appSlug,
 				Action:          action,
 				OriginalTrigger: originalTrigger,
