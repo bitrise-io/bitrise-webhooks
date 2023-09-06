@@ -19,7 +19,7 @@ type Client struct {
 func NewClient(projectID, serviceAccountJSON, pubsubTopicID string) (*Client, error) {
 	client, err := pubsub.NewClient(context.Background(), projectID, option.WithCredentialsJSON([]byte(serviceAccountJSON)))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return &Client{c: client, pubsubTopicID: pubsubTopicID}, nil
 }
@@ -32,7 +32,7 @@ func (c *Client) PublishMetrics(metrics common.Metrics) (err error) {
 
 	b, err := metrics.Serialise()
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	msg := pubsub.Message{Data: b}
