@@ -6,7 +6,6 @@ require (
 	cloud.google.com/go/pubsub v1.33.0
 	github.com/bitrise-io/api-utils v0.0.0-20190731115401-7974d3427746
 	github.com/bitrise-io/go-utils v0.0.0-20170807105337-6eb582e08179
-	github.com/go-playground/webhooks v5.17.0+incompatible
 	github.com/google/go-github/v54 v54.0.0
 	github.com/gorilla/mux v1.5.0
 	github.com/pkg/errors v0.8.0

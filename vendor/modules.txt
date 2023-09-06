@@ -69,10 +69,6 @@ github.com/cloudflare/circl/sign/ed448
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/go-playground/webhooks v5.17.0+incompatible
-## explicit
-github.com/go-playground/webhooks/github
-github.com/go-playground/webhooks/gitlab
 # github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 ## explicit
 github.com/golang/groupcache/lru
