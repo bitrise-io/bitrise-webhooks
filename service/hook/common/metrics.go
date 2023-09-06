@@ -7,6 +7,7 @@ import (
 )
 
 // GeneralMetrics ...
+// TODO: specify json keys
 type GeneralMetrics struct {
 	TimeStamp       time.Time `json:""`
 	EventTimestamp  time.Time `json:""`
