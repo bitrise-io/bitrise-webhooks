@@ -180,7 +180,6 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO: remove comment around PubsubClient nil check
 	if /*c.PubsubClient != nil &&*/ isMetricsProvider {
 		var webhookMetrics hookCommon.Metrics
-		var measured bool
 
 		metrics.Trace("Hook: GatherMetrics", func() {
 			// GatherMetrics reads the request body, so it needs to be rewinded
@@ -199,14 +198,14 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 				r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
 			}
 
-			measured, webhookMetrics = metricsProvider.GatherMetrics(r, appSlug)
+			webhookMetrics = metricsProvider.GatherMetrics(r, appSlug)
 
 			if shouldRewindBody {
 				r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
 			}
 		})
 
-		if measured && webhookMetrics != nil {
+		if webhookMetrics != nil {
 			if err := c.PubsubClient.PublishMetrics(webhookMetrics); err != nil {
 				logger.Error(" [!] Exception: PublishMetrics: failed to publish metrics results", zap.Error(err))
 			}

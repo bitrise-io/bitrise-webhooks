@@ -59,7 +59,7 @@ type Metrics interface {
 
 // MetricsProvider ...
 type MetricsProvider interface {
-	GatherMetrics(r *http.Request, appSlug string) (measured bool, metrics Metrics)
+	GatherMetrics(r *http.Request, appSlug string) (metrics Metrics)
 }
 
 // ---------------------------------------

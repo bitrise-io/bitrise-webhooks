@@ -12,20 +12,6 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
-func stringFlagOrEnv(flagValue *string, envKey string) string {
-	if flagValue != nil && *flagValue != "" {
-		return *flagValue
-	}
-	return os.Getenv(envKey)
-}
-
-func stringFlag(flagValue *string) string {
-	if flagValue != nil && *flagValue != "" {
-		return *flagValue
-	}
-	return ""
-}
-
 func main() {
 	tracer.Start(tracer.WithServiceName("webhooks"))
 	defer tracer.Stop()
@@ -79,4 +65,11 @@ func main() {
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Failed to ListenAndServe: %s", err)
 	}
+}
+
+func stringFlagOrEnv(flagValue *string, envKey string) string {
+	if flagValue != nil && *flagValue != "" {
+		return *flagValue
+	}
+	return os.Getenv(envKey)
 }

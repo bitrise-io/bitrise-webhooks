@@ -14,10 +14,10 @@ import (
 // GatherMetrics ...
 // TODO: remove debug logging
 // TODO: shouldn't we return and log errors?
-func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (measured bool, metrics common.Metrics) {
+func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (metrics common.Metrics) {
 	payload, err := github.ValidatePayload(r, nil)
 	if err != nil {
-		return false, nil
+		return nil
 	}
 
 	webhookType := github.WebHookType(r)
@@ -25,7 +25,7 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (measured 
 	event, err := github.ParseWebHook(webhookType, payload)
 	if err != nil {
 		fmt.Println(err)
-		return false, nil
+		return nil
 	}
 
 	switch event := event.(type) {
@@ -89,7 +89,7 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (measured 
 		}
 	}
 
-	return true, metrics
+	return metrics
 }
 
 func newPushMetrics(event *github.PushEvent, webhookType, appSlug string) common.PushMetrics {
