@@ -12,6 +12,7 @@ import (
 )
 
 // GatherMetrics ...
+// TODO: remove debug logging
 func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (measured bool, metrics common.Metrics) {
 	payload, err := github.ValidatePayload(r, nil)
 	if err != nil {

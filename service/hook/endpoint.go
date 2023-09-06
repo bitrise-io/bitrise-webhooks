@@ -184,18 +184,25 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		metrics.Trace("Hook: GatherMetrics", func() {
 			// GatherMetrics reads the request body, so it needs to be rewinded
 			var originalBody []byte
+			shouldRewindBody := false
 			if r.Body != nil {
 				body, err := io.ReadAll(r.Body)
 				if err != nil {
-					// TODO: handle error
+					logger.Error(" [!] Exception: failed to read request body", zap.Error(err))
+				} else {
+					originalBody = body
+					shouldRewindBody = true
 				}
-				originalBody = body
 			}
-			r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
+			if shouldRewindBody {
+				r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
+			}
 
 			measured, webhookMetrics = metricsProvider.GatherMetrics(r, appSlug)
 
-			r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
+			if shouldRewindBody {
+				r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
+			}
 		})
 
 		if measured && webhookMetrics != nil {
