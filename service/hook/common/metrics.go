@@ -70,6 +70,7 @@ func (m PullRequestOpenedMetrics) Serialise() ([]byte, error) {
 }
 
 // String ...
+// TODO: remove String() funcs
 func (m PullRequestOpenedMetrics) String() string {
 	return stringer(m)
 }

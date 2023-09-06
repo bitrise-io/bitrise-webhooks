@@ -177,6 +177,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	metricsProvider, isMetricsProvider := hookProvider.(hookCommon.MetricsProvider)
+	// TODO: remove comment around PubsubClient nil check
 	if /*c.PubsubClient != nil &&*/ isMetricsProvider {
 		var webhookMetrics hookCommon.Metrics
 		var measured bool

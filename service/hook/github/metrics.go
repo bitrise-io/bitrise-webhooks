@@ -13,6 +13,7 @@ import (
 
 // GatherMetrics ...
 // TODO: remove debug logging
+// TODO: shouldn't we return and log errors?
 func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (measured bool, metrics common.Metrics) {
 	payload, err := github.ValidatePayload(r, nil)
 	if err != nil {
@@ -107,10 +108,10 @@ func newPushMetrics(event *github.PushEvent, webhookType, appSlug string) common
 		oldestCommitTimestamp = t.GetTime()
 	}
 
-	// branch delete event:
+	// commit delete push:
 	// - CommitIDBefore:
 	// - CommitIDAfter: null
-	// branch create event:
+	// new commit push:
 	// - CommitIDBefore: nul
 	// - CommitIDAfter: <commit_id>
 	return common.PushMetrics{
