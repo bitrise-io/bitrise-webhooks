@@ -21,13 +21,12 @@ type GeneralMetrics struct {
 
 // PullRequestMetrics ...
 type PullRequestMetrics struct {
-	PullRequestID         string     `json:""` // PR number
-	CommitID              string     `json:""`
-	OldestCommitTimestamp *time.Time `json:""`
-	ChangedFiles          int        `json:""`
-	Additions             int        `json:""`
-	Deletions             int        `json:""`
-	Commits               int        `json:""`
+	PullRequestID string `json:""` // PR number
+	CommitID      string `json:""`
+	ChangedFiles  int    `json:""`
+	Additions     int    `json:""`
+	Deletions     int    `json:""`
+	Commits       int    `json:""`
 }
 
 // PullRequestOpenedMetrics ...

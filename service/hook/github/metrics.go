@@ -283,13 +283,12 @@ func newPullRequestMetrics(pullRequest *github.PullRequest) common.PullRequestMe
 	prID := fmt.Sprintf("%d", pullRequest.GetNumber())
 
 	return hookCommon.PullRequestMetrics{
-		PullRequestID:         prID,
-		CommitID:              pullRequest.GetHead().GetSHA(),
-		OldestCommitTimestamp: nil,
-		ChangedFiles:          pullRequest.GetChangedFiles(),
-		Additions:             pullRequest.GetAdditions(),
-		Deletions:             pullRequest.GetDeletions(),
-		Commits:               pullRequest.GetCommits(),
+		PullRequestID: prID,
+		CommitID:      pullRequest.GetHead().GetSHA(),
+		ChangedFiles:  pullRequest.GetChangedFiles(),
+		Additions:     pullRequest.GetAdditions(),
+		Deletions:     pullRequest.GetDeletions(),
+		Commits:       pullRequest.GetCommits(),
 	}
 }
 
