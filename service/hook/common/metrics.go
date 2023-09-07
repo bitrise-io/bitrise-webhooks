@@ -6,11 +6,19 @@ import (
 	"time"
 )
 
+type Event string
+
+const (
+	PullRequestEvent Event = "pull_request"
+	PushEvent        Event = "git_push"
+)
+
 // GeneralMetrics ...
 type GeneralMetrics struct {
 	TimeStamp       time.Time  `json:"timestamp,omitempty"`
 	EventTimestamp  *time.Time `json:"event_timestamp,omitempty"`
 	AppSlug         string     `json:"app_slug,omitempty"`
+	Event           Event      `json:"event,omitempty"`
 	Action          string     `json:"action,omitempty"`
 	OriginalTrigger string     `json:"original_trigger,omitempty"`
 	Username        string     `json:"user_name,omitempty"`
