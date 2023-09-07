@@ -14,7 +14,6 @@ type GeneralMetrics struct {
 	AppSlug         string    `json:""`
 	Action          string    `json:""`
 	OriginalTrigger string    `json:""`
-	Email           string    `json:""`
 	Username        string    `json:""`
 	GitRef          string    `json:""`
 }
