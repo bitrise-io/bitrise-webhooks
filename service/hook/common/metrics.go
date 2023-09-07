@@ -9,44 +9,44 @@ import (
 // GeneralMetrics ...
 // TODO: specify json keys
 type GeneralMetrics struct {
-	TimeStamp       time.Time  `json:""`
-	EventTimestamp  *time.Time `json:""`
-	AppSlug         string     `json:""`
-	Action          string     `json:""`
-	OriginalTrigger string     `json:""`
-	Username        string     `json:""`
-	GitRef          string     `json:""`
+	TimeStamp       time.Time  `json:"timestamp"`
+	EventTimestamp  *time.Time `json:"event_timestamp"`
+	AppSlug         string     `json:"app_slug"`
+	Action          string     `json:"action"`
+	OriginalTrigger string     `json:"original_trigger"`
+	Username        string     `json:"user_name"`
+	GitRef          string     `json:"git_ref"`
 }
 
 // PullRequestMetrics ...
 type PullRequestMetrics struct {
-	PullRequestID string `json:""` // PR number
-	CommitID      string `json:""`
-	ChangedFiles  int    `json:""`
-	Additions     int    `json:""`
-	Deletions     int    `json:""`
-	Commits       int    `json:""`
+	PullRequestID string `json:"pull_request_id"` // PR number
+	CommitID      string `json:"commit_id"`
+	ChangedFiles  int    `json:"changed_files_count"`
+	Additions     int    `json:"addition_count"`
+	Deletions     int    `json:"deletion_count"`
+	Commits       int    `json:"commit_count"`
 }
 
 // PullRequestOpenedMetrics ...
 type PullRequestOpenedMetrics struct {
 	GeneralMetrics
 	PullRequestMetrics
-	Status string `json:""`
+	Status string `json:"status"`
 }
 
 // PullRequestClosedMetrics ...
 type PullRequestClosedMetrics struct {
 	GeneralMetrics
 	PullRequestMetrics
-	Status string `json:""`
+	Status string `json:"status"`
 }
 
 // PullRequestUpdatedMetrics ...
 type PullRequestUpdatedMetrics struct {
 	GeneralMetrics
 	PullRequestMetrics
-	Status string `json:""`
+	Status string `json:"status"`
 }
 
 // PullRequestCommentMetrics ...
@@ -58,9 +58,9 @@ type PullRequestCommentMetrics struct {
 // PushMetrics ...
 type PushMetrics struct {
 	GeneralMetrics
-	CommitIDAfter         string
-	CommitIDBefore        string
-	OldestCommitTimestamp *time.Time `json:""`
+	CommitIDAfter         string     `json:"commit_id_before"`
+	CommitIDBefore        string     `json:"commit_id_after"`
+	OldestCommitTimestamp *time.Time `json:"oldest_commit_timestamp"`
 	MasterBranch          string
 }
 
