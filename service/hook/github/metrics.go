@@ -202,7 +202,7 @@ func newPushMetrics(event interface{}, webhookType, appSlug string) *common.Push
 	return nil
 }
 
-func newPullRequestOpenedMetrics(event interface{}, webhookType, appSlug string) common.PullRequestOpenedMetrics {
+func newPullRequestOpenedMetrics(event interface{}, webhookType, appSlug string) *common.PullRequestOpenedMetrics {
 	switch event := event.(type) {
 	case *github.PullRequestEvent:
 		pullRequest := event.GetPullRequest()
@@ -210,7 +210,7 @@ func newPullRequestOpenedMetrics(event interface{}, webhookType, appSlug string)
 		action := event.GetAction()
 		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 
-		return common.PullRequestOpenedMetrics{
+		return &common.PullRequestOpenedMetrics{
 			GeneralMetrics: common.GeneralMetrics{
 				TimeStamp:       time.Now(),
 				EventTimestamp:  timestamp,
@@ -225,10 +225,10 @@ func newPullRequestOpenedMetrics(event interface{}, webhookType, appSlug string)
 		}
 	}
 
-	return common.PullRequestOpenedMetrics{}
+	return nil
 }
 
-func newPullRequestUpdatedMetrics(event interface{}, webhookType, appSlug string) common.PullRequestUpdatedMetrics {
+func newPullRequestUpdatedMetrics(event interface{}, webhookType, appSlug string) *common.PullRequestUpdatedMetrics {
 	switch event := event.(type) {
 	case *github.PullRequestEvent:
 		pullRequest := event.GetPullRequest()
@@ -236,7 +236,7 @@ func newPullRequestUpdatedMetrics(event interface{}, webhookType, appSlug string
 		action := event.GetAction()
 		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 
-		return common.PullRequestUpdatedMetrics{
+		return &common.PullRequestUpdatedMetrics{
 			GeneralMetrics: common.GeneralMetrics{
 				TimeStamp:       time.Now(),
 				EventTimestamp:  timestamp,
@@ -255,7 +255,7 @@ func newPullRequestUpdatedMetrics(event interface{}, webhookType, appSlug string
 		action := event.GetAction()
 		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 
-		return common.PullRequestUpdatedMetrics{
+		return &common.PullRequestUpdatedMetrics{
 			GeneralMetrics: common.GeneralMetrics{
 				TimeStamp:       time.Now(),
 				EventTimestamp:  timestamp,
@@ -269,7 +269,7 @@ func newPullRequestUpdatedMetrics(event interface{}, webhookType, appSlug string
 			Status:             event.GetPullRequest().GetState(),
 		}
 	}
-	return common.PullRequestUpdatedMetrics{}
+	return nil
 }
 
 func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string) *common.PullRequestCommentMetrics {
@@ -337,7 +337,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 	return nil
 }
 
-func newPullRequestClosedMetrics(event interface{}, webhookType, appSlug string) common.PullRequestClosedMetrics {
+func newPullRequestClosedMetrics(event interface{}, webhookType, appSlug string) *common.PullRequestClosedMetrics {
 	switch event := event.(type) {
 	case *github.PullRequestEvent:
 		pullRequest := event.GetPullRequest()
@@ -350,7 +350,7 @@ func newPullRequestClosedMetrics(event interface{}, webhookType, appSlug string)
 			pullRequestMetrics.MergeCommitSHA = pullRequest.GetMergeCommitSHA()
 		}
 
-		return common.PullRequestClosedMetrics{
+		return &common.PullRequestClosedMetrics{
 			GeneralMetrics: common.GeneralMetrics{
 				TimeStamp:       time.Now(),
 				EventTimestamp:  timestamp,
@@ -364,7 +364,7 @@ func newPullRequestClosedMetrics(event interface{}, webhookType, appSlug string)
 			Status:             event.GetPullRequest().GetState(),
 		}
 	}
-	return common.PullRequestClosedMetrics{}
+	return nil
 }
 
 func newPullRequestMetrics(pullRequest *github.PullRequest) common.PullRequestMetrics {
