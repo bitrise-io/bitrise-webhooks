@@ -20,12 +20,13 @@ type GeneralMetrics struct {
 
 // PullRequestMetrics ...
 type PullRequestMetrics struct {
-	PullRequestID string `json:"pull_request_id"` // PR number
-	CommitID      string `json:"commit_id"`
-	ChangedFiles  int    `json:"changed_files_count"`
-	Additions     int    `json:"addition_count"`
-	Deletions     int    `json:"deletion_count"`
-	Commits       int    `json:"commit_count"`
+	PullRequestID  string `json:"pull_request_id"` // PR number
+	CommitID       string `json:"commit_id"`
+	ChangedFiles   int    `json:"changed_files_count"`
+	Additions      int    `json:"addition_count"`
+	Deletions      int    `json:"deletion_count"`
+	Commits        int    `json:"commit_count"`
+	MergeCommitSHA string `json:"merge_commit_sha"`
 }
 
 // PullRequestOpenedMetrics ...
@@ -61,7 +62,7 @@ type PushMetrics struct {
 	CommitIDAfter         string     `json:"commit_id_before"`
 	CommitIDBefore        string     `json:"commit_id_after"`
 	OldestCommitTimestamp *time.Time `json:"oldest_commit_timestamp"`
-	MasterBranch          string
+	MasterBranch          string     `json:"master_branch"`
 }
 
 // Serialise ...

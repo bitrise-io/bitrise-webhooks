@@ -309,6 +309,11 @@ func newPullRequestClosedMetrics(event interface{}, webhookType, appSlug string)
 		action := event.GetAction()
 		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 
+		pullRequestMetrics := newPullRequestMetrics(event.GetPullRequest())
+		if pullRequest.GetMerged() {
+			pullRequestMetrics.MergeCommitSHA = pullRequest.GetMergeCommitSHA()
+		}
+
 		return common.PullRequestClosedMetrics{
 			GeneralMetrics: common.GeneralMetrics{
 				TimeStamp:       time.Now(),
@@ -319,7 +324,7 @@ func newPullRequestClosedMetrics(event interface{}, webhookType, appSlug string)
 				Username:        event.GetSender().GetLogin(),
 				GitRef:          pullRequest.GetHead().GetRef(),
 			},
-			PullRequestMetrics: newPullRequestMetrics(event.GetPullRequest()),
+			PullRequestMetrics: pullRequestMetrics,
 			Status:             event.GetPullRequest().GetState(),
 		}
 	}
