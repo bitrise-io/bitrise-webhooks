@@ -169,9 +169,6 @@ func newPushMetrics(event interface{}, webhookType, appSlug string) *common.Push
 				Username:        event.GetSender().GetLogin(),
 				GitRef:          event.GetRef(),
 			},
-			CommitIDBefore:        "",
-			CommitIDAfter:         "",
-			OldestCommitTimestamp: nil,
 		}
 	case *github.CreateEvent:
 		action := "created"
@@ -186,9 +183,7 @@ func newPushMetrics(event interface{}, webhookType, appSlug string) *common.Push
 				Username:        event.GetSender().GetLogin(),
 				GitRef:          event.GetRef(),
 			},
-			CommitIDBefore:        "",
-			CommitIDAfter:         "",
-			OldestCommitTimestamp: nil,
+			MasterBranch: event.GetMasterBranch(),
 		}
 	}
 

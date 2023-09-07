@@ -61,6 +61,7 @@ type PushMetrics struct {
 	CommitIDAfter         string
 	CommitIDBefore        string
 	OldestCommitTimestamp *time.Time `json:""`
+	MasterBranch          string
 }
 
 // Serialise ...
