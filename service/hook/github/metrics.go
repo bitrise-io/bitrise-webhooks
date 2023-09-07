@@ -29,6 +29,7 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (metrics c
 	}
 
 	switch event := event.(type) {
+
 	case *github.PullRequestEvent:
 		fmt.Println("action:", event.GetAction())
 
@@ -60,6 +61,7 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (metrics c
 			metrics = newPullRequestUpdatedMetrics(event, webhookType, appSlug)
 			fmt.Println(metrics)
 		}
+
 	case *github.PullRequestReviewCommentEvent:
 		fmt.Println("action:", event.GetAction())
 
@@ -69,6 +71,7 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (metrics c
 			metrics = newPullRequestCommentMetrics(event, webhookType, appSlug)
 			fmt.Println(metrics)
 		}
+
 	case *github.PullRequestReviewThreadEvent:
 		fmt.Println("action:", event.GetAction())
 
@@ -78,6 +81,15 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (metrics c
 			metrics = newPullRequestCommentMetrics(event, webhookType, appSlug)
 			fmt.Println(metrics)
 		}
+
+	case *github.IssueCommentEvent:
+		switch {
+		case isPullRequestCommentAction(webhookType, event.GetAction()):
+			fmt.Printf("PR comment: %s:%s\n", webhookType, event.GetAction())
+			metrics = newPullRequestCommentMetrics(event, webhookType, appSlug)
+			fmt.Println(metrics)
+		}
+
 	case *github.PushEvent:
 		fmt.Println("action:", event.GetAction())
 
@@ -260,7 +272,7 @@ func newPullRequestUpdatedMetrics(event interface{}, webhookType, appSlug string
 	return common.PullRequestUpdatedMetrics{}
 }
 
-func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string) common.PullRequestCommentMetrics {
+func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string) *common.PullRequestCommentMetrics {
 	switch event := event.(type) {
 	case *github.PullRequestReviewCommentEvent:
 		pullRequest := event.GetPullRequest()
@@ -269,7 +281,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 		action := event.GetAction()
 		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 
-		return common.PullRequestCommentMetrics{
+		return &common.PullRequestCommentMetrics{
 			GeneralMetrics: common.GeneralMetrics{
 				TimeStamp:       time.Now(),
 				EventTimestamp:  timestamp,
@@ -286,7 +298,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 		action := event.GetAction()
 		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 
-		return common.PullRequestCommentMetrics{
+		return &common.PullRequestCommentMetrics{
 			GeneralMetrics: common.GeneralMetrics{
 				TimeStamp:       time.Now(),
 				AppSlug:         appSlug,
@@ -297,8 +309,32 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 			},
 			PullRequestMetrics: newPullRequestMetrics(event.GetPullRequest()),
 		}
+	case *github.IssueCommentEvent:
+		if !isPullRequest(event.GetIssue()) {
+			return nil
+		}
+
+		prID := fmt.Sprintf("%d", event.GetIssue().GetNumber())
+		comment := event.GetComment()
+		timestamp := timestampToTime(comment.GetCreatedAt())
+		action := event.GetAction()
+		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
+
+		return &common.PullRequestCommentMetrics{
+			GeneralMetrics: common.GeneralMetrics{
+				TimeStamp:       time.Now(),
+				EventTimestamp:  timestamp,
+				AppSlug:         appSlug,
+				Action:          action,
+				OriginalTrigger: originalTrigger,
+				Username:        event.GetSender().GetLogin(),
+			},
+			PullRequestMetrics: common.PullRequestMetrics{
+				PullRequestID: prID,
+			},
+		}
 	}
-	return common.PullRequestCommentMetrics{}
+	return nil
 }
 
 func newPullRequestClosedMetrics(event interface{}, webhookType, appSlug string) common.PullRequestClosedMetrics {
@@ -397,6 +433,9 @@ var pullRequestCommentTriggers = map[string][]string{
 		"resolved",
 		"unresolved",
 	},
+	"issue_comment": {
+		"created",
+	},
 }
 
 func isPullRequestCommentAction(event, action string) bool {
@@ -447,4 +486,8 @@ func oldestCommitTimestamp(commits []*github.HeadCommit) *time.Time {
 		return timestampToTime(commits[0].GetTimestamp())
 	}
 	return nil
+}
+
+func isPullRequest(issue *github.Issue) bool {
+	return issue.GetPullRequestLinks() != nil
 }
