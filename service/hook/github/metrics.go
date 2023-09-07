@@ -87,46 +87,112 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (metrics c
 			metrics = newPushMetrics(event, webhookType, appSlug)
 			fmt.Println(metrics)
 		}
+
+	case *github.DeleteEvent:
+		fmt.Println("action:", "deleted")
+
+		switch {
+		case isPushAction(webhookType, ""):
+			fmt.Printf("Push: %s:%s\n", webhookType, "deleted")
+			metrics = newPushMetrics(event, webhookType, appSlug)
+			fmt.Println(metrics)
+		}
+
+	case *github.CreateEvent:
+		fmt.Println("action:", "created")
+
+		switch {
+		case isPushAction(webhookType, ""):
+			fmt.Printf("Push: %s:%s\n", webhookType, "created")
+			metrics = newPushMetrics(event, webhookType, appSlug)
+			fmt.Println(metrics)
+		}
 	}
 
 	return metrics
 }
 
-func newPushMetrics(event *github.PushEvent, webhookType, appSlug string) common.PushMetrics {
-	timestamp := timestampToTime(event.GetHeadCommit().GetTimestamp())
-	action := event.GetAction()
-	originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
-	commits := event.GetCommits()
-	var oldestCommit *github.HeadCommit
-	if len(commits) > 0 {
-		oldestCommit = commits[0]
-	}
-	var oldestCommitTimestamp *time.Time
-	if oldestCommit != nil {
-		t := oldestCommit.GetTimestamp()
-		oldestCommitTimestamp = t.GetTime()
+func newPushMetrics(event interface{}, webhookType, appSlug string) *common.PushMetrics {
+	switch event := event.(type) {
+	case *github.PushEvent:
+		timestamp := timestampToTime(event.GetHeadCommit().GetTimestamp())
+		oldestCommitTime := oldestCommitTimestamp(event.GetCommits())
+
+		action := event.GetAction()
+		if action == "" {
+			switch webhookType {
+			case "push":
+				switch {
+				case event.GetCreated():
+					action = "created"
+				case event.GetDeleted():
+					action = "deleted"
+				case event.GetForced():
+					action = "forced"
+				default:
+					action = "pushed"
+				}
+			}
+		}
+		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
+
+		// commit delete push:
+		// - CommitIDBefore:
+		// - CommitIDAfter: null
+		// new commit push:
+		// - CommitIDBefore: nul
+		// - CommitIDAfter: <commit_id>
+		return &common.PushMetrics{
+			GeneralMetrics: common.GeneralMetrics{
+				TimeStamp:       time.Now(),
+				EventTimestamp:  timestamp,
+				AppSlug:         appSlug,
+				Action:          action,
+				OriginalTrigger: originalTrigger,
+				Username:        event.GetPusher().GetName(),
+				GitRef:          event.GetRef(),
+			},
+			CommitIDBefore:        event.GetBefore(),
+			CommitIDAfter:         event.GetAfter(),
+			OldestCommitTimestamp: oldestCommitTime,
+		}
+	case *github.DeleteEvent:
+		action := "deleted"
+		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
+		return &common.PushMetrics{
+			GeneralMetrics: common.GeneralMetrics{
+				TimeStamp:       time.Now(),
+				EventTimestamp:  nil,
+				AppSlug:         appSlug,
+				Action:          action,
+				OriginalTrigger: originalTrigger,
+				Username:        event.GetSender().GetLogin(),
+				GitRef:          event.GetRef(),
+			},
+			CommitIDBefore:        "",
+			CommitIDAfter:         "",
+			OldestCommitTimestamp: nil,
+		}
+	case *github.CreateEvent:
+		action := "created"
+		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
+		return &common.PushMetrics{
+			GeneralMetrics: common.GeneralMetrics{
+				TimeStamp:       time.Now(),
+				EventTimestamp:  nil,
+				AppSlug:         appSlug,
+				Action:          action,
+				OriginalTrigger: originalTrigger,
+				Username:        event.GetSender().GetLogin(),
+				GitRef:          event.GetRef(),
+			},
+			CommitIDBefore:        "",
+			CommitIDAfter:         "",
+			OldestCommitTimestamp: nil,
+		}
 	}
 
-	// commit delete push:
-	// - CommitIDBefore:
-	// - CommitIDAfter: null
-	// new commit push:
-	// - CommitIDBefore: nul
-	// - CommitIDAfter: <commit_id>
-	return common.PushMetrics{
-		GeneralMetrics: common.GeneralMetrics{
-			TimeStamp:       time.Now(),
-			EventTimestamp:  timestamp,
-			AppSlug:         appSlug,
-			Action:          action,
-			OriginalTrigger: originalTrigger,
-			Username:        event.GetPusher().GetName(),
-			GitRef:          event.GetRef(),
-		},
-		CommitIDBefore:        event.GetBefore(),
-		CommitIDAfter:         event.GetAfter(),
-		OldestCommitTimestamp: oldestCommitTimestamp,
-	}
+	return nil
 }
 
 func newPullRequestOpenedMetrics(event interface{}, webhookType, appSlug string) common.PullRequestOpenedMetrics {
@@ -353,6 +419,12 @@ var pushActions = map[string][]string{
 	"push": {
 		"",
 	},
+	"create": {
+		"",
+	},
+	"delete": {
+		"",
+	},
 }
 
 func isPushAction(event, action string) bool {
@@ -366,6 +438,13 @@ func timestampToTime(timestamp github.Timestamp) *time.Time {
 		if !t.IsZero() {
 			return t
 		}
+	}
+	return nil
+}
+
+func oldestCommitTimestamp(commits []*github.HeadCommit) *time.Time {
+	if len(commits) > 0 {
+		return timestampToTime(commits[0].GetTimestamp())
 	}
 	return nil
 }
