@@ -275,11 +275,12 @@ func newPullRequestUpdatedMetrics(event interface{}, webhookType, appSlug string
 func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string) *common.PullRequestCommentMetrics {
 	switch event := event.(type) {
 	case *github.PullRequestReviewCommentEvent:
-		pullRequest := event.GetPullRequest()
 		comment := event.GetComment()
 		timestamp := timestampToTime(comment.GetCreatedAt())
 		action := event.GetAction()
 		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
+		pullRequest := event.GetPullRequest()
+		prID := fmt.Sprintf("%d", pullRequest.GetNumber())
 
 		return &common.PullRequestCommentMetrics{
 			GeneralMetrics: common.GeneralMetrics{
@@ -291,12 +292,13 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 				Username:        event.GetSender().GetLogin(),
 				GitRef:          pullRequest.GetHead().GetRef(),
 			},
-			PullRequestMetrics: newPullRequestMetrics(event.GetPullRequest()),
+			PullRequestID: prID,
 		}
 	case *github.PullRequestReviewThreadEvent:
-		pullRequest := event.GetPullRequest()
 		action := event.GetAction()
 		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
+		pullRequest := event.GetPullRequest()
+		prID := fmt.Sprintf("%d", pullRequest.GetNumber())
 
 		return &common.PullRequestCommentMetrics{
 			GeneralMetrics: common.GeneralMetrics{
@@ -307,18 +309,18 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 				Username:        event.GetSender().GetLogin(),
 				GitRef:          pullRequest.GetHead().GetRef(),
 			},
-			PullRequestMetrics: newPullRequestMetrics(event.GetPullRequest()),
+			PullRequestID: prID,
 		}
 	case *github.IssueCommentEvent:
 		if !isPullRequest(event.GetIssue()) {
 			return nil
 		}
 
-		prID := fmt.Sprintf("%d", event.GetIssue().GetNumber())
 		comment := event.GetComment()
 		timestamp := timestampToTime(comment.GetCreatedAt())
 		action := event.GetAction()
 		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
+		prID := fmt.Sprintf("%d", event.GetIssue().GetNumber())
 
 		return &common.PullRequestCommentMetrics{
 			GeneralMetrics: common.GeneralMetrics{
@@ -329,9 +331,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 				OriginalTrigger: originalTrigger,
 				Username:        event.GetSender().GetLogin(),
 			},
-			PullRequestMetrics: common.PullRequestMetrics{
-				PullRequestID: prID,
-			},
+			PullRequestID: prID,
 		}
 	}
 	return nil

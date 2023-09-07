@@ -52,7 +52,7 @@ type PullRequestUpdatedMetrics struct {
 // PullRequestCommentMetrics ...
 type PullRequestCommentMetrics struct {
 	GeneralMetrics
-	PullRequestMetrics
+	PullRequestID string `json:"pull_request_id"` // PR number
 }
 
 // PushMetrics ...
