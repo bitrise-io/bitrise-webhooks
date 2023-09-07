@@ -9,13 +9,13 @@ import (
 // GeneralMetrics ...
 // TODO: specify json keys
 type GeneralMetrics struct {
-	TimeStamp       time.Time `json:""`
-	EventTimestamp  time.Time `json:""`
-	AppSlug         string    `json:""`
-	Action          string    `json:""`
-	OriginalTrigger string    `json:""`
-	Username        string    `json:""`
-	GitRef          string    `json:""`
+	TimeStamp       time.Time  `json:""`
+	EventTimestamp  *time.Time `json:""`
+	AppSlug         string     `json:""`
+	Action          string     `json:""`
+	OriginalTrigger string     `json:""`
+	Username        string     `json:""`
+	GitRef          string     `json:""`
 }
 
 // PullRequestMetrics ...

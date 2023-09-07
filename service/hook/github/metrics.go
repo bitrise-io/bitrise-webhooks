@@ -93,8 +93,7 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (metrics c
 }
 
 func newPushMetrics(event *github.PushEvent, webhookType, appSlug string) common.PushMetrics {
-	createdAt := event.GetHeadCommit().GetTimestamp()
-	timestamp := createdAt.GetTime() // TODO: branch delete -> timestamp empty
+	timestamp := timestampToTime(event.GetHeadCommit().GetTimestamp())
 	action := event.GetAction()
 	originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 	commits := event.GetCommits()
@@ -117,7 +116,7 @@ func newPushMetrics(event *github.PushEvent, webhookType, appSlug string) common
 	return common.PushMetrics{
 		GeneralMetrics: common.GeneralMetrics{
 			TimeStamp:       time.Now(),
-			EventTimestamp:  *timestamp,
+			EventTimestamp:  timestamp,
 			AppSlug:         appSlug,
 			Action:          action,
 			OriginalTrigger: originalTrigger,
@@ -134,15 +133,14 @@ func newPullRequestOpenedMetrics(event interface{}, webhookType, appSlug string)
 	switch event := event.(type) {
 	case *github.PullRequestEvent:
 		pullRequest := event.GetPullRequest()
-		createdAt := pullRequest.GetCreatedAt()
-		timestamp := createdAt.GetTime()
+		timestamp := timestampToTime(pullRequest.GetCreatedAt())
 		action := event.GetAction()
 		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 
 		return common.PullRequestOpenedMetrics{
 			GeneralMetrics: common.GeneralMetrics{
 				TimeStamp:       time.Now(),
-				EventTimestamp:  *timestamp,
+				EventTimestamp:  timestamp,
 				AppSlug:         appSlug,
 				Action:          action,
 				OriginalTrigger: originalTrigger,
@@ -161,15 +159,14 @@ func newPullRequestUpdatedMetrics(event interface{}, webhookType, appSlug string
 	switch event := event.(type) {
 	case *github.PullRequestEvent:
 		pullRequest := event.GetPullRequest()
-		updatedAt := pullRequest.GetUpdatedAt()
-		timestamp := updatedAt.GetTime()
+		timestamp := timestampToTime(pullRequest.GetUpdatedAt())
 		action := event.GetAction()
 		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 
 		return common.PullRequestUpdatedMetrics{
 			GeneralMetrics: common.GeneralMetrics{
 				TimeStamp:       time.Now(),
-				EventTimestamp:  *timestamp,
+				EventTimestamp:  timestamp,
 				AppSlug:         appSlug,
 				Action:          action,
 				OriginalTrigger: originalTrigger,
@@ -181,15 +178,14 @@ func newPullRequestUpdatedMetrics(event interface{}, webhookType, appSlug string
 		}
 	case *github.PullRequestReviewEvent:
 		pullRequest := event.GetPullRequest()
-		updatedAt := pullRequest.GetUpdatedAt()
-		timestamp := updatedAt.GetTime()
+		timestamp := timestampToTime(pullRequest.GetUpdatedAt())
 		action := event.GetAction()
 		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 
 		return common.PullRequestUpdatedMetrics{
 			GeneralMetrics: common.GeneralMetrics{
 				TimeStamp:       time.Now(),
-				EventTimestamp:  *timestamp,
+				EventTimestamp:  timestamp,
 				AppSlug:         appSlug,
 				Action:          action,
 				OriginalTrigger: originalTrigger,
@@ -208,15 +204,14 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 	case *github.PullRequestReviewCommentEvent:
 		pullRequest := event.GetPullRequest()
 		comment := event.GetComment()
-		createdAt := comment.GetCreatedAt()
-		timestamp := createdAt.GetTime()
+		timestamp := timestampToTime(comment.GetCreatedAt())
 		action := event.GetAction()
 		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 
 		return common.PullRequestCommentMetrics{
 			GeneralMetrics: common.GeneralMetrics{
 				TimeStamp:       time.Now(),
-				EventTimestamp:  *timestamp,
+				EventTimestamp:  timestamp,
 				AppSlug:         appSlug,
 				Action:          action,
 				OriginalTrigger: originalTrigger,
@@ -232,8 +227,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 
 		return common.PullRequestCommentMetrics{
 			GeneralMetrics: common.GeneralMetrics{
-				TimeStamp: time.Now(),
-				//EventTimestamp:       *timestamp, // TODO: what should be the EventTimestamp here?
+				TimeStamp:       time.Now(),
 				AppSlug:         appSlug,
 				Action:          action,
 				OriginalTrigger: originalTrigger,
@@ -250,15 +244,14 @@ func newPullRequestClosedMetrics(event interface{}, webhookType, appSlug string)
 	switch event := event.(type) {
 	case *github.PullRequestEvent:
 		pullRequest := event.GetPullRequest()
-		updatedAt := pullRequest.GetUpdatedAt()
-		timestamp := updatedAt.GetTime()
+		timestamp := timestampToTime(pullRequest.GetUpdatedAt())
 		action := event.GetAction()
 		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 
 		return common.PullRequestClosedMetrics{
 			GeneralMetrics: common.GeneralMetrics{
 				TimeStamp:       time.Now(),
-				EventTimestamp:  *timestamp,
+				EventTimestamp:  timestamp,
 				AppSlug:         appSlug,
 				Action:          action,
 				OriginalTrigger: originalTrigger,
@@ -365,4 +358,14 @@ var pushActions = map[string][]string{
 func isPushAction(event, action string) bool {
 	supportedActions := pushActions[event]
 	return sliceutil.IsStringInSlice(action, supportedActions)
+}
+
+func timestampToTime(timestamp github.Timestamp) *time.Time {
+	if !timestamp.Equal(github.Timestamp{}) {
+		t := timestamp.GetTime()
+		if !t.IsZero() {
+			return t
+		}
+	}
+	return nil
 }
