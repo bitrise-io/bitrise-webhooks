@@ -435,6 +435,8 @@ var pullRequestCommentTriggers = map[string][]string{
 	},
 	"issue_comment": {
 		"created",
+		"edited",
+		"deleted",
 	},
 }
 
