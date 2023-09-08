@@ -12,38 +12,30 @@ import (
 )
 
 // GatherMetrics ...
-// TODO: remove debug logging
-// TODO: shouldn't we return and log errors?
-func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (metrics common.Metrics) {
+func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (common.Metrics, error) {
 	payload, err := github.ValidatePayload(r, nil)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	webhookType := github.WebHookType(r)
 
 	event, err := github.ParseWebHook(webhookType, payload)
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		return nil, err
 	}
 
+	var metrics common.Metrics
 	switch event := event.(type) {
 	case *github.PushEvent, *github.DeleteEvent, *github.CreateEvent:
-		if pushMetrics := newPushMetrics(event, webhookType, appSlug); pushMetrics != nil {
-			metrics = pushMetrics
-		}
+		metrics = newPushMetrics(event, webhookType, appSlug)
 	case *github.PullRequestEvent, *github.PullRequestReviewEvent:
-		if prMetrics := newPullRequestMetrics(event, webhookType, appSlug); prMetrics != nil {
-			metrics = *prMetrics
-		}
+		metrics = newPullRequestMetrics(event, webhookType, appSlug)
 	case *github.PullRequestReviewCommentEvent, *github.PullRequestReviewThreadEvent, *github.IssueCommentEvent:
-		if prCommentMetrics := newPullRequestCommentMetrics(event, webhookType, appSlug); prCommentMetrics != nil {
-			metrics = *prCommentMetrics
-		}
+		metrics = newPullRequestCommentMetrics(event, webhookType, appSlug)
 	}
 
-	return metrics
+	return metrics, nil
 }
 
 func newPushMetrics(event interface{}, webhookType, appSlug string) *common.PushMetrics {

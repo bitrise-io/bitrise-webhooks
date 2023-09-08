@@ -180,6 +180,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO: remove comment around PubsubClient nil check
 	if /*c.PubsubClient != nil &&*/ isMetricsProvider {
 		var webhookMetrics hookCommon.Metrics
+		var err error
 
 		metrics.Trace("Hook: GatherMetrics", func() {
 			// GatherMetrics reads the request body, so it needs to be rewinded
@@ -198,12 +199,16 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 				r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
 			}
 
-			webhookMetrics = metricsProvider.GatherMetrics(r, appSlug)
+			webhookMetrics, err = metricsProvider.GatherMetrics(r, appSlug)
 
 			if shouldRewindBody {
 				r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
 			}
 		})
+
+		if err != nil {
+			logger.Debug("Failed to gather metrics from the webhook: err")
+		}
 
 		if webhookMetrics != nil {
 			if err := c.PubsubClient.PublishMetrics(webhookMetrics); err != nil {

@@ -3,20 +3,44 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 )
 
 type Event string
 
 const (
-	PullRequestEvent Event = "pull_request"
 	PushEvent        Event = "git_push"
+	PullRequestEvent Event = "pull_request"
 )
+
+type Action string
+
+const (
+	PushCreatedAction        Action = "created"
+	PushDeletedAction        Action = "deleted"
+	PushForcedAction         Action = "forced"
+	PushPushedAction         Action = "pushed"
+	PullRequestOpenedAction  Action = "opened"
+	PullRequestUpdatedAction Action = "updated"
+	PullRequestClosedAction  Action = "closed"
+	PullRequestCommentAction Action = "comment"
+)
+
+// Metrics ...
+type Metrics interface {
+	Serialise() ([]byte, error)
+}
+
+// MetricsProvider ...
+type MetricsProvider interface {
+	GatherMetrics(r *http.Request, appSlug string) (Metrics, error)
+}
 
 // PushMetrics ...
 type PushMetrics struct {
 	Event  Event  `json:"event,omitempty"`
-	Action string `json:"action,omitempty"`
+	Action Action `json:"action,omitempty"`
 
 	GeneralMetrics
 
@@ -27,22 +51,22 @@ type PushMetrics struct {
 }
 
 func NewPushCreatedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
-	return newPushMetrics("created", generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
+	return newPushMetrics(PushCreatedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
 }
 
 func NewPushDeletedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
-	return newPushMetrics("deleted", generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
+	return newPushMetrics(PushDeletedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
 }
 
 func NewPushForcedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
-	return newPushMetrics("forced", generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
+	return newPushMetrics(PushForcedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
 }
 
 func NewPushMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
-	return newPushMetrics("pushed", generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
+	return newPushMetrics(PushPushedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
 }
 
-func newPushMetrics(action string, generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
+func newPushMetrics(action Action, generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
 	return PushMetrics{
 		Event:                 PushEvent,
 		Action:                action,
@@ -56,25 +80,25 @@ func newPushMetrics(action string, generalMetrics GeneralMetrics, commitIDAfter 
 
 type PullRequestMetrics struct {
 	Event  Event  `json:"event,omitempty"`
-	Action string `json:"action,omitempty"`
+	Action Action `json:"action,omitempty"`
 
 	GeneralMetrics
 	GeneralPullRequestMetrics
 }
 
 func NewPullRequestOpenedMetrics(generalMetrics GeneralMetrics, generalPullRequestMetrics GeneralPullRequestMetrics) PullRequestMetrics {
-	return newPullRequestMetrics("opened", generalMetrics, generalPullRequestMetrics)
+	return newPullRequestMetrics(PullRequestOpenedAction, generalMetrics, generalPullRequestMetrics)
 }
 
 func NewPullRequestUpdatedMetrics(generalMetrics GeneralMetrics, generalPullRequestMetrics GeneralPullRequestMetrics) PullRequestMetrics {
-	return newPullRequestMetrics("updated", generalMetrics, generalPullRequestMetrics)
+	return newPullRequestMetrics(PullRequestUpdatedAction, generalMetrics, generalPullRequestMetrics)
 }
 
 func NewPullRequestClosedMetrics(generalMetrics GeneralMetrics, generalPullRequestMetrics GeneralPullRequestMetrics) PullRequestMetrics {
-	return newPullRequestMetrics("closed", generalMetrics, generalPullRequestMetrics)
+	return newPullRequestMetrics(PullRequestClosedAction, generalMetrics, generalPullRequestMetrics)
 }
 
-func newPullRequestMetrics(action string, generalMetrics GeneralMetrics, generalPullRequestMetrics GeneralPullRequestMetrics) PullRequestMetrics {
+func newPullRequestMetrics(action Action, generalMetrics GeneralMetrics, generalPullRequestMetrics GeneralPullRequestMetrics) PullRequestMetrics {
 	return PullRequestMetrics{
 		Event:                     PullRequestEvent,
 		Action:                    action,
@@ -86,7 +110,7 @@ func newPullRequestMetrics(action string, generalMetrics GeneralMetrics, general
 // PullRequestCommentMetrics ...
 type PullRequestCommentMetrics struct {
 	Event  Event  `json:"event,omitempty"`
-	Action string `json:"action,omitempty"`
+	Action Action `json:"action,omitempty"`
 
 	GeneralMetrics
 	PullRequestID string `json:"pull_request_id,omitempty"` // PR number
@@ -95,7 +119,7 @@ type PullRequestCommentMetrics struct {
 func NewPullRequestCommentMetrics(generalMetrics GeneralMetrics, pullRequestID string) PullRequestCommentMetrics {
 	return PullRequestCommentMetrics{
 		Event:          PullRequestEvent,
-		Action:         "comment",
+		Action:         PullRequestCommentAction,
 		GeneralMetrics: generalMetrics,
 		PullRequestID:  pullRequestID}
 }
@@ -131,10 +155,6 @@ type GeneralPullRequestMetrics struct {
 	Commits        int    `json:"commit_count"`
 	MergeCommitSHA string `json:"merge_commit_sha,omitempty"`
 	Status         string `json:"status,omitempty"`
-}
-
-func NewGeneralPullRequestMetrics(pullRequestID string, commitID string, changedFiles int, additions int, deletions int, commits int, mergeCommitSHA string, status string) GeneralPullRequestMetrics {
-	return GeneralPullRequestMetrics{PullRequestID: pullRequestID, CommitID: commitID, ChangedFiles: changedFiles, Additions: additions, Deletions: deletions, Commits: commits, MergeCommitSHA: mergeCommitSHA, Status: status}
 }
 
 // Serialise ...
