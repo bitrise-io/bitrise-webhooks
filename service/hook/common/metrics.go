@@ -7,23 +7,35 @@ import (
 	"time"
 )
 
+// Event ...
 type Event string
 
 const (
-	PushEvent        Event = "git_push"
+	// PushEvent ...
+	PushEvent Event = "git_push"
+	// PullRequestEvent ...
 	PullRequestEvent Event = "pull_request"
 )
 
+// Action ...
 type Action string
 
 const (
-	PushCreatedAction        Action = "created"
-	PushDeletedAction        Action = "deleted"
-	PushForcedAction         Action = "forced"
-	PushPushedAction         Action = "pushed"
-	PullRequestOpenedAction  Action = "opened"
+	// PushCreatedAction ...
+	PushCreatedAction Action = "created"
+	// PushDeletedAction ...
+	PushDeletedAction Action = "deleted"
+	// PushForcedAction ...
+	PushForcedAction Action = "forced"
+	// PushPushedAction ...
+	PushPushedAction Action = "pushed"
+	// PullRequestOpenedAction ...
+	PullRequestOpenedAction Action = "opened"
+	// PullRequestUpdatedAction ...
 	PullRequestUpdatedAction Action = "updated"
-	PullRequestClosedAction  Action = "closed"
+	// PullRequestClosedAction ...
+	PullRequestClosedAction Action = "closed"
+	// PullRequestCommentAction ...
 	PullRequestCommentAction Action = "comment"
 )
 
@@ -50,18 +62,22 @@ type PushMetrics struct {
 	MasterBranch          string     `json:"master_branch,omitempty"`
 }
 
+// NewPushCreatedMetrics ...
 func NewPushCreatedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
 	return newPushMetrics(PushCreatedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
 }
 
+// NewPushDeletedMetrics ...
 func NewPushDeletedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
 	return newPushMetrics(PushDeletedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
 }
 
+// NewPushForcedMetrics ...
 func NewPushForcedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
 	return newPushMetrics(PushForcedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
 }
 
+// NewPushMetrics ...
 func NewPushMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
 	return newPushMetrics(PushPushedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
 }
@@ -78,6 +94,7 @@ func newPushMetrics(action Action, generalMetrics GeneralMetrics, commitIDAfter 
 	}
 }
 
+// PullRequestMetrics ...
 type PullRequestMetrics struct {
 	Event  Event  `json:"event,omitempty"`
 	Action Action `json:"action,omitempty"`
@@ -86,14 +103,17 @@ type PullRequestMetrics struct {
 	GeneralPullRequestMetrics
 }
 
+// NewPullRequestOpenedMetrics ...
 func NewPullRequestOpenedMetrics(generalMetrics GeneralMetrics, generalPullRequestMetrics GeneralPullRequestMetrics) PullRequestMetrics {
 	return newPullRequestMetrics(PullRequestOpenedAction, generalMetrics, generalPullRequestMetrics)
 }
 
+// NewPullRequestUpdatedMetrics ...
 func NewPullRequestUpdatedMetrics(generalMetrics GeneralMetrics, generalPullRequestMetrics GeneralPullRequestMetrics) PullRequestMetrics {
 	return newPullRequestMetrics(PullRequestUpdatedAction, generalMetrics, generalPullRequestMetrics)
 }
 
+// NewPullRequestClosedMetrics ...
 func NewPullRequestClosedMetrics(generalMetrics GeneralMetrics, generalPullRequestMetrics GeneralPullRequestMetrics) PullRequestMetrics {
 	return newPullRequestMetrics(PullRequestClosedAction, generalMetrics, generalPullRequestMetrics)
 }
@@ -116,6 +136,7 @@ type PullRequestCommentMetrics struct {
 	PullRequestID string `json:"pull_request_id,omitempty"` // PR number
 }
 
+// NewPullRequestCommentMetrics ...
 func NewPullRequestCommentMetrics(generalMetrics GeneralMetrics, pullRequestID string) PullRequestCommentMetrics {
 	return PullRequestCommentMetrics{
 		Event:          PullRequestEvent,
@@ -134,6 +155,7 @@ type GeneralMetrics struct {
 	GitRef          string     `json:"git_ref,omitempty"`
 }
 
+// NewGeneralMetrics ...
 func NewGeneralMetrics(eventTimestamp *time.Time, appSlug string, originalTrigger string, username string, gitRef string) GeneralMetrics {
 	return GeneralMetrics{
 		TimeStamp:       time.Now(),
