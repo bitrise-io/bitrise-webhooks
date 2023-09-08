@@ -125,84 +125,67 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (metrics c
 }
 
 func newPushMetrics(event interface{}, webhookType, appSlug string) *common.PushMetrics {
+	var constructorFunc func(generalMetrics common.GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) common.PushMetrics
+	var timestamp *time.Time
+	var originalTrigger string
+	var userName string
+	var gitRef string
+	var commitIDAfter string
+	var commitIDBefore string
+	var oldestCommitTime *time.Time
+	var masterBranch string
+
 	switch event := event.(type) {
 	case *github.PushEvent:
-		timestamp := timestampToTime(event.GetHeadCommit().GetTimestamp())
-		oldestCommitTime := oldestCommitTimestamp(event.GetCommits())
-
-		action := event.GetAction()
-		if action == "" {
-			switch webhookType {
-			case "push":
-				switch {
-				case event.GetCreated():
-					action = "created"
-				case event.GetDeleted():
-					action = "deleted"
-				case event.GetForced():
-					action = "forced"
-				default:
-					action = "pushed"
-				}
+		switch webhookType {
+		case "push":
+			switch {
+			case event.GetCreated():
+				constructorFunc = common.NewPushCreatedMetrics
+			case event.GetDeleted():
+				constructorFunc = common.NewPushDeletedMetrics
+			case event.GetForced():
+				constructorFunc = common.NewPushForcedMetrics
+			default:
+				constructorFunc = common.NewPushMetrics
 			}
 		}
-		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 
-		// commit delete push:
-		// - CommitIDBefore:
-		// - CommitIDAfter: null
-		// new commit push:
-		// - CommitIDBefore: nul
-		// - CommitIDAfter: <commit_id>
-		return &common.PushMetrics{
-			GeneralMetrics: common.GeneralMetrics{
-				TimeStamp:       time.Now(),
-				EventTimestamp:  timestamp,
-				AppSlug:         appSlug,
-				Event:           common.PushEvent,
-				Action:          action,
-				OriginalTrigger: originalTrigger,
-				Username:        event.GetPusher().GetName(),
-				GitRef:          event.GetRef(),
-			},
-			CommitIDBefore:        event.GetBefore(),
-			CommitIDAfter:         event.GetAfter(),
-			OldestCommitTimestamp: oldestCommitTime,
-		}
+		timestamp = timestampToTime(event.GetHeadCommit().GetTimestamp())
+		originalTrigger = fmt.Sprintf("%s:%s", webhookType, event.GetAction())
+		userName = event.GetPusher().GetName()
+		gitRef = event.GetRef()
+		commitIDAfter = event.GetAfter()
+		commitIDBefore = event.GetBefore()
+		oldestCommitTime = oldestCommitTimestamp(event.GetCommits())
+		masterBranch = ""
 	case *github.DeleteEvent:
-		action := "deleted"
-		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
-		return &common.PushMetrics{
-			GeneralMetrics: common.GeneralMetrics{
-				TimeStamp:       time.Now(),
-				EventTimestamp:  nil,
-				AppSlug:         appSlug,
-				Event:           common.PushEvent,
-				Action:          action,
-				OriginalTrigger: originalTrigger,
-				Username:        event.GetSender().GetLogin(),
-				GitRef:          event.GetRef(),
-			},
-		}
+		constructorFunc = common.NewPushDeletedMetrics
+		timestamp = nil
+		originalTrigger = fmt.Sprintf("%s:%s", webhookType, "")
+		userName = event.GetSender().GetLogin()
+		gitRef = event.GetRef()
+		commitIDAfter = ""
+		commitIDBefore = ""
+		oldestCommitTime = nil
+		masterBranch = ""
 	case *github.CreateEvent:
-		action := "created"
-		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
-		return &common.PushMetrics{
-			GeneralMetrics: common.GeneralMetrics{
-				TimeStamp:       time.Now(),
-				EventTimestamp:  nil,
-				AppSlug:         appSlug,
-				Event:           common.PushEvent,
-				Action:          action,
-				OriginalTrigger: originalTrigger,
-				Username:        event.GetSender().GetLogin(),
-				GitRef:          event.GetRef(),
-			},
-			MasterBranch: event.GetMasterBranch(),
-		}
+		constructorFunc = common.NewPushCreatedMetrics
+		timestamp = nil
+		originalTrigger = fmt.Sprintf("%s:%s", webhookType, "")
+		userName = event.GetSender().GetLogin()
+		gitRef = event.GetRef()
+		commitIDAfter = ""
+		commitIDBefore = ""
+		oldestCommitTime = nil
+		masterBranch = event.GetMasterBranch()
+	default:
+		return nil
 	}
 
-	return nil
+	generalMetrics := common.NewGeneralMetrics(timestamp, appSlug, originalTrigger, userName, gitRef)
+	metrics := constructorFunc(generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTime, masterBranch)
+	return &metrics
 }
 
 func newPullRequestOpenedMetrics(event interface{}, webhookType, appSlug string) *common.PullRequestOpenedMetrics {
@@ -218,14 +201,13 @@ func newPullRequestOpenedMetrics(event interface{}, webhookType, appSlug string)
 				TimeStamp:       time.Now(),
 				EventTimestamp:  timestamp,
 				AppSlug:         appSlug,
-				Event:           common.PullRequestEvent,
-				Action:          action,
 				OriginalTrigger: originalTrigger,
 				Username:        pullRequest.GetUser().GetLogin(),
 				GitRef:          pullRequest.GetHead().GetRef(),
 			},
+			Event:              common.PullRequestEvent,
+			Action:             action,
 			PullRequestMetrics: newPullRequestMetrics(event.GetPullRequest()),
-			Status:             event.GetPullRequest().GetState(),
 		}
 	}
 
@@ -245,14 +227,13 @@ func newPullRequestUpdatedMetrics(event interface{}, webhookType, appSlug string
 				TimeStamp:       time.Now(),
 				EventTimestamp:  timestamp,
 				AppSlug:         appSlug,
-				Event:           common.PullRequestEvent,
-				Action:          action,
 				OriginalTrigger: originalTrigger,
 				Username:        event.GetSender().GetLogin(),
 				GitRef:          pullRequest.GetHead().GetRef(),
 			},
+			Event:              common.PullRequestEvent,
+			Action:             action,
 			PullRequestMetrics: newPullRequestMetrics(pullRequest),
-			Status:             event.GetPullRequest().GetState(),
 		}
 	case *github.PullRequestReviewEvent:
 		pullRequest := event.GetPullRequest()
@@ -265,14 +246,13 @@ func newPullRequestUpdatedMetrics(event interface{}, webhookType, appSlug string
 				TimeStamp:       time.Now(),
 				EventTimestamp:  timestamp,
 				AppSlug:         appSlug,
-				Event:           common.PullRequestEvent,
-				Action:          action,
 				OriginalTrigger: originalTrigger,
 				Username:        event.GetSender().GetLogin(),
 				GitRef:          pullRequest.GetHead().GetRef(),
 			},
+			Event:              common.PullRequestEvent,
+			Action:             action,
 			PullRequestMetrics: newPullRequestMetrics(pullRequest),
-			Status:             event.GetPullRequest().GetState(),
 		}
 	}
 	return nil
@@ -293,12 +273,12 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 				TimeStamp:       time.Now(),
 				EventTimestamp:  timestamp,
 				AppSlug:         appSlug,
-				Event:           common.PullRequestEvent,
-				Action:          action,
 				OriginalTrigger: originalTrigger,
 				Username:        event.GetSender().GetLogin(),
 				GitRef:          pullRequest.GetHead().GetRef(),
 			},
+			Event:         common.PullRequestEvent,
+			Action:        action,
 			PullRequestID: prID,
 		}
 	case *github.PullRequestReviewThreadEvent:
@@ -311,12 +291,12 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 			GeneralMetrics: common.GeneralMetrics{
 				TimeStamp:       time.Now(),
 				AppSlug:         appSlug,
-				Event:           common.PullRequestEvent,
-				Action:          action,
 				OriginalTrigger: originalTrigger,
 				Username:        event.GetSender().GetLogin(),
 				GitRef:          pullRequest.GetHead().GetRef(),
 			},
+			Event:         common.PullRequestEvent,
+			Action:        action,
 			PullRequestID: prID,
 		}
 	case *github.IssueCommentEvent:
@@ -335,11 +315,11 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 				TimeStamp:       time.Now(),
 				EventTimestamp:  timestamp,
 				AppSlug:         appSlug,
-				Event:           common.PullRequestEvent,
-				Action:          action,
 				OriginalTrigger: originalTrigger,
 				Username:        event.GetSender().GetLogin(),
 			},
+			Event:         common.PullRequestEvent,
+			Action:        action,
 			PullRequestID: prID,
 		}
 	}
@@ -364,14 +344,13 @@ func newPullRequestClosedMetrics(event interface{}, webhookType, appSlug string)
 				TimeStamp:       time.Now(),
 				EventTimestamp:  timestamp,
 				AppSlug:         appSlug,
-				Event:           common.PullRequestEvent,
-				Action:          action,
 				OriginalTrigger: originalTrigger,
 				Username:        event.GetSender().GetLogin(),
 				GitRef:          pullRequest.GetHead().GetRef(),
 			},
+			Event:              common.PullRequestEvent,
+			Action:             action,
 			PullRequestMetrics: pullRequestMetrics,
-			Status:             event.GetPullRequest().GetState(),
 		}
 	}
 	return nil
@@ -387,6 +366,7 @@ func newPullRequestMetrics(pullRequest *github.PullRequest) common.PullRequestMe
 		Additions:     pullRequest.GetAdditions(),
 		Deletions:     pullRequest.GetDeletions(),
 		Commits:       pullRequest.GetCommits(),
+		Status:        pullRequest.GetState(),
 	}
 }
 

@@ -13,16 +13,102 @@ const (
 	PushEvent        Event = "git_push"
 )
 
+// PushMetrics ...
+type PushMetrics struct {
+	Event  Event  `json:"event,omitempty"`
+	Action string `json:"action,omitempty"`
+
+	GeneralMetrics
+
+	CommitIDAfter         string     `json:"commit_id_before,omitempty"`
+	CommitIDBefore        string     `json:"commit_id_after,omitempty"`
+	OldestCommitTimestamp *time.Time `json:"oldest_commit_timestamp,omitempty"`
+	MasterBranch          string     `json:"master_branch,omitempty"`
+}
+
+func NewPushCreatedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
+	return newPushMetrics("created", generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
+}
+
+func NewPushDeletedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
+	return newPushMetrics("deleted", generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
+}
+
+func NewPushForcedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
+	return newPushMetrics("forced", generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
+}
+
+func NewPushMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
+	return newPushMetrics("pushed", generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
+}
+
+func newPushMetrics(action string, generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
+	return PushMetrics{
+		Event:                 "push",
+		Action:                action,
+		GeneralMetrics:        generalMetrics,
+		CommitIDAfter:         commitIDAfter,
+		CommitIDBefore:        commitIDBefore,
+		OldestCommitTimestamp: oldestCommitTimestamp,
+		MasterBranch:          masterBranch,
+	}
+}
+
+// PullRequestOpenedMetrics ...
+type PullRequestOpenedMetrics struct {
+	Event  Event  `json:"event,omitempty"`
+	Action string `json:"action,omitempty"`
+
+	GeneralMetrics
+	PullRequestMetrics
+}
+
+// PullRequestClosedMetrics ...
+type PullRequestClosedMetrics struct {
+	Event  Event  `json:"event,omitempty"`
+	Action string `json:"action,omitempty"`
+
+	GeneralMetrics
+	PullRequestMetrics
+}
+
+// PullRequestUpdatedMetrics ...
+type PullRequestUpdatedMetrics struct {
+	Event  Event  `json:"event,omitempty"`
+	Action string `json:"action,omitempty"`
+
+	GeneralMetrics
+	PullRequestMetrics
+}
+
+// PullRequestCommentMetrics ...
+type PullRequestCommentMetrics struct {
+	Event  Event  `json:"event,omitempty"`
+	Action string `json:"action,omitempty"`
+
+	GeneralMetrics
+	PullRequestID string `json:"pull_request_id,omitempty"` // PR number
+}
+
 // GeneralMetrics ...
 type GeneralMetrics struct {
 	TimeStamp       time.Time  `json:"timestamp,omitempty"`
 	EventTimestamp  *time.Time `json:"event_timestamp,omitempty"`
 	AppSlug         string     `json:"app_slug,omitempty"`
-	Event           Event      `json:"event,omitempty"`
-	Action          string     `json:"action,omitempty"`
 	OriginalTrigger string     `json:"original_trigger,omitempty"`
 	Username        string     `json:"user_name,omitempty"`
 	GitRef          string     `json:"git_ref,omitempty"`
+}
+
+func NewGeneralMetrics(eventTimestamp *time.Time, appSlug string, originalTrigger string, username string, gitRef string) GeneralMetrics {
+	return GeneralMetrics{
+		TimeStamp:       time.Now(),
+		EventTimestamp:  eventTimestamp,
+		AppSlug:         appSlug,
+		OriginalTrigger: originalTrigger,
+		Username:        username,
+		GitRef:          gitRef,
+	}
 }
 
 // PullRequestMetrics ...
@@ -34,42 +120,7 @@ type PullRequestMetrics struct {
 	Deletions      int    `json:"deletion_count"`
 	Commits        int    `json:"commit_count"`
 	MergeCommitSHA string `json:"merge_commit_sha,omitempty"`
-}
-
-// PullRequestOpenedMetrics ...
-type PullRequestOpenedMetrics struct {
-	GeneralMetrics
-	PullRequestMetrics
-	Status string `json:"status,omitempty"`
-}
-
-// PullRequestClosedMetrics ...
-type PullRequestClosedMetrics struct {
-	GeneralMetrics
-	PullRequestMetrics
-	Status string `json:"status,omitempty"`
-}
-
-// PullRequestUpdatedMetrics ...
-type PullRequestUpdatedMetrics struct {
-	GeneralMetrics
-	PullRequestMetrics
-	Status string `json:"status,omitempty"`
-}
-
-// PullRequestCommentMetrics ...
-type PullRequestCommentMetrics struct {
-	GeneralMetrics
-	PullRequestID string `json:"pull_request_id,omitempty"` // PR number
-}
-
-// PushMetrics ...
-type PushMetrics struct {
-	GeneralMetrics
-	CommitIDAfter         string     `json:"commit_id_before,omitempty"`
-	CommitIDBefore        string     `json:"commit_id_after,omitempty"`
-	OldestCommitTimestamp *time.Time `json:"oldest_commit_timestamp,omitempty"`
-	MasterBranch          string     `json:"master_branch,omitempty"`
+	Status         string `json:"status,omitempty"`
 }
 
 // Serialise ...
