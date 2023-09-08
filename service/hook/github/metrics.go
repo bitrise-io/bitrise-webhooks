@@ -33,40 +33,13 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (metrics c
 		if pushMetrics := newPushMetrics(event, webhookType, appSlug); pushMetrics != nil {
 			metrics = pushMetrics
 		}
-	case *github.PullRequestEvent:
+	case *github.PullRequestEvent, *github.PullRequestReviewEvent:
 		if prMetrics := newPullRequestMetrics(event, webhookType, appSlug); prMetrics != nil {
 			metrics = *prMetrics
 		}
-	case *github.PullRequestReviewEvent:
-		if prMetrics := newPullRequestMetrics(event, webhookType, appSlug); prMetrics != nil {
-			metrics = *prMetrics
-		}
-	case *github.PullRequestReviewCommentEvent:
-		fmt.Println("action:", event.GetAction())
-
-		switch {
-		case isPullRequestCommentAction(webhookType, event.GetAction()):
-			fmt.Printf("PR comment: %s:%s\n", webhookType, event.GetAction())
-			metrics = newPullRequestCommentMetrics(event, webhookType, appSlug)
-			fmt.Println(metrics)
-		}
-
-	case *github.PullRequestReviewThreadEvent:
-		fmt.Println("action:", event.GetAction())
-
-		switch {
-		case isPullRequestCommentAction(webhookType, event.GetAction()):
-			fmt.Printf("PR comment: %s:%s\n", webhookType, event.GetAction())
-			metrics = newPullRequestCommentMetrics(event, webhookType, appSlug)
-			fmt.Println(metrics)
-		}
-
-	case *github.IssueCommentEvent:
-		switch {
-		case isPullRequestCommentAction(webhookType, event.GetAction()):
-			fmt.Printf("PR comment: %s:%s\n", webhookType, event.GetAction())
-			metrics = newPullRequestCommentMetrics(event, webhookType, appSlug)
-			fmt.Println(metrics)
+	case *github.PullRequestReviewCommentEvent, *github.PullRequestReviewThreadEvent, *github.IssueCommentEvent:
+		if prCommentMetrics := newPullRequestCommentMetrics(event, webhookType, appSlug); prCommentMetrics != nil {
+			metrics = *prCommentMetrics
 		}
 	}
 
@@ -155,27 +128,27 @@ func newPullRequestMetrics(event interface{}, webhookType, appSlug string) *comm
 		action := event.GetAction()
 		if isPullRequestOpenedAction(webhookType, action) {
 			constructorFunc = common.NewPullRequestOpenedMetrics
+			pullRequest = event.GetPullRequest()
 			timestamp = timestampToTime(pullRequest.GetCreatedAt())
 			originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
 			userName = pullRequest.GetUser().GetLogin()
 			gitRef = pullRequest.GetHead().GetRef()
-			pullRequest = event.GetPullRequest()
 			mergeCommitSHA = ""
 		} else if isPullRequestUpdatedAction(webhookType, action) {
 			constructorFunc = common.NewPullRequestUpdatedMetrics
+			pullRequest = event.GetPullRequest()
 			timestamp = timestampToTime(pullRequest.GetUpdatedAt())
 			originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
 			userName = pullRequest.GetUser().GetLogin()
 			gitRef = pullRequest.GetHead().GetRef()
-			pullRequest = event.GetPullRequest()
 			mergeCommitSHA = ""
 		} else if isPullRequestClosedAction(webhookType, action) {
 			constructorFunc = common.NewPullRequestClosedMetrics
+			pullRequest = event.GetPullRequest()
 			timestamp = timestampToTime(pullRequest.GetUpdatedAt())
 			originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
 			userName = pullRequest.GetUser().GetLogin()
 			gitRef = pullRequest.GetHead().GetRef()
-			pullRequest = event.GetPullRequest()
 			mergeCommitSHA = ""
 		} else {
 			return nil
@@ -184,11 +157,11 @@ func newPullRequestMetrics(event interface{}, webhookType, appSlug string) *comm
 		action := event.GetAction()
 		if isPullRequestUpdatedAction(webhookType, action) {
 			constructorFunc = common.NewPullRequestUpdatedMetrics
+			pullRequest = event.GetPullRequest()
 			timestamp = timestampToTime(pullRequest.GetUpdatedAt())
 			originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
 			userName = pullRequest.GetUser().GetLogin()
 			gitRef = pullRequest.GetHead().GetRef()
-			pullRequest = event.GetPullRequest()
 			if pullRequest.GetMerged() {
 				mergeCommitSHA = pullRequest.GetMergeCommitSHA()
 			}
@@ -207,71 +180,54 @@ func newPullRequestMetrics(event interface{}, webhookType, appSlug string) *comm
 }
 
 func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string) *common.PullRequestCommentMetrics {
+	// general metrics
+	var timestamp *time.Time
+	var originalTrigger string
+	var userName string
+	var gitRef string
+	// pull request metrics
+	var prID string
+
 	switch event := event.(type) {
 	case *github.PullRequestReviewCommentEvent:
 		comment := event.GetComment()
-		timestamp := timestampToTime(comment.GetCreatedAt())
 		action := event.GetAction()
-		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 		pullRequest := event.GetPullRequest()
-		prID := fmt.Sprintf("%d", pullRequest.GetNumber())
 
-		return &common.PullRequestCommentMetrics{
-			GeneralMetrics: common.GeneralMetrics{
-				TimeStamp:       time.Now(),
-				EventTimestamp:  timestamp,
-				AppSlug:         appSlug,
-				OriginalTrigger: originalTrigger,
-				Username:        event.GetSender().GetLogin(),
-				GitRef:          pullRequest.GetHead().GetRef(),
-			},
-			Event:         common.PullRequestEvent,
-			Action:        action,
-			PullRequestID: prID,
-		}
+		timestamp = timestampToTime(comment.GetCreatedAt())
+		originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
+		userName = event.GetSender().GetLogin()
+		gitRef = pullRequest.GetHead().GetRef()
+		prID = fmt.Sprintf("%d", pullRequest.GetNumber())
 	case *github.PullRequestReviewThreadEvent:
 		action := event.GetAction()
-		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
 		pullRequest := event.GetPullRequest()
-		prID := fmt.Sprintf("%d", pullRequest.GetNumber())
 
-		return &common.PullRequestCommentMetrics{
-			GeneralMetrics: common.GeneralMetrics{
-				TimeStamp:       time.Now(),
-				AppSlug:         appSlug,
-				OriginalTrigger: originalTrigger,
-				Username:        event.GetSender().GetLogin(),
-				GitRef:          pullRequest.GetHead().GetRef(),
-			},
-			Event:         common.PullRequestEvent,
-			Action:        action,
-			PullRequestID: prID,
-		}
+		timestamp = nil
+		originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
+		userName = event.GetSender().GetLogin()
+		gitRef = pullRequest.GetHead().GetRef()
+		prID = fmt.Sprintf("%d", pullRequest.GetNumber())
 	case *github.IssueCommentEvent:
 		if !isPullRequest(event.GetIssue()) {
 			return nil
 		}
 
 		comment := event.GetComment()
-		timestamp := timestampToTime(comment.GetCreatedAt())
 		action := event.GetAction()
-		originalTrigger := fmt.Sprintf("%s:%s", webhookType, action)
-		prID := fmt.Sprintf("%d", event.GetIssue().GetNumber())
 
-		return &common.PullRequestCommentMetrics{
-			GeneralMetrics: common.GeneralMetrics{
-				TimeStamp:       time.Now(),
-				EventTimestamp:  timestamp,
-				AppSlug:         appSlug,
-				OriginalTrigger: originalTrigger,
-				Username:        event.GetSender().GetLogin(),
-			},
-			Event:         common.PullRequestEvent,
-			Action:        action,
-			PullRequestID: prID,
-		}
+		timestamp = timestampToTime(comment.GetCreatedAt())
+		originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
+		userName = event.GetSender().GetLogin()
+		gitRef = ""
+		prID = fmt.Sprintf("%d", event.GetIssue().GetNumber())
+	default:
+		return nil
 	}
-	return nil
+
+	generalMetrics := common.NewGeneralMetrics(timestamp, appSlug, originalTrigger, userName, gitRef)
+	metrics := common.NewPullRequestCommentMetrics(generalMetrics, prID)
+	return &metrics
 }
 
 func newGeneralPullRequestMetrics(pullRequest *github.PullRequest, mergeCommitSHA string) common.GeneralPullRequestMetrics {

@@ -92,6 +92,14 @@ type PullRequestCommentMetrics struct {
 	PullRequestID string `json:"pull_request_id,omitempty"` // PR number
 }
 
+func NewPullRequestCommentMetrics(generalMetrics GeneralMetrics, pullRequestID string) PullRequestCommentMetrics {
+	return PullRequestCommentMetrics{
+		Event:          PullRequestEvent,
+		Action:         "comment",
+		GeneralMetrics: generalMetrics,
+		PullRequestID:  pullRequestID}
+}
+
 // GeneralMetrics ...
 type GeneralMetrics struct {
 	TimeStamp       time.Time  `json:"timestamp,omitempty"`
