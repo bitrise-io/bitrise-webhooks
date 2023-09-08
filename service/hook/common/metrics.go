@@ -158,14 +158,13 @@ type GeneralPullRequestMetrics struct {
 }
 
 // Serialise ...
-func (m PullRequestMetrics) Serialise() ([]byte, error) {
+func (m PushMetrics) Serialise() ([]byte, error) {
 	return json.Marshal(m)
 }
 
-// String ...
-// TODO: remove String() funcs
-func (m PullRequestMetrics) String() string {
-	return stringer(m)
+// Serialise ...
+func (m PullRequestMetrics) Serialise() ([]byte, error) {
+	return json.Marshal(m)
 }
 
 // Serialise ...
@@ -174,17 +173,18 @@ func (m PullRequestCommentMetrics) Serialise() ([]byte, error) {
 }
 
 // String ...
-func (m PullRequestCommentMetrics) String() string {
+// TODO: remove String() funcs
+// String ...
+func (m PushMetrics) String() string {
 	return stringer(m)
 }
 
-// Serialise ...
-func (m PushMetrics) Serialise() ([]byte, error) {
-	return json.Marshal(m)
+func (m PullRequestMetrics) String() string {
+	return stringer(m)
 }
 
 // String ...
-func (m PushMetrics) String() string {
+func (m PullRequestCommentMetrics) String() string {
 	return stringer(m)
 }
 

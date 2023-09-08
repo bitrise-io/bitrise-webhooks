@@ -7,7 +7,6 @@ import (
 
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/go-utils/sliceutil"
 	"github.com/google/go-github/v54/github"
 )
 
@@ -29,10 +28,13 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (common.Me
 	switch event := event.(type) {
 	case *github.PushEvent, *github.DeleteEvent, *github.CreateEvent:
 		metrics = newPushMetrics(event, webhookType, appSlug)
+		fmt.Println(metrics)
 	case *github.PullRequestEvent, *github.PullRequestReviewEvent:
 		metrics = newPullRequestMetrics(event, webhookType, appSlug)
+		fmt.Println(metrics)
 	case *github.PullRequestReviewCommentEvent, *github.PullRequestReviewThreadEvent, *github.IssueCommentEvent:
 		metrics = newPullRequestCommentMetrics(event, webhookType, appSlug)
+		fmt.Println(metrics)
 	}
 
 	return metrics, nil
@@ -71,26 +73,31 @@ func newPushMetrics(event interface{}, webhookType, appSlug string) *common.Push
 		originalTrigger = fmt.Sprintf("%s:%s", webhookType, event.GetAction())
 		userName = event.GetPusher().GetName()
 		gitRef = event.GetRef()
+
 		commitIDAfter = event.GetAfter()
 		commitIDBefore = event.GetBefore()
 		oldestCommitTime = oldestCommitTimestamp(event.GetCommits())
 		masterBranch = ""
 	case *github.DeleteEvent:
 		constructorFunc = common.NewPushDeletedMetrics
+
 		timestamp = nil
 		originalTrigger = fmt.Sprintf("%s:%s", webhookType, "")
 		userName = event.GetSender().GetLogin()
 		gitRef = event.GetRef()
+
 		commitIDAfter = ""
 		commitIDBefore = ""
 		oldestCommitTime = nil
 		masterBranch = ""
 	case *github.CreateEvent:
 		constructorFunc = common.NewPushCreatedMetrics
+
 		timestamp = nil
 		originalTrigger = fmt.Sprintf("%s:%s", webhookType, "")
 		userName = event.GetSender().GetLogin()
 		gitRef = event.GetRef()
+
 		commitIDAfter = ""
 		commitIDBefore = ""
 		oldestCommitTime = nil
@@ -118,48 +125,35 @@ func newPullRequestMetrics(event interface{}, webhookType, appSlug string) *comm
 	switch event := event.(type) {
 	case *github.PullRequestEvent:
 		action := event.GetAction()
-		if isPullRequestOpenedAction(webhookType, action) {
+		pullRequest = event.GetPullRequest()
+		originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
+		userName = pullRequest.GetUser().GetLogin()
+		gitRef = pullRequest.GetHead().GetRef()
+
+		if isPullRequestOpenedAction(action) {
 			constructorFunc = common.NewPullRequestOpenedMetrics
-			pullRequest = event.GetPullRequest()
 			timestamp = timestampToTime(pullRequest.GetCreatedAt())
-			originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
-			userName = pullRequest.GetUser().GetLogin()
-			gitRef = pullRequest.GetHead().GetRef()
 			mergeCommitSHA = ""
-		} else if isPullRequestUpdatedAction(webhookType, action) {
-			constructorFunc = common.NewPullRequestUpdatedMetrics
-			pullRequest = event.GetPullRequest()
-			timestamp = timestampToTime(pullRequest.GetUpdatedAt())
-			originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
-			userName = pullRequest.GetUser().GetLogin()
-			gitRef = pullRequest.GetHead().GetRef()
-			mergeCommitSHA = ""
-		} else if isPullRequestClosedAction(webhookType, action) {
+		} else if isPullRequestClosedAction(action) {
 			constructorFunc = common.NewPullRequestClosedMetrics
-			pullRequest = event.GetPullRequest()
 			timestamp = timestampToTime(pullRequest.GetUpdatedAt())
-			originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
-			userName = pullRequest.GetUser().GetLogin()
-			gitRef = pullRequest.GetHead().GetRef()
-			mergeCommitSHA = ""
-		} else {
-			return nil
-		}
-	case *github.PullRequestReviewEvent:
-		action := event.GetAction()
-		if isPullRequestUpdatedAction(webhookType, action) {
-			constructorFunc = common.NewPullRequestUpdatedMetrics
-			pullRequest = event.GetPullRequest()
-			timestamp = timestampToTime(pullRequest.GetUpdatedAt())
-			originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
-			userName = pullRequest.GetUser().GetLogin()
-			gitRef = pullRequest.GetHead().GetRef()
 			if pullRequest.GetMerged() {
 				mergeCommitSHA = pullRequest.GetMergeCommitSHA()
 			}
-		} else {
-			return nil
+		} else { // Pull request updated
+			constructorFunc = common.NewPullRequestUpdatedMetrics
+			timestamp = timestampToTime(pullRequest.GetUpdatedAt())
+			mergeCommitSHA = ""
 		}
+	case *github.PullRequestReviewEvent:
+		action := event.GetAction()
+		constructorFunc = common.NewPullRequestUpdatedMetrics
+		pullRequest = event.GetPullRequest()
+		timestamp = timestampToTime(pullRequest.GetUpdatedAt())
+		originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
+		userName = pullRequest.GetUser().GetLogin()
+		gitRef = pullRequest.GetHead().GetRef()
+		mergeCommitSHA = ""
 	default:
 		return nil
 	}
@@ -237,97 +231,12 @@ func newGeneralPullRequestMetrics(pullRequest *github.PullRequest, mergeCommitSH
 	}
 }
 
-var pullRequestOpenedTriggers = map[string][]string{
-	"pull_request": {
-		"opened",
-	},
+func isPullRequestOpenedAction(action string) bool {
+	return action == "opened"
 }
 
-func isPullRequestOpenedAction(event, action string) bool {
-	supportedActions := pullRequestOpenedTriggers[event]
-	return sliceutil.IsStringInSlice(action, supportedActions)
-}
-
-var pullRequestUpdatedTriggers = map[string][]string{
-	"pull_request": {
-		"reopened",
-		"synchronize",
-		"edited",
-		"assigned",
-		"unassigned",
-		"auto_merge_disabled",
-		"auto_merge_enabled",
-		"converted_to_draft",
-		"ready_for_review",
-		"enqueued",
-		"dequeued",
-		"labeled",
-		"unlabeled",
-		"locked",
-		"unlocked",
-		"milestoned",
-		"demilestoned",
-		"review_request_removed",
-		"review_requested",
-	},
-	"pull_request_review": {
-		"submitted",
-	},
-}
-
-func isPullRequestUpdatedAction(event, action string) bool {
-	supportedActions := pullRequestUpdatedTriggers[event]
-	return sliceutil.IsStringInSlice(action, supportedActions)
-}
-
-var pullRequestCommentTriggers = map[string][]string{
-	"pull_request_review_comment": {
-		"created",
-		"edited",
-		"deleted",
-	},
-	"pull_request_review_thread": {
-		"resolved",
-		"unresolved",
-	},
-	"issue_comment": {
-		"created",
-		"edited",
-		"deleted",
-	},
-}
-
-func isPullRequestCommentAction(event, action string) bool {
-	supportedActions := pullRequestCommentTriggers[event]
-	return sliceutil.IsStringInSlice(action, supportedActions)
-}
-
-var pullRequestClosedActions = map[string][]string{
-	"pull_request": {
-		"closed",
-	},
-}
-
-func isPullRequestClosedAction(event, action string) bool {
-	supportedActions := pullRequestClosedActions[event]
-	return sliceutil.IsStringInSlice(action, supportedActions)
-}
-
-var pushActions = map[string][]string{
-	"push": {
-		"",
-	},
-	"create": {
-		"",
-	},
-	"delete": {
-		"",
-	},
-}
-
-func isPushAction(event, action string) bool {
-	supportedActions := pushActions[event]
-	return sliceutil.IsStringInSlice(action, supportedActions)
+func isPullRequestClosedAction(action string) bool {
+	return action == "closed"
 }
 
 func timestampToTime(timestamp github.Timestamp) *time.Time {
