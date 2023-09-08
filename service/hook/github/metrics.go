@@ -162,7 +162,7 @@ func newPullRequestMetrics(event interface{}, webhookType, appSlug string) *comm
 			pullRequest = event.GetPullRequest()
 			mergeCommitSHA = ""
 		} else if isPullRequestUpdatedAction(webhookType, action) {
-			constructorFunc = common.NewPullRequestOpenedMetrics
+			constructorFunc = common.NewPullRequestUpdatedMetrics
 			timestamp = timestampToTime(pullRequest.GetUpdatedAt())
 			originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
 			userName = pullRequest.GetUser().GetLogin()
@@ -170,7 +170,7 @@ func newPullRequestMetrics(event interface{}, webhookType, appSlug string) *comm
 			pullRequest = event.GetPullRequest()
 			mergeCommitSHA = ""
 		} else if isPullRequestClosedAction(webhookType, action) {
-			constructorFunc = common.NewPullRequestOpenedMetrics
+			constructorFunc = common.NewPullRequestClosedMetrics
 			timestamp = timestampToTime(pullRequest.GetUpdatedAt())
 			originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
 			userName = pullRequest.GetUser().GetLogin()
@@ -183,8 +183,8 @@ func newPullRequestMetrics(event interface{}, webhookType, appSlug string) *comm
 	case *github.PullRequestReviewEvent:
 		action := event.GetAction()
 		if isPullRequestUpdatedAction(webhookType, action) {
-			constructorFunc = common.NewPullRequestOpenedMetrics
-			timestamp = timestampToTime(pullRequest.GetCreatedAt())
+			constructorFunc = common.NewPullRequestUpdatedMetrics
+			timestamp = timestampToTime(pullRequest.GetUpdatedAt())
 			originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
 			userName = pullRequest.GetUser().GetLogin()
 			gitRef = pullRequest.GetHead().GetRef()
