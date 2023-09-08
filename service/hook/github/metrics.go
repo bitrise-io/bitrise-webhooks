@@ -180,7 +180,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 		action := event.GetAction()
 		pullRequest := event.GetPullRequest()
 
-		timestamp = timestampToTime(comment.GetCreatedAt())
+		timestamp = timestampToTime(comment.GetUpdatedAt())
 		originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
 		userName = event.GetSender().GetLogin()
 		gitRef = pullRequest.GetHead().GetRef()
@@ -202,7 +202,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 		comment := event.GetComment()
 		action := event.GetAction()
 
-		timestamp = timestampToTime(comment.GetCreatedAt())
+		timestamp = timestampToTime(comment.GetUpdatedAt())
 		originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
 		userName = event.GetSender().GetLogin()
 		gitRef = ""
