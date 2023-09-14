@@ -59,30 +59,31 @@ type PushMetrics struct {
 	CommitIDAfter         string     `json:"commit_id_before,omitempty"`
 	CommitIDBefore        string     `json:"commit_id_after,omitempty"`
 	OldestCommitTimestamp *time.Time `json:"oldest_commit_timestamp,omitempty"`
+	LatestCommitTimestamp *time.Time `json:"latest_commit_timestamp,omitempty"`
 	MasterBranch          string     `json:"master_branch,omitempty"`
 }
 
 // NewPushCreatedMetrics ...
-func NewPushCreatedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
-	return newPushMetrics(PushCreatedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
+func NewPushCreatedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, latestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
+	return newPushMetrics(PushCreatedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, latestCommitTimestamp, masterBranch)
 }
 
 // NewPushDeletedMetrics ...
-func NewPushDeletedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
-	return newPushMetrics(PushDeletedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
+func NewPushDeletedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, latestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
+	return newPushMetrics(PushDeletedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, latestCommitTimestamp, masterBranch)
 }
 
 // NewPushForcedMetrics ...
-func NewPushForcedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
-	return newPushMetrics(PushForcedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
+func NewPushForcedMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, latestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
+	return newPushMetrics(PushForcedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, latestCommitTimestamp, masterBranch)
 }
 
 // NewPushMetrics ...
-func NewPushMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
-	return newPushMetrics(PushPushedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, masterBranch)
+func NewPushMetrics(generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, latestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
+	return newPushMetrics(PushPushedAction, generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTimestamp, latestCommitTimestamp, masterBranch)
 }
 
-func newPushMetrics(action Action, generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
+func newPushMetrics(action Action, generalMetrics GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, latestCommitTimestamp *time.Time, masterBranch string) PushMetrics {
 	return PushMetrics{
 		Event:                 PushEvent,
 		Action:                action,
@@ -90,6 +91,7 @@ func newPushMetrics(action Action, generalMetrics GeneralMetrics, commitIDAfter 
 		CommitIDAfter:         commitIDAfter,
 		CommitIDBefore:        commitIDBefore,
 		OldestCommitTimestamp: oldestCommitTimestamp,
+		LatestCommitTimestamp: latestCommitTimestamp,
 		MasterBranch:          masterBranch,
 	}
 }
