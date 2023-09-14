@@ -55,18 +55,15 @@ func newPushMetrics(event interface{}, webhookType, appSlug string) *common.Push
 
 	switch event := event.(type) {
 	case *github.PushEvent:
-		switch webhookType {
-		case "push":
-			switch {
-			case event.GetCreated():
-				constructorFunc = common.NewPushCreatedMetrics
-			case event.GetDeleted():
-				constructorFunc = common.NewPushDeletedMetrics
-			case event.GetForced():
-				constructorFunc = common.NewPushForcedMetrics
-			default:
-				constructorFunc = common.NewPushMetrics
-			}
+		switch {
+		case event.GetCreated():
+			constructorFunc = common.NewPushCreatedMetrics
+		case event.GetDeleted():
+			constructorFunc = common.NewPushDeletedMetrics
+		case event.GetForced():
+			constructorFunc = common.NewPushForcedMetrics
+		default:
+			constructorFunc = common.NewPushMetrics
 		}
 
 		timestamp = timestampToTime(event.GetHeadCommit().GetTimestamp())
