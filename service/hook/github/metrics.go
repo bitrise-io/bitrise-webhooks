@@ -41,7 +41,7 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (common.Me
 }
 
 func newPushMetrics(event interface{}, webhookType, appSlug string) *common.PushMetrics {
-	var constructorFunc func(generalMetrics common.GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, masterBranch string) common.PushMetrics
+	var constructorFunc func(generalMetrics common.GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, latestCommitTimestamp *time.Time, masterBranch string) common.PushMetrics
 	// general metrics
 	var timestamp *time.Time
 	var originalTrigger string
@@ -51,6 +51,7 @@ func newPushMetrics(event interface{}, webhookType, appSlug string) *common.Push
 	var commitIDAfter string
 	var commitIDBefore string
 	var oldestCommitTime *time.Time
+	var latestCommitTime *time.Time
 	var masterBranch string
 
 	switch event := event.(type) {
@@ -74,6 +75,7 @@ func newPushMetrics(event interface{}, webhookType, appSlug string) *common.Push
 		commitIDAfter = event.GetAfter()
 		commitIDBefore = event.GetBefore()
 		oldestCommitTime = oldestCommitTimestamp(event.GetCommits())
+		latestCommitTime = latestCommitTimestamp(event.GetCommits())
 		masterBranch = ""
 	case *github.DeleteEvent:
 		constructorFunc = common.NewPushDeletedMetrics
@@ -104,7 +106,7 @@ func newPushMetrics(event interface{}, webhookType, appSlug string) *common.Push
 	}
 
 	generalMetrics := common.NewGeneralMetrics(timestamp, appSlug, originalTrigger, userName, gitRef)
-	metrics := constructorFunc(generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTime, masterBranch)
+	metrics := constructorFunc(generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTime, latestCommitTime, masterBranch)
 	return &metrics
 }
 
@@ -249,6 +251,13 @@ func timestampToTime(timestamp github.Timestamp) *time.Time {
 func oldestCommitTimestamp(commits []*github.HeadCommit) *time.Time {
 	if len(commits) > 0 {
 		return timestampToTime(commits[0].GetTimestamp())
+	}
+	return nil
+}
+
+func latestCommitTimestamp(commits []*github.HeadCommit) *time.Time {
+	if len(commits) > 0 {
+		return timestampToTime(commits[len(commits)-1].GetTimestamp())
 	}
 	return nil
 }
