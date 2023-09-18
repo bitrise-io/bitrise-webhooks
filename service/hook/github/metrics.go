@@ -25,10 +25,10 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (common.Me
 	}
 
 	currentTime := hp.timeProvider.CurrentTime()
-	return hp.gatherMetrics(event, webhookType, appSlug, currentTime)
+	return hp.gatherMetrics(event, webhookType, appSlug, currentTime), nil
 }
 
-func (hp HookProvider) gatherMetrics(event interface{}, webhookType, appSlug string, currentTime time.Time) (common.Metrics, error) {
+func (hp HookProvider) gatherMetrics(event interface{}, webhookType, appSlug string, currentTime time.Time) common.Metrics {
 	var metrics common.Metrics
 	switch event := event.(type) {
 	case *github.PushEvent, *github.DeleteEvent, *github.CreateEvent:
@@ -39,7 +39,7 @@ func (hp HookProvider) gatherMetrics(event interface{}, webhookType, appSlug str
 		metrics = newPullRequestCommentMetrics(event, webhookType, appSlug, currentTime)
 	}
 
-	return metrics, nil
+	return metrics
 }
 
 func newPushMetrics(event interface{}, webhookType, appSlug string, currentTime time.Time) *common.PushMetrics {

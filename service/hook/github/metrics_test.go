@@ -18,7 +18,6 @@ func TestHookProvider_gatherMetrics(t *testing.T) {
 		webhookType string
 		appSlug     string
 		want        common.Metrics
-		wantErr     bool
 	}{
 		{
 			name:        "Push event transformed to push metrics",
@@ -69,12 +68,18 @@ func TestHookProvider_gatherMetrics(t *testing.T) {
 				PullRequestID: "0",
 			},
 		},
+		{
+			name:        "Fork event is not supported",
+			event:       &github.ForkEvent{},
+			webhookType: "fork",
+			appSlug:     "slug",
+			want:        nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			hp := HookProvider{}
-			got, err := hp.gatherMetrics(tt.event, tt.webhookType, tt.appSlug, currentTime)
-			require.NoError(t, err)
+			got := hp.gatherMetrics(tt.event, tt.webhookType, tt.appSlug, currentTime)
 			require.Equal(t, tt.want, got)
 		})
 	}
