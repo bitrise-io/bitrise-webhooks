@@ -197,12 +197,11 @@ func (m PullRequestCommentMetrics) Serialise() ([]byte, error) {
 }
 
 // String ...
-// TODO: remove String() funcs
-// String ...
 func (m PushMetrics) String() string {
 	return stringer(m)
 }
 
+// String ...
 func (m PullRequestMetrics) String() string {
 	return stringer(m)
 }
