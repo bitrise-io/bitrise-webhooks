@@ -24,20 +24,25 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (common.Me
 		return nil, err
 	}
 
+	currentTime := hp.timeProvider.CurrentTime()
+	return hp.gatherMetrics(event, webhookType, appSlug, currentTime)
+}
+
+func (hp HookProvider) gatherMetrics(event interface{}, webhookType, appSlug string, currentTime time.Time) (common.Metrics, error) {
 	var metrics common.Metrics
 	switch event := event.(type) {
 	case *github.PushEvent, *github.DeleteEvent, *github.CreateEvent:
-		metrics = newPushMetrics(event, webhookType, appSlug)
+		metrics = newPushMetrics(event, webhookType, appSlug, currentTime)
 	case *github.PullRequestEvent, *github.PullRequestReviewEvent:
-		metrics = newPullRequestMetrics(event, webhookType, appSlug)
+		metrics = newPullRequestMetrics(event, webhookType, appSlug, currentTime)
 	case *github.PullRequestReviewCommentEvent, *github.PullRequestReviewThreadEvent, *github.IssueCommentEvent:
-		metrics = newPullRequestCommentMetrics(event, webhookType, appSlug)
+		metrics = newPullRequestCommentMetrics(event, webhookType, appSlug, currentTime)
 	}
 
 	return metrics, nil
 }
 
-func newPushMetrics(event interface{}, webhookType, appSlug string) *common.PushMetrics {
+func newPushMetrics(event interface{}, webhookType, appSlug string, currentTime time.Time) *common.PushMetrics {
 	var constructorFunc func(generalMetrics common.GeneralMetrics, commitIDAfter string, commitIDBefore string, oldestCommitTimestamp *time.Time, latestCommitTimestamp *time.Time, masterBranch string) common.PushMetrics
 	// general metrics
 	var timestamp *time.Time
@@ -102,12 +107,12 @@ func newPushMetrics(event interface{}, webhookType, appSlug string) *common.Push
 		return nil
 	}
 
-	generalMetrics := common.NewGeneralMetrics(timestamp, appSlug, originalTrigger, userName, gitRef)
+	generalMetrics := common.NewGeneralMetrics(currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
 	metrics := constructorFunc(generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTime, latestCommitTime, masterBranch)
 	return &metrics
 }
 
-func newPullRequestMetrics(event interface{}, webhookType, appSlug string) *common.PullRequestMetrics {
+func newPullRequestMetrics(event interface{}, webhookType, appSlug string, currentTime time.Time) *common.PullRequestMetrics {
 	var constructorFunc func(generalMetrics common.GeneralMetrics, generalPullRequestMetrics common.GeneralPullRequestMetrics) common.PullRequestMetrics
 	// general metrics
 	var timestamp *time.Time
@@ -154,14 +159,14 @@ func newPullRequestMetrics(event interface{}, webhookType, appSlug string) *comm
 		return nil
 	}
 
-	generalMetrics := common.NewGeneralMetrics(timestamp, appSlug, originalTrigger, userName, gitRef)
+	generalMetrics := common.NewGeneralMetrics(currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
 	generalPullRequestMetrics := newGeneralPullRequestMetrics(pullRequest, mergeCommitSHA)
 	metrics := constructorFunc(generalMetrics, generalPullRequestMetrics)
 	return &metrics
 
 }
 
-func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string) *common.PullRequestCommentMetrics {
+func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string, currentTime time.Time) *common.PullRequestCommentMetrics {
 	// general metrics
 	var timestamp *time.Time
 	var originalTrigger string
@@ -207,7 +212,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 		return nil
 	}
 
-	generalMetrics := common.NewGeneralMetrics(timestamp, appSlug, originalTrigger, userName, gitRef)
+	generalMetrics := common.NewGeneralMetrics(currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
 	metrics := common.NewPullRequestCommentMetrics(generalMetrics, prID)
 	return &metrics
 }

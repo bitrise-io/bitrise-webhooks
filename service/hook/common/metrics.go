@@ -158,9 +158,9 @@ type GeneralMetrics struct {
 }
 
 // NewGeneralMetrics ...
-func NewGeneralMetrics(eventTimestamp *time.Time, appSlug string, originalTrigger string, username string, gitRef string) GeneralMetrics {
+func NewGeneralMetrics(currentTime time.Time, eventTimestamp *time.Time, appSlug string, originalTrigger string, username string, gitRef string) GeneralMetrics {
 	return GeneralMetrics{
-		TimeStamp:       time.Now(),
+		TimeStamp:       currentTime,
 		EventTimestamp:  eventTimestamp,
 		AppSlug:         appSlug,
 		OriginalTrigger: originalTrigger,

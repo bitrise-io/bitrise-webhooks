@@ -39,7 +39,7 @@ type Client struct {
 
 func supportedProviders() map[string]hookCommon.Provider {
 	return map[string]hookCommon.Provider{
-		github.ProviderID:                   github.HookProvider{},
+		github.ProviderID:                   github.NewDefaultHookProvider(),
 		bitbucketv2.ProviderID:              bitbucketv2.HookProvider{},
 		bitbucketserver.ProviderID:          bitbucketserver.HookProvider{},
 		slack.ProviderID:                    slack.HookProvider{},
