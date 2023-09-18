@@ -107,6 +107,7 @@ type PullRequestEventModel struct {
 // ---------------------------------------
 // --- Webhook Provider Implementation ---
 
+// TimeProvider ...
 type TimeProvider interface {
 	CurrentTime() time.Time
 }
@@ -114,10 +115,12 @@ type TimeProvider interface {
 type defaultTimeProvider struct {
 }
 
+// NewDefaultTimeProvider ...
 func NewDefaultTimeProvider() TimeProvider {
 	return defaultTimeProvider{}
 }
 
+// CurrentTime ...
 func (p defaultTimeProvider) CurrentTime() time.Time {
 	return time.Now()
 }
@@ -127,12 +130,14 @@ type HookProvider struct {
 	timeProvider TimeProvider
 }
 
+// NewHookProvider ...
 func NewHookProvider(timeProvider TimeProvider) hookCommon.Provider {
 	return HookProvider{
 		timeProvider: timeProvider,
 	}
 }
 
+// NewDefaultHookProvider ...
 func NewDefaultHookProvider() hookCommon.Provider {
 	return NewHookProvider(NewDefaultTimeProvider())
 }
