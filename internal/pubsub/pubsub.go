@@ -25,7 +25,7 @@ func NewClient(projectID, serviceAccountJSON, pubsubTopicID string) (*Client, er
 }
 
 // PublishMetrics ...
-func (c *Client) PublishMetrics(metrics common.Metrics) (err error) {
+func (c *Client) PublishMetrics(ctx context.Context, metrics common.Metrics) (err error) {
 	if c == nil {
 		return nil
 	}
@@ -38,8 +38,8 @@ func (c *Client) PublishMetrics(metrics common.Metrics) (err error) {
 	msg := pubsub.Message{Data: b}
 
 	topic := c.pubsubClient.Topic(c.pubsubTopicID)
-	result := topic.Publish(context.Background(), &msg)
-	serverID, err := result.Get(context.Background())
+	result := topic.Publish(ctx, &msg)
+	serverID, err := result.Get(ctx)
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "serverID: "+serverID)
 	}

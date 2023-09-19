@@ -149,7 +149,9 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	appSlug := vars["app-slug"]
 	apiToken := vars["api-token"]
 
-	logger := logging.WithContext(r.Context())
+	reqContext := r.Context()
+
+	logger := logging.WithContext(reqContext)
 	defer func() {
 		err := logger.Sync()
 		if err != nil {
@@ -209,7 +211,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if webhookMetrics != nil {
-			if err := c.PubsubClient.PublishMetrics(webhookMetrics); err != nil {
+			if err := c.PubsubClient.PublishMetrics(reqContext, webhookMetrics); err != nil {
 				logger.Error(" [!] Exception: PublishMetrics: failed to publish metrics results", zap.Error(err))
 			}
 		}
