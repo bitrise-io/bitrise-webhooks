@@ -189,9 +189,9 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 				if err != nil {
 					logger.Error(" [!] Exception: failed to read request body", zap.Error(err))
 					return
-				} else {
-					originalBody = body
 				}
+
+				originalBody = body
 			}
 			if originalBody != nil {
 				r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
