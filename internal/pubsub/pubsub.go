@@ -11,7 +11,7 @@ import (
 
 // Client ...
 type Client struct {
-	c             *pubsub.Client
+	pubsubClient  *pubsub.Client
 	pubsubTopicID string
 }
 
@@ -21,7 +21,7 @@ func NewClient(projectID, serviceAccountJSON, pubsubTopicID string) (*Client, er
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return &Client{c: client, pubsubTopicID: pubsubTopicID}, nil
+	return &Client{pubsubClient: client, pubsubTopicID: pubsubTopicID}, nil
 }
 
 // PublishMetrics ...
@@ -37,7 +37,7 @@ func (c *Client) PublishMetrics(metrics common.Metrics) (err error) {
 
 	msg := pubsub.Message{Data: b}
 
-	topic := c.c.Topic(c.pubsubTopicID)
+	topic := c.pubsubClient.Topic(c.pubsubTopicID)
 	result := topic.Publish(context.Background(), &msg)
 	serverID, err := result.Get(context.Background())
 	if err != nil {
