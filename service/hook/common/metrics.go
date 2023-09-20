@@ -21,14 +21,15 @@ const (
 type Action string
 
 const (
-	// PushCreatedAction ...
-	PushCreatedAction Action = "created"
-	// PushDeletedAction ...
-	PushDeletedAction Action = "deleted"
-	// PushForcedAction ...
-	PushForcedAction Action = "forced"
-	// PushPushedAction ...
+	// PushPushedAction represents a push event.
 	PushPushedAction Action = "pushed"
+	// PushForcedAction represents a force push event.
+	PushForcedAction Action = "forced"
+	// PushCreatedAction represents a push event which created a ref.
+	PushCreatedAction Action = "created"
+	// PushDeletedAction represents a push event which deleted a ref.
+	PushDeletedAction Action = "deleted"
+
 	// PullRequestOpenedAction ...
 	PullRequestOpenedAction Action = "opened"
 	// PullRequestUpdatedAction ...
