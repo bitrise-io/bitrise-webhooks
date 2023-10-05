@@ -1,18 +1,17 @@
 package hook
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 
-	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
-
 	"github.com/bitrise-io/api-utils/logging"
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	"github.com/bitrise-io/bitrise-webhooks/config"
+	"github.com/bitrise-io/bitrise-webhooks/internal/pubsub"
 	"github.com/bitrise-io/bitrise-webhooks/metrics"
 	"github.com/bitrise-io/bitrise-webhooks/service"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/assembla"
@@ -27,11 +26,19 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/slack"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/visualstudioteamservices"
 	"github.com/bitrise-io/go-utils/colorstring"
+	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
+
+// Client ...
+type Client struct {
+	PubsubClient *pubsub.Client
+}
 
 func supportedProviders() map[string]hookCommon.Provider {
 	return map[string]hookCommon.Provider{
-		github.ProviderID:                   github.HookProvider{},
+		github.ProviderID:                   github.NewDefaultHookProvider(),
 		bitbucketv2.ProviderID:              bitbucketv2.HookProvider{},
 		bitbucketserver.ProviderID:          bitbucketserver.HookProvider{},
 		slack.ProviderID:                    slack.HookProvider{},
@@ -135,13 +142,15 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 // --- Main HTTP Handler code ---
 
 // HTTPHandler ...
-func HTTPHandler(w http.ResponseWriter, r *http.Request) {
+func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	serviceID := vars["service-id"]
 	appSlug := vars["app-slug"]
 	apiToken := vars["api-token"]
 
-	logger := logging.WithContext(r.Context())
+	reqContext := r.Context()
+
+	logger := logging.WithContext(reqContext)
 	defer func() {
 		err := logger.Sync()
 		if err != nil {
@@ -166,6 +175,45 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	if apiToken == "" {
 		respondWithErrorString(w, &hookProvider, "No API Token parameter defined")
 		return
+	}
+
+	metricsProvider, isMetricsProvider := hookProvider.(hookCommon.MetricsProvider)
+	if c.PubsubClient != nil && isMetricsProvider {
+		var webhookMetrics hookCommon.Metrics
+		var err error
+
+		metrics.Trace("Hook: GatherMetrics", func() {
+			// GatherMetrics reads the request body, so it needs to be rewinded
+			var originalBody []byte
+			if r.Body != nil {
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					logger.Error(" [!] Exception: failed to read request body", zap.Error(err))
+					return
+				}
+
+				originalBody = body
+			}
+			if originalBody != nil {
+				r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
+			}
+
+			webhookMetrics, err = metricsProvider.GatherMetrics(r, appSlug)
+
+			if originalBody != nil {
+				r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
+			}
+		})
+
+		if err != nil {
+			logger.Error("Failed to gather metrics from the webhook", zap.Error(err))
+		}
+
+		if webhookMetrics != nil {
+			if err := c.PubsubClient.PublishMetrics(reqContext, webhookMetrics); err != nil {
+				logger.Error(" [!] Exception: PublishMetrics: failed to publish metrics results", zap.Error(err))
+			}
+		}
 	}
 
 	hookTransformResult := hookCommon.TransformResultModel{}
