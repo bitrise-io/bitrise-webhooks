@@ -8,10 +8,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
-
 	"github.com/bitrise-io/api-utils/logging"
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	"github.com/bitrise-io/bitrise-webhooks/config"
@@ -30,6 +26,9 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/slack"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/visualstudioteamservices"
 	"github.com/bitrise-io/go-utils/colorstring"
+	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 // Client ...
@@ -207,7 +206,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		})
 
 		if err != nil {
-			logger.Debug("Failed to gather metrics from the webhook: err")
+			logger.Error("Failed to gather metrics from the webhook", zap.Error(err))
 		}
 
 		if webhookMetrics != nil {
