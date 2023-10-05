@@ -21,10 +21,10 @@ workflows:
                 set -ex
 
                 # Check for unhandled errors
-                go get -u github.com/kisielk/errcheck
+                go install github.com/kisielk/errcheck@latest
 
                 # Go lint
-                go get -u golang.org/x/lint/golint
+                go install golang.org/x/lint/golint@latest
   publish-release-package:
     before_run:
       - configure-git-credentials
@@ -140,7 +140,7 @@ workflows:
                 set -ex
                 go install $GO_PROJECT_PATH
                 if [ "$IS_USE_GIN" == "yes" ] ; then
-                  go get github.com/codegangsta/gin
+                  (go install github.com/codegangsta/gin@latest)
                   gin --port $PORT
                 else
                   bitrise-webhooks -port $PORT

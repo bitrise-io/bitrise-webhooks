@@ -8,22 +8,9 @@ import (
 	"os"
 
 	"github.com/bitrise-io/bitrise-webhooks/config"
+	"github.com/bitrise-io/bitrise-webhooks/internal/pubsub"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
-
-func stringFlagOrEnv(flagValue *string, envKey string) string {
-	if flagValue != nil && *flagValue != "" {
-		return *flagValue
-	}
-	return os.Getenv(envKey)
-}
-
-func stringFlag(flagValue *string) string {
-	if flagValue != nil && *flagValue != "" {
-		return *flagValue
-	}
-	return ""
-}
 
 func main() {
 	tracer.Start(tracer.WithServiceName("webhooks"))
@@ -50,6 +37,20 @@ func main() {
 		log.Printf(" (!) Send-Request-To specified, every request will be sent to: %s", config.SendRequestToURL)
 	}
 
+	var (
+		pubsubServiceAccountJSON = os.Getenv("METRICS_PUBSUB_SERVICE_ACCOUNT_JSON")
+		pubsubTopicID            = os.Getenv("METRICS_PUBSUB_TOPIC_ID")
+		pubsubProjectID          = os.Getenv("METRICS_PUBSUB_PROJECT_ID")
+		pubsubClient             *pubsub.Client
+	)
+	if len(pubsubServiceAccountJSON) > 0 && len(pubsubTopicID) > 0 && len(pubsubProjectID) > 0 {
+		var err error
+		pubsubClient, err = pubsub.NewClient(pubsubProjectID, pubsubServiceAccountJSON, pubsubTopicID)
+		if err != nil {
+			log.Fatalf("Failed to init pubsub client, error: %s", err)
+		}
+	}
+
 	// // NewRelic
 	// if newRelicKey := stringFlagOrEnv(newRelicKeyFlag, "NEW_RELIC_LICENSE_KEY"); newRelicKey != "" && config.GetServerEnvMode() == config.ServerEnvModeProd {
 	// 	metrics.SetupNewRelic("BitriseWebhooksProcessor", newRelicKey)
@@ -58,10 +59,17 @@ func main() {
 	// }
 
 	// Routing
-	setupRoutes()
+	setupRoutes(pubsubClient)
 
 	log.Println("Starting - using port:", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Failed to ListenAndServe: %s", err)
 	}
+}
+
+func stringFlagOrEnv(flagValue *string, envKey string) string {
+	if flagValue != nil && *flagValue != "" {
+		return *flagValue
+	}
+	return os.Getenv(envKey)
 }
