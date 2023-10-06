@@ -58,7 +58,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 
 	commitMessage := string(bodyBytes)
 	if len(commitMessage) > bodyCharsCountForCommitMsg {
-		commitMessage = commitMessage[:bodyCharsCountForCommitMsg]
+		commitMessage = commitMessage[:bodyCharsCountForCommitMsg-3] + "..."
 	}
 
 	return hookCommon.TransformResultModel{

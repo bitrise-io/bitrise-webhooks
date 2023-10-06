@@ -142,8 +142,8 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	}
 
 	if isOnlyLog {
-		log.Println("\\x1b[33;1m===> Triggering Build: (url:%s)\\x1b[0m", url)
-		log.Println("\\x1b[33;1m====> JSON body: %s\\x1b[0m", jsonStr)
+		log.Printf("\\x1b[33;1m===> Triggering Build: (url:%s)\\x1b[0m\n", url)
+		log.Printf("\\x1b[33;1m====> JSON body: %s\\x1b[0m\n", jsonStr)
 	}
 
 	if isOnlyLog {
