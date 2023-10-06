@@ -119,18 +119,6 @@ workflows:
                 git push upstream --tags
 
                 git checkout ${RELEASE_START_BRANCH}
-  deps-update:
-    steps:
-      - script:
-          inputs:
-            - content: |-
-                #!/bin/bash
-                set -ex
-                go get -u -v github.com/golang/dep/cmd/dep
-                # to prevent "Gopkg.lock is out of sync ..." when new deps are added
-                dep ensure -v
-                # to do the actual update
-                dep ensure -v -update
   start:
     steps:
       - script:
