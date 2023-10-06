@@ -1,4 +1,4 @@
-FROM golang:1.20-alpine3.17 AS builder
+FROM golang:1.21-alpine3.18 AS builder
 
 WORKDIR /src/bitrise-webhooks
 
@@ -12,7 +12,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /go/bin/bitrise-webhooks
 
 
-FROM alpine:3.17
+FROM alpine:3.18
 
 RUN apk add -u ca-certificates && rm -rf /var/cache/apk/*
 

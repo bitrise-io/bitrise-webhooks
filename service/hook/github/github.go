@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/go-utils/sliceutil"
 )
 
 const (
@@ -212,7 +212,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 }
 
 func isAcceptPullRequestAction(prAction string) bool {
-	return sliceutil.IsStringInSlice(prAction, []string{"opened", "reopened", "synchronize", "edited"})
+	return slices.Contains([]string{"opened", "reopened", "synchronize", "edited"}, prAction)
 }
 
 func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.TransformResultModel {

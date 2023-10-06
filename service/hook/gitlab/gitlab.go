@@ -40,11 +40,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/go-utils/sliceutil"
 )
 
 // --------------------------
@@ -157,11 +157,11 @@ func detectContentTypeAndEventID(header http.Header) (string, string, error) {
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return sliceutil.IsStringInSlice(eventKey, []string{tagPushEventID, codePushEventID, mergeRequestEventID})
+	return slices.Contains([]string{tagPushEventID, codePushEventID, mergeRequestEventID}, eventKey)
 }
 
 func isAcceptMergeRequestState(prState string) bool {
-	return sliceutil.IsStringInSlice(prState, []string{"opened", "reopened"})
+	return slices.Contains([]string{"opened", "reopened"}, prState)
 }
 
 func isAcceptMergeRequestAction(prAction string, prOldrev string) bool {
