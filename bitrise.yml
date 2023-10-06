@@ -3,7 +3,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 app:
   envs:
     - GO_PROJECT_PATH: github.com/bitrise-io/bitrise-webhooks
-    - GO_VERSION: 1.21
+    - GO_VERSION: 1.21.2
     - PORT: "4000"
     - IS_USE_GIN: "yes"
       opts:
