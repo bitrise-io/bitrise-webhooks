@@ -9,10 +9,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/go-utils/sliceutil"
 )
 
 const (
@@ -266,7 +266,7 @@ func (repository RepositoryInfoModel) getRepositoryURL() string {
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return sliceutil.IsStringInSlice(eventKey, []string{"repo:push", "pullrequest:created", "pullrequest:updated"})
+	return slices.Contains([]string{"repo:push", "pullrequest:created", "pullrequest:updated"}, eventKey)
 }
 
 // TransformRequest ...

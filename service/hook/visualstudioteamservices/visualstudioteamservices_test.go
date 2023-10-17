@@ -1,14 +1,14 @@
 package visualstudioteamservices
 
 import (
-	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
-	"github.com/bitrise-io/go-utils/pointers"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 )
 
 const (
@@ -229,6 +229,8 @@ const (
     }
   }`
 )
+
+var intFourteen = 14
 
 func Test_detectContentType(t *testing.T) {
 	t.Log("Proper Content-Type")
@@ -577,7 +579,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage:     "Jamal Hartnett created a new pull request",
 					Branch:            "feature/addAzureDevOpsPullRequestSupport",
 					BranchDest:        "master",
-					PullRequestID:     pointers.NewIntPtr(14),
+					PullRequestID:     &intFourteen,
 					PullRequestAuthor: "Jamal Hartnett",
 				},
 			},
@@ -912,7 +914,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage:     "Jamal Hartnett updated the source branch of pull request 14",
 					Branch:            "feature/addAzureDevOpsPullRequestSupport",
 					BranchDest:        "master",
-					PullRequestID:     pointers.NewIntPtr(14),
+					PullRequestID:     &intFourteen,
 					PullRequestAuthor: "Jamal Hartnett",
 				},
 			},

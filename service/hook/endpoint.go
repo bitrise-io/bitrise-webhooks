@@ -8,6 +8,10 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
+
 	"github.com/bitrise-io/api-utils/logging"
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	"github.com/bitrise-io/bitrise-webhooks/config"
@@ -25,10 +29,6 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/passthrough"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/slack"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/visualstudioteamservices"
-	"github.com/bitrise-io/go-utils/colorstring"
-	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
 )
 
 // Client ...
@@ -119,7 +119,7 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 	logger.Info(" ===> trigger build", zap.String("triggerURL", triggerURL.String()))
 	isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
 	if isOnlyLog {
-		logger.Debug(colorstring.Yellow(" (debug) isOnlyLog: true"))
+		logger.Debug(" \\x1b[33;1m(debug) isOnlyLog: true\\x1b[0m")
 	}
 
 	if err := triggerAPIParams.Validate(); err != nil {

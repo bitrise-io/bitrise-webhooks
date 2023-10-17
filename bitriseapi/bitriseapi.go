@@ -12,9 +12,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/bitrise-io/api-utils/logging"
-	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/pkg/errors"
+
+	"github.com/bitrise-io/api-utils/logging"
 )
 
 // EnvironmentItem ...
@@ -121,10 +121,9 @@ func BuildTriggerURL(apiRootURL string, appSlug string) (*url.URL, error) {
 }
 
 // TriggerBuild ...
-// Returns an error in case it can't send the request, or the response is
-//  not a HTTP success response.
-// If the response is an HTTP success response then the whole response body
-//  will be returned, and error will be nil.
+// Returns an error in case it can't send the request, or the response is not a HTTP success response.
+//
+// If the response is an HTTP success response then the whole response body will be returned, and error will be nil.
 func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) (TriggerAPIResponseModel, bool, error) {
 	logger := logging.WithContext(nil)
 	defer func() {
@@ -143,8 +142,8 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	}
 
 	if isOnlyLog {
-		log.Println(colorstring.Yellowf("===> Triggering Build: (url:%s)", url))
-		log.Println(colorstring.Yellowf("====> JSON body: %s", jsonStr))
+		log.Printf("\\x1b[33;1m===> Triggering Build: (url:%s)\\x1b[0m\n", url)
+		log.Printf("\\x1b[33;1m====> JSON body: %s\\x1b[0m\n", jsonStr)
 	}
 
 	if isOnlyLog {
