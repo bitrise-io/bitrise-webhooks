@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
-	"github.com/bitrise-io/go-utils/pointers"
 	"github.com/stretchr/testify/require"
+
+	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 )
 
 const (
@@ -215,6 +215,10 @@ const (
 		}
 	}`
 )
+
+var boolFalse = false
+var boolTrue = true
+var intTwelve = 12
 
 func Test_detectContentTypeAndEventID(t *testing.T) {
 	t.Log("Push event - should handle")
@@ -544,7 +548,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 			Action: "reopened",
 			PullRequestInfo: PullRequestInfoModel{
 				Merged:    false,
-				Mergeable: pointers.NewBoolPtr(false),
+				Mergeable: &boolFalse,
 			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
@@ -595,7 +599,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage:                    "PR test",
 					Branch:                           "feature/github-pr",
 					BranchDest:                       "master",
-					PullRequestID:                    pointers.NewIntPtr(12),
+					PullRequestID:                    &intTwelve,
 					PullRequestRepositoryURL:         "https://github.com/bitrise-io/bitrise-webhooks.git",
 					BaseRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
@@ -618,7 +622,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 			PullRequestInfo: PullRequestInfoModel{
 				Title:     "PR test",
 				Merged:    false,
-				Mergeable: pointers.NewBoolPtr(true),
+				Mergeable: &boolTrue,
 				Draft:     false,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
@@ -653,7 +657,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage:                    "PR test",
 					Branch:                           "feature/github-pr",
 					BranchDest:                       "master",
-					PullRequestID:                    pointers.NewIntPtr(12),
+					PullRequestID:                    &intTwelve,
 					PullRequestRepositoryURL:         "https://github.com/bitrise-io/bitrise-webhooks.git",
 					BaseRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
@@ -677,7 +681,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Title:     "PR test",
 				Body:      "PR text body",
 				Merged:    false,
-				Mergeable: pointers.NewBoolPtr(true),
+				Mergeable: &boolTrue,
 				Draft:     false,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
@@ -712,7 +716,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage:                    "PR test\n\nPR text body",
 					Branch:                           "feature/github-pr",
 					BranchDest:                       "master",
-					PullRequestID:                    pointers.NewIntPtr(12),
+					PullRequestID:                    &intTwelve,
 					PullRequestRepositoryURL:         "https://github.com/bitrise-io/bitrise-webhooks.git",
 					BaseRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
@@ -771,7 +775,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage:                    "PR test\n\nPR text body",
 					Branch:                           "feature/github-pr",
 					BranchDest:                       "master",
-					PullRequestID:                    pointers.NewIntPtr(12),
+					PullRequestID:                    &intTwelve,
 					PullRequestRepositoryURL:         "https://github.com/bitrise-io/bitrise-webhooks.git",
 					BaseRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
@@ -801,7 +805,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Title:     "PR test",
 				Body:      "PR text body",
 				Merged:    false,
-				Mergeable: pointers.NewBoolPtr(true),
+				Mergeable: &boolTrue,
 				Draft:     false,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
@@ -847,7 +851,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Title:     "PR test",
 				Body:      "PR text body",
 				Merged:    false,
-				Mergeable: pointers.NewBoolPtr(true),
+				Mergeable: &boolTrue,
 				Draft:     false,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
@@ -887,7 +891,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage:                    "PR test\n\nPR text body",
 					Branch:                           "feature/github-pr",
 					BranchDest:                       "develop",
-					PullRequestID:                    pointers.NewIntPtr(12),
+					PullRequestID:                    &intTwelve,
 					PullRequestRepositoryURL:         "https://github.com/bitrise-io/bitrise-webhooks.git",
 					BaseRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
@@ -911,7 +915,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Title:     "PR test",
 				Body:      "PR text body",
 				Merged:    false,
-				Mergeable: pointers.NewBoolPtr(true),
+				Mergeable: &boolTrue,
 				Draft:     false,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
@@ -957,7 +961,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 				Title:     "PR test",
 				Body:      "PR text body",
 				Merged:    false,
-				Mergeable: pointers.NewBoolPtr(true),
+				Mergeable: &boolTrue,
 				Draft:     false,
 				HeadBranchInfo: BranchInfoModel{
 					Ref:        "feature/github-pr",
@@ -997,7 +1001,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage:                    "PR test\n\nPR text body",
 					Branch:                           "feature/github-pr",
 					BranchDest:                       "develop",
-					PullRequestID:                    pointers.NewIntPtr(12),
+					PullRequestID:                    &intTwelve,
 					PullRequestRepositoryURL:         "https://github.com/bitrise-io/bitrise-webhooks.git",
 					BaseRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
@@ -1202,7 +1206,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					BranchRepoOwner:                  "bitrise-team",
 					BranchDest:                       "master",
 					BranchDestRepoOwner:              "bitrise-io",
-					PullRequestID:                    pointers.NewIntPtr(12),
+					PullRequestID:                    &intTwelve,
 					PullRequestRepositoryURL:         "https://github.com/oss-contributor/fork-bitrise-webhooks.git",
 					BaseRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:                "https://github.com/oss-contributor/fork-bitrise-webhooks.git",
@@ -1240,7 +1244,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					BranchRepoOwner:                  "bitrise-team",
 					BranchDest:                       "master",
 					BranchDestRepoOwner:              "bitrise-io",
-					PullRequestID:                    pointers.NewIntPtr(12),
+					PullRequestID:                    &intTwelve,
 					PullRequestRepositoryURL:         "https://github.com/oss-contributor/fork-bitrise-webhooks.git",
 					BaseRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:                "https://github.com/oss-contributor/fork-bitrise-webhooks.git",
@@ -1281,7 +1285,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitMessage:                    "PR test\n\nPR text body",
 					Branch:                           "feature/github-pr",
 					BranchDest:                       "develop",
-					PullRequestID:                    pointers.NewIntPtr(12),
+					PullRequestID:                    &intTwelve,
 					PullRequestRepositoryURL:         "https://github.com/bitrise-io/bitrise-webhooks.git",
 					BaseRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",

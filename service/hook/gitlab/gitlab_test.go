@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
-	"github.com/bitrise-io/go-utils/pointers"
 )
 
 const sampleCodePushData = `{
@@ -99,6 +98,8 @@ const sampleForkMergeRequestData = `{
 		"oldrev": "3c86b996d8014000a93f3c202fc0963e81e56c4c",
 		"state": "opened"
 	}}`
+
+var intTwelve = 12
 
 func Test_detectContentTypeAndEventID(t *testing.T) {
 	t.Log("Code Push event")
@@ -521,7 +522,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 					CommitMessage:            "PR test",
 					Branch:                   "feature/gitlab-pr",
 					BranchDest:               "master",
-					PullRequestID:            pointers.NewIntPtr(12),
+					PullRequestID:            &intTwelve,
 					BaseRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
@@ -575,7 +576,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 					CommitMessage:            "PR test\n\nPR test body",
 					Branch:                   "feature/gitlab-pr",
 					BranchDest:               "master",
-					PullRequestID:            pointers.NewIntPtr(12),
+					PullRequestID:            &intTwelve,
 					BaseRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
@@ -748,7 +749,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					BranchRepoOwner:          "bitrise-io",
 					BranchDest:               "develop",
 					BranchDestRepoOwner:      "bitrise-team",
-					PullRequestID:            pointers.NewIntPtr(12),
+					PullRequestID:            &intTwelve,
 					BaseRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
@@ -783,7 +784,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					BranchRepoOwner:          "oss-contributor",
 					BranchDest:               "develop",
 					BranchDestRepoOwner:      "bitrise-io",
-					PullRequestID:            pointers.NewIntPtr(12),
+					PullRequestID:            &intTwelve,
 					BaseRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					HeadRepositoryURL:        "https://gitlab.com/oss-contributor/fork-bitrise-webhooks.git",
 					PullRequestRepositoryURL: "https://gitlab.com/oss-contributor/fork-bitrise-webhooks.git",

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
-	"github.com/bitrise-io/go-utils/pointers"
 	"github.com/stretchr/testify/require"
+
+	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 )
 
 const (
@@ -221,6 +221,8 @@ const (
 }
 }`
 )
+
+var intOne = 1
 
 func Test_detectContentTypeAttemptNumberAndEventKey(t *testing.T) {
 	t.Log("Push event - should handle")
@@ -801,7 +803,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage:            "Title of pull request",
 					Branch:                   "branch2",
 					BranchDest:               "master",
-					PullRequestID:            pointers.NewIntPtr(1),
+					PullRequestID:            &intOne,
 					BaseRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
 					HeadRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
 					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
@@ -861,7 +863,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					Branch:                   "branch2",
 					BranchDest:               "master",
 					PullRequestAuthor:        "Author Name",
-					PullRequestID:            pointers.NewIntPtr(1),
+					PullRequestID:            &intOne,
 					BaseRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
 					HeadRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
 					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
@@ -1087,7 +1089,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					BranchRepoOwner:          "bitrise-io",
 					BranchDest:               "master",
 					BranchDestRepoOwner:      "birmacher",
-					PullRequestID:            pointers.NewIntPtr(1),
+					PullRequestID:            &intOne,
 					BaseRepositoryURL:        "https://bitbucket.org/birmacher/prtest.git",
 					HeadRepositoryURL:        "https://bitbucket.org/birmacher/prtest.git",
 					PullRequestRepositoryURL: "https://bitbucket.org/birmacher/prtest.git",
@@ -1121,7 +1123,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					BranchRepoOwner:          "oss-contributor",
 					BranchDest:               "master",
 					BranchDestRepoOwner:      "birmacher",
-					PullRequestID:            pointers.NewIntPtr(1),
+					PullRequestID:            &intOne,
 					BaseRepositoryURL:        "https://bitbucket.org/birmacher/prtest.git",
 					HeadRepositoryURL:        "git@bitbucket.org:oss-contributor/nice-repo.git",
 					PullRequestRepositoryURL: "git@bitbucket.org:oss-contributor/nice-repo.git",

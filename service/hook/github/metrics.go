@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/go-github/v55/github"
+
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/google/go-github/v54/github"
 )
 
 // GatherMetrics ...

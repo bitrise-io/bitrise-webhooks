@@ -3,6 +3,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 app:
   envs:
     - GO_PROJECT_PATH: github.com/bitrise-io/bitrise-webhooks
+    - GO_VERSION: 1.21.2
     - PORT: "4000"
     - IS_USE_GIN: "yes"
       opts:
@@ -119,18 +120,6 @@ workflows:
                 git push upstream --tags
 
                 git checkout ${RELEASE_START_BRANCH}
-  deps-update:
-    steps:
-      - script:
-          inputs:
-            - content: |-
-                #!/bin/bash
-                set -ex
-                go get -u -v github.com/golang/dep/cmd/dep
-                # to prevent "Gopkg.lock is out of sync ..." when new deps are added
-                dep ensure -v
-                # to do the actual update
-                dep ensure -v -update
   start:
     steps:
       - script:
@@ -149,6 +138,15 @@ workflows:
     before_run:
       - _install_test_tools
     steps:
+      - script:
+          title: Update go
+          inputs:
+            - content: |
+                #!/bin/bash
+                set -ex
+                ./_scripts/update_go.sh
+                # some legacy steps don't have go.mod and would fail without this
+                go env -w GO111MODULE=auto
       - script:
           title: Print infos for the test
           inputs:

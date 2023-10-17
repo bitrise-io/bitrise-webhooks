@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bitrise-io/go-utils/pointers"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
@@ -501,6 +500,8 @@ const (
 	"test": true
 }`
 )
+
+var intOne = 1
 
 func Test_detectContentTypeSecretAndEventKey(t *testing.T) {
 	t.Log("All required headers - should handle")
@@ -1113,7 +1114,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage: "Title of pull request",
 					Branch:        "a-branch",
 					BranchDest:    "master",
-					PullRequestID: pointers.NewIntPtr(1),
+					PullRequestID: &intOne,
 				},
 				TriggeredBy: "webhook-bitbucket-server/user",
 			},
@@ -1284,7 +1285,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitMessage: "a new file added",
 					Branch:        "a-branch",
 					BranchDest:    "master",
-					PullRequestID: pointers.NewIntPtr(1),
+					PullRequestID: &intOne,
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1311,7 +1312,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitMessage: "a new file added",
 					Branch:        "a-branch",
 					BranchDest:    "master",
-					PullRequestID: pointers.NewIntPtr(1),
+					PullRequestID: &intOne,
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1338,7 +1339,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitMessage: "a new file added",
 					Branch:        "a-branch",
 					BranchDest:    "master",
-					PullRequestID: pointers.NewIntPtr(1),
+					PullRequestID: &intOne,
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
