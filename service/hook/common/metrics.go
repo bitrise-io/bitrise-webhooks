@@ -226,3 +226,7 @@ func stringer(v interface{}) string {
 	}
 	return fmt.Sprintf("#%v", v)
 }
+
+func OriginalTrigger(webhookType, webhookAction string) string {
+	return fmt.Sprintf("%s:%s", webhookType, webhookAction)
+}

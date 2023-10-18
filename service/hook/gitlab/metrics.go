@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/common"
+	"github.com/google/go-github/v54/github"
 	"github.com/xanzy/go-gitlab"
 )
 
@@ -31,8 +32,42 @@ func (hp HookProvider) gatherMetrics(event interface{}, appSlug string, currentT
 	switch event := event.(type) {
 	case *gitlab.PushEvent:
 		metrics = newPushMetrics(event, appSlug, currentTime)
+	case *gitlab.MergeEvent:
+		metrics = newPullRequestMetrics(event, appSlug, currentTime)
 	}
 
+	fmt.Println(metrics)
+	return metrics
+}
+
+func newPullRequestMetrics(event *gitlab.MergeEvent, appSlug string, currentTime time.Time) common.PullRequestMetrics {
+	var constructorFunc func(generalMetrics common.GeneralMetrics, generalPullRequestMetrics common.GeneralPullRequestMetrics) common.PullRequestMetrics
+	// general metrics
+	var timestamp *time.Time
+	var originalTrigger string
+	var userName string
+	var gitRef string
+	// pull request metrics
+	var pullRequest *github.PullRequest
+	var mergeCommitSHA string
+
+	switch event.ObjectAttributes.Action {
+	case "open":
+		constructorFunc = common.NewPullRequestOpenedMetrics
+	case "close", "merge":
+		constructorFunc = common.NewPullRequestClosedMetrics
+	default:
+		constructorFunc = common.NewPullRequestUpdatedMetrics
+	}
+
+	timestamp = (*time.Time)(nil)
+	originalTrigger = common.OriginalTrigger(event.EventType, "")
+	userName = event.User.Username
+	gitRef = fmt.Sprintf("refs/heads/%s", event.ObjectAttributes.TargetBranch)
+
+	generalMetrics := common.NewGeneralMetrics(currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
+	generalPullRequestMetrics := newGeneralPullRequestMetrics(pullRequest, mergeCommitSHA)
+	metrics := constructorFunc(generalMetrics, generalPullRequestMetrics)
 	return metrics
 }
 
@@ -49,7 +84,7 @@ func newPushMetrics(event *gitlab.PushEvent, appSlug string, currentTime time.Ti
 	}
 
 	timestamp := (*time.Time)(nil)
-	originalTrigger := fmt.Sprintf("%s:%s", event.EventName, "")
+	originalTrigger := common.OriginalTrigger(event.EventName, "")
 	userName := event.UserUsername
 	gitRef := event.Ref
 
@@ -62,6 +97,21 @@ func newPushMetrics(event *gitlab.PushEvent, appSlug string, currentTime time.Ti
 	masterBranch := event.Project.DefaultBranch
 
 	return constructorFunc(generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTime, latestCommitTime, masterBranch)
+}
+
+func newGeneralPullRequestMetrics(pullRequest *github.PullRequest, mergeCommitSHA string) common.GeneralPullRequestMetrics {
+	prID := fmt.Sprintf("%d", pullRequest.GetNumber())
+
+	return common.GeneralPullRequestMetrics{
+		PullRequestID:  prID,
+		CommitID:       pullRequest.GetHead().GetSHA(),
+		ChangedFiles:   pullRequest.GetChangedFiles(),
+		Additions:      pullRequest.GetAdditions(),
+		Deletions:      pullRequest.GetDeletions(),
+		Commits:        pullRequest.GetCommits(),
+		MergeCommitSHA: mergeCommitSHA,
+		Status:         pullRequest.GetState(),
+	}
 }
 
 func isBranchCreate(event *gitlab.PushEvent) bool {
