@@ -235,13 +235,12 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 
 func newGeneralPullRequestMetrics(pullRequest *github.PullRequest, mergeCommitSHA string) common.GeneralPullRequestMetrics {
 	prID := fmt.Sprintf("%d", pullRequest.GetNumber())
-	//baseRepoHTMLURL:= pullRequest.Base.Repo.GetHTMLURL()
-	// pullrequestTargetBranch := pullRequest.Base.Ref
 
 	return hookCommon.GeneralPullRequestMetrics{
 		PullRequestTitle: pullRequest.GetTitle(),
 		PullRequestID:    prID,
-		PullrequestURL:   pullRequest.GetHTMLURL(), // TODO:
+		PullRequestURL:   pullRequest.GetHTMLURL(),
+		TargetBranch:     pullRequest.GetBase().GetRef(),
 		CommitID:         pullRequest.GetHead().GetSHA(),
 		ChangedFiles:     pullRequest.GetChangedFiles(),
 		Additions:        pullRequest.GetAdditions(),

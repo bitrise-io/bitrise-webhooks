@@ -176,16 +176,11 @@ func NewGeneralMetrics(providerType string, repository string, currentTime time.
 }
 
 // GeneralPullRequestMetrics ...
-/* TODO: add:
-- PR title
-- PR target branch
-- PR HTML URL
-*/
-
 type GeneralPullRequestMetrics struct {
 	PullRequestTitle string `json:"pull_request_title,omitempty"`
 	PullRequestID    string `json:"pull_request_id,omitempty"` // PR number
-	PullrequestURL   string `json:"pullrequest_url,omitempty"`
+	PullRequestURL   string `json:"pull_request_url,omitempty"`
+	TargetBranch     string `json:"target_branch,omitempty"`
 	CommitID         string `json:"commit_id,omitempty"`
 	ChangedFiles     int    `json:"changed_files_count"`
 	Additions        int    `json:"addition_count"`
