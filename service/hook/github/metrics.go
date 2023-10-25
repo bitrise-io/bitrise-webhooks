@@ -39,7 +39,6 @@ func (hp HookProvider) gatherMetrics(event interface{}, webhookType, appSlug str
 		metrics = newPullRequestCommentMetrics(event, webhookType, appSlug, currentTime)
 	}
 
-	fmt.Println(metrics)
 	return metrics
 }
 
