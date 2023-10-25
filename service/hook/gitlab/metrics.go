@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/google/go-github/v54/github"
 	"github.com/xanzy/go-gitlab"
 )
 
@@ -42,14 +41,6 @@ func (hp HookProvider) gatherMetrics(event interface{}, appSlug string, currentT
 
 func newPullRequestMetrics(event *gitlab.MergeEvent, appSlug string, currentTime time.Time) common.PullRequestMetrics {
 	var constructorFunc func(generalMetrics common.GeneralMetrics, generalPullRequestMetrics common.GeneralPullRequestMetrics) common.PullRequestMetrics
-	// general metrics
-	var timestamp *time.Time
-	var originalTrigger string
-	var userName string
-	var gitRef string
-	// pull request metrics
-	var pullRequest *github.PullRequest
-	var mergeCommitSHA string
 
 	switch event.ObjectAttributes.Action {
 	case "open":
@@ -60,13 +51,15 @@ func newPullRequestMetrics(event *gitlab.MergeEvent, appSlug string, currentTime
 		constructorFunc = common.NewPullRequestUpdatedMetrics
 	}
 
-	timestamp = (*time.Time)(nil)
-	originalTrigger = common.OriginalTrigger(event.EventType, "")
-	userName = event.User.Username
-	gitRef = fmt.Sprintf("refs/heads/%s", event.ObjectAttributes.TargetBranch)
-
+	timestamp := parseTime(event.ObjectAttributes.UpdatedAt)
+	originalTrigger := common.OriginalTrigger(event.EventType, event.ObjectAttributes.Action)
+	userName := event.User.Username
+	gitRef := fmt.Sprintf("refs/heads/%s", event.ObjectAttributes.TargetBranch)
 	generalMetrics := common.NewGeneralMetrics(currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
-	generalPullRequestMetrics := newGeneralPullRequestMetrics(pullRequest, mergeCommitSHA)
+
+	pullRequest := event
+	generalPullRequestMetrics := newGeneralPullRequestMetrics(pullRequest)
+
 	metrics := constructorFunc(generalMetrics, generalPullRequestMetrics)
 	return metrics
 }
@@ -99,18 +92,18 @@ func newPushMetrics(event *gitlab.PushEvent, appSlug string, currentTime time.Ti
 	return constructorFunc(generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTime, latestCommitTime, masterBranch)
 }
 
-func newGeneralPullRequestMetrics(pullRequest *github.PullRequest, mergeCommitSHA string) common.GeneralPullRequestMetrics {
-	prID := fmt.Sprintf("%d", pullRequest.GetNumber())
+func newGeneralPullRequestMetrics(pullRequest *gitlab.MergeEvent) common.GeneralPullRequestMetrics {
+	prID := fmt.Sprintf("%d", pullRequest.ObjectAttributes.IID)
 
 	return common.GeneralPullRequestMetrics{
-		PullRequestID:  prID,
-		CommitID:       pullRequest.GetHead().GetSHA(),
-		ChangedFiles:   pullRequest.GetChangedFiles(),
-		Additions:      pullRequest.GetAdditions(),
-		Deletions:      pullRequest.GetDeletions(),
-		Commits:        pullRequest.GetCommits(),
-		MergeCommitSHA: mergeCommitSHA,
-		Status:         pullRequest.GetState(),
+		PullRequestID: prID,
+		CommitID:      pullRequest.ObjectAttributes.LastCommit.ID,
+		//ChangedFiles:   pullRequest.GetChangedFiles(),
+		//Additions:      pullRequest.GetAdditions(),
+		//Deletions:      pullRequest.GetDeletions(),
+		//Commits:        0,
+		MergeCommitSHA: pullRequest.ObjectAttributes.MergeCommitSHA,
+		Status:         pullRequest.ObjectAttributes.State,
 	}
 }
 
@@ -134,4 +127,14 @@ func latestCommitTimestamp(event *gitlab.PushEvent) *time.Time {
 		return event.Commits[len(event.Commits)-1].Timestamp
 	}
 	return nil
+}
+
+func parseTime(s string) *time.Time {
+	// 2023-10-19 11:50:00 UTC
+	t, err := time.Parse("2006-01-02 03:04:05 MST", s)
+	if err != nil {
+		// TODO: log error
+		return nil
+	}
+	return &t
 }
