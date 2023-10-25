@@ -29,6 +29,7 @@ func TestHookProvider_gatherMetrics(t *testing.T) {
 				Event:  "git_push",
 				Action: "pushed",
 				GeneralMetrics: common.GeneralMetrics{
+					ProviderType:    ProviderID,
 					TimeStamp:       currentTime,
 					AppSlug:         "slug",
 					OriginalTrigger: "git-push:",
@@ -44,6 +45,7 @@ func TestHookProvider_gatherMetrics(t *testing.T) {
 				Event:  "pull_request",
 				Action: "updated",
 				GeneralMetrics: common.GeneralMetrics{
+					ProviderType:    ProviderID,
 					TimeStamp:       currentTime,
 					AppSlug:         "slug",
 					OriginalTrigger: "pull_request:",
@@ -62,6 +64,7 @@ func TestHookProvider_gatherMetrics(t *testing.T) {
 				Event:  "pull_request",
 				Action: "comment",
 				GeneralMetrics: common.GeneralMetrics{
+					ProviderType:    ProviderID,
 					TimeStamp:       currentTime,
 					AppSlug:         "slug",
 					OriginalTrigger: "pull_request_review_comment:",

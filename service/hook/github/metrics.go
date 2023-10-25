@@ -108,7 +108,7 @@ func newPushMetrics(event interface{}, webhookType, appSlug string, currentTime 
 		return nil
 	}
 
-	generalMetrics := common.NewGeneralMetrics(currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
+	generalMetrics := common.NewGeneralMetrics(ProviderID, currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
 	metrics := constructorFunc(generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTime, latestCommitTime, masterBranch)
 	return &metrics
 }
@@ -160,7 +160,7 @@ func newPullRequestMetrics(event interface{}, webhookType, appSlug string, curre
 		return nil
 	}
 
-	generalMetrics := common.NewGeneralMetrics(currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
+	generalMetrics := common.NewGeneralMetrics(ProviderID, currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
 	generalPullRequestMetrics := newGeneralPullRequestMetrics(pullRequest, mergeCommitSHA)
 	metrics := constructorFunc(generalMetrics, generalPullRequestMetrics)
 	return &metrics
@@ -213,7 +213,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 		return nil
 	}
 
-	generalMetrics := common.NewGeneralMetrics(currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
+	generalMetrics := common.NewGeneralMetrics(ProviderID, currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
 	metrics := common.NewPullRequestCommentMetrics(generalMetrics, prID)
 	return &metrics
 }

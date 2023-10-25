@@ -150,6 +150,8 @@ func NewPullRequestCommentMetrics(generalMetrics GeneralMetrics, pullRequestID s
 
 // GeneralMetrics ...
 type GeneralMetrics struct {
+	// TODO: shouldn't we use omitempty for optional fields only?
+	ProviderType    string     `json:"provider_type,omitempty"`
 	TimeStamp       time.Time  `json:"timestamp,omitempty"`
 	EventTimestamp  *time.Time `json:"event_timestamp,omitempty"`
 	AppSlug         string     `json:"app_slug,omitempty"`
@@ -159,8 +161,9 @@ type GeneralMetrics struct {
 }
 
 // NewGeneralMetrics ...
-func NewGeneralMetrics(currentTime time.Time, eventTimestamp *time.Time, appSlug string, originalTrigger string, username string, gitRef string) GeneralMetrics {
+func NewGeneralMetrics(providerType string, currentTime time.Time, eventTimestamp *time.Time, appSlug string, originalTrigger string, username string, gitRef string) GeneralMetrics {
 	return GeneralMetrics{
+		ProviderType:    providerType,
 		TimeStamp:       currentTime,
 		EventTimestamp:  eventTimestamp,
 		AppSlug:         appSlug,
