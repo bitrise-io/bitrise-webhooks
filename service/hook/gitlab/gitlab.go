@@ -44,6 +44,7 @@ import (
 	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 )
 
@@ -140,7 +141,21 @@ type MergeRequestEventModel struct {
 // --- Webhook Provider Implementation ---
 
 // HookProvider ...
-type HookProvider struct{}
+type HookProvider struct {
+	timeProvider common.TimeProvider
+}
+
+// NewHookProvider ...
+func NewHookProvider(timeProvider common.TimeProvider) hookCommon.Provider {
+	return HookProvider{
+		timeProvider: timeProvider,
+	}
+}
+
+// NewDefaultHookProvider ...
+func NewDefaultHookProvider() hookCommon.Provider {
+	return NewHookProvider(common.NewDefaultTimeProvider())
+}
 
 func detectContentTypeAndEventID(header http.Header) (string, string, error) {
 	contentType := header.Get("Content-Type")
