@@ -202,6 +202,7 @@ type ListMergeRequestsOptions struct {
 	Scope                  *string           `url:"scope,omitempty" json:"scope,omitempty"`
 	AuthorID               *int              `url:"author_id,omitempty" json:"author_id,omitempty"`
 	AuthorUsername         *string           `url:"author_username,omitempty" json:"author_username,omitempty"`
+	NotAuthorUsername      *string           `url:"not[author_username],omitempty" json:"not[author_username],omitempty"`
 	AssigneeID             *AssigneeIDValue  `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
 	ApproverIDs            *ApproverIDsValue `url:"approver_ids,omitempty" json:"approver_ids,omitempty"`
 	ApprovedByIDs          *ApproverIDsValue `url:"approved_by_ids,omitempty" json:"approved_by_ids,omitempty"`
@@ -262,6 +263,7 @@ type ListProjectMergeRequestsOptions struct {
 	Scope                  *string           `url:"scope,omitempty" json:"scope,omitempty"`
 	AuthorID               *int              `url:"author_id,omitempty" json:"author_id,omitempty"`
 	AuthorUsername         *string           `url:"author_username,omitempty" json:"author_username,omitempty"`
+	NotAuthorUsername      *string           `url:"not[author_username],omitempty" json:"not[author_username],omitempty"`
 	AssigneeID             *AssigneeIDValue  `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
 	ApproverIDs            *ApproverIDsValue `url:"approver_ids,omitempty" json:"approver_ids,omitempty"`
 	ApprovedByIDs          *ApproverIDsValue `url:"approved_by_ids,omitempty" json:"approved_by_ids,omitempty"`
@@ -323,6 +325,7 @@ type ListGroupMergeRequestsOptions struct {
 	Scope                  *string           `url:"scope,omitempty" json:"scope,omitempty"`
 	AuthorID               *int              `url:"author_id,omitempty" json:"author_id,omitempty"`
 	AuthorUsername         *string           `url:"author_username,omitempty" json:"author_username,omitempty"`
+	NotAuthorUsername      *string           `url:"not[author_username],omitempty" json:"not[author_username],omitempty"`
 	AssigneeID             *AssigneeIDValue  `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
 	ApproverIDs            *ApproverIDsValue `url:"approver_ids,omitempty" json:"approver_ids,omitempty"`
 	ApprovedByIDs          *ApproverIDsValue `url:"approved_by_ids,omitempty" json:"approved_by_ids,omitempty"`
@@ -468,7 +471,7 @@ type GetMergeRequestChangesOptions struct {
 // its files and changes.
 //
 // Deprecated: This endpoint has been replaced by
-// MergeRequestsService.ListMergeRequesDiffs()
+// MergeRequestsService.ListMergeRequestDiffs()
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/merge_requests.html#get-single-merge-request-changes
@@ -493,7 +496,7 @@ func (s *MergeRequestsService) GetMergeRequestChanges(pid interface{}, mergeRequ
 	return m, resp, nil
 }
 
-// ListMergeRequestDiffsOptions represents the available ListMergeRequesDiffs()
+// ListMergeRequestDiffsOptions represents the available ListMergeRequestDiffs()
 // options.
 //
 // GitLab API docs:
