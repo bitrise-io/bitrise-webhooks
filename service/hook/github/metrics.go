@@ -78,6 +78,7 @@ func newPushMetrics(event interface{}, webhookType, appSlug string, currentTime 
 		userName = event.GetPusher().GetName()
 		gitRef = event.GetRef()
 
+		// TODO: commitIDAfter and commitIDBefore seems to be swapped for deleted and created actions
 		commitIDAfter = event.GetAfter()
 		commitIDBefore = event.GetBefore()
 		oldestCommitTime = oldestCommitTimestamp(event.GetCommits())
