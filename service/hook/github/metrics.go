@@ -56,7 +56,7 @@ func newPushMetrics(event interface{}, webhookType, appSlug string, currentTime 
 	var commitIDBefore string
 	var oldestCommitTime *time.Time
 	var latestCommitTime *time.Time
-	var masterBranch string // TODO: event.Project.MasterBranch / default_branch
+	var masterBranch string
 
 	switch event := event.(type) {
 	case *github.PushEvent:
@@ -77,12 +77,11 @@ func newPushMetrics(event interface{}, webhookType, appSlug string, currentTime 
 		userName = event.GetPusher().GetName()
 		gitRef = event.GetRef()
 
-		// TODO: commitIDAfter and commitIDBefore seems to be swapped for deleted and created actions
 		commitIDAfter = event.GetAfter()
 		commitIDBefore = event.GetBefore()
 		oldestCommitTime = oldestCommitTimestamp(event.GetCommits())
 		latestCommitTime = latestCommitTimestamp(event.GetCommits())
-		masterBranch = ""
+		masterBranch = event.GetRepo().GetDefaultBranch()
 	case *github.DeleteEvent:
 		constructorFunc = common.NewPushDeletedMetrics
 
@@ -95,7 +94,7 @@ func newPushMetrics(event interface{}, webhookType, appSlug string, currentTime 
 		commitIDAfter = ""
 		commitIDBefore = ""
 		oldestCommitTime = nil
-		masterBranch = ""
+		masterBranch = event.GetRepo().GetDefaultBranch()
 	case *github.CreateEvent:
 		constructorFunc = common.NewPushCreatedMetrics
 
@@ -108,7 +107,7 @@ func newPushMetrics(event interface{}, webhookType, appSlug string, currentTime 
 		commitIDAfter = ""
 		commitIDBefore = ""
 		oldestCommitTime = nil
-		masterBranch = event.GetMasterBranch()
+		masterBranch = event.GetRepo().GetDefaultBranch()
 	default:
 		return nil
 	}
