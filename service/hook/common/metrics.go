@@ -57,8 +57,8 @@ type PushMetrics struct {
 
 	GeneralMetrics
 
-	CommitIDAfter         string     `json:"commit_id_before,omitempty"`
-	CommitIDBefore        string     `json:"commit_id_after,omitempty"`
+	CommitIDAfter         string     `json:"commit_id_after,omitempty"`
+	CommitIDBefore        string     `json:"commit_id_before,omitempty"`
 	OldestCommitTimestamp *time.Time `json:"oldest_commit_timestamp,omitempty"`
 	LatestCommitTimestamp *time.Time `json:"latest_commit_timestamp,omitempty"`
 	MasterBranch          string     `json:"master_branch,omitempty"`
