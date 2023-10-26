@@ -11,7 +11,7 @@ import (
 )
 
 func TestHookProvider_gatherMetrics_commit_id_before_and_after(t *testing.T) {
-	currentTime := time.Date(2023, time.October, 26, 8, 0, 0, 0, time.Local)
+	currentTime := time.Date(2023, time.October, 26, 8, 0, 0, 0, time.UTC)
 
 	tests := []struct {
 		name        string
@@ -25,7 +25,7 @@ func TestHookProvider_gatherMetrics_commit_id_before_and_after(t *testing.T) {
 			event:       testPushWebhook(t),
 			webhookType: "git-push",
 			appSlug:     "slug",
-			want:        `{"event":"git_push","action":"deleted","provider_type":"github","repository":"bitrise-io/project","timestamp":"2023-10-26T08:00:00+02:00","app_slug":"slug","original_trigger":"git-push:","user_name":"bitrise-bot","git_ref":"refs/heads/tech_improvements","commit_id_before":"123ddfe9f740fb229b9cff3e43a484bbcedf7fa8","commit_id_after":"0000000000000000000000000000000000000000"}`,
+			want:        `{"event":"git_push","action":"deleted","provider_type":"github","repository":"bitrise-io/project","timestamp":"2023-10-26T08:00:00Z","app_slug":"slug","original_trigger":"git-push:","user_name":"bitrise-bot","git_ref":"refs/heads/tech_improvements","commit_id_before":"123ddfe9f740fb229b9cff3e43a484bbcedf7fa8","commit_id_after":"0000000000000000000000000000000000000000"}`,
 		},
 	}
 	for _, tt := range tests {
