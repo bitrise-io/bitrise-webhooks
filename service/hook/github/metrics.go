@@ -56,7 +56,7 @@ func newPushMetrics(event interface{}, webhookType, appSlug string, currentTime 
 	var commitIDBefore string
 	var oldestCommitTime *time.Time
 	var latestCommitTime *time.Time
-	var masterBranch string
+	var masterBranch string // TODO: event.Project.MasterBranch / default_branch
 
 	switch event := event.(type) {
 	case *github.PushEvent:
