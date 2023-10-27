@@ -51,11 +51,13 @@ func newPullRequestMetrics(event *gitlab.MergeEvent, appSlug string, currentTime
 		constructorFunc = common.NewPullRequestUpdatedMetrics
 	}
 
+	provider := ProviderID
+	repo := event.Project.PathWithNamespace
 	timestamp := parseTime(event.ObjectAttributes.UpdatedAt)
 	originalTrigger := common.OriginalTrigger(event.EventType, event.ObjectAttributes.Action)
 	userName := event.User.Username
 	gitRef := fmt.Sprintf("refs/heads/%s", event.ObjectAttributes.TargetBranch)
-	generalMetrics := common.NewGeneralMetrics(currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
+	generalMetrics := common.NewGeneralMetrics(provider, repo, currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
 
 	pullRequest := event
 	generalPullRequestMetrics := newGeneralPullRequestMetrics(pullRequest)
@@ -76,12 +78,14 @@ func newPushMetrics(event *gitlab.PushEvent, appSlug string, currentTime time.Ti
 		constructorFunc = common.NewPushMetrics
 	}
 
+	provider := ProviderID
+	repo := event.Project.PathWithNamespace
 	timestamp := (*time.Time)(nil)
 	originalTrigger := common.OriginalTrigger(event.EventName, "")
 	userName := event.UserUsername
 	gitRef := event.Ref
 
-	generalMetrics := common.NewGeneralMetrics(currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
+	generalMetrics := common.NewGeneralMetrics(provider, repo, currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
 
 	commitIDAfter := event.After
 	commitIDBefore := event.Before
