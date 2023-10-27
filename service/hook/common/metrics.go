@@ -57,8 +57,8 @@ type PushMetrics struct {
 
 	GeneralMetrics
 
-	CommitIDAfter         string     `json:"commit_id_before,omitempty"`
-	CommitIDBefore        string     `json:"commit_id_after,omitempty"`
+	CommitIDAfter         string     `json:"commit_id_after,omitempty"`
+	CommitIDBefore        string     `json:"commit_id_before,omitempty"`
 	OldestCommitTimestamp *time.Time `json:"oldest_commit_timestamp,omitempty"`
 	LatestCommitTimestamp *time.Time `json:"latest_commit_timestamp,omitempty"`
 	MasterBranch          string     `json:"master_branch,omitempty"`
@@ -150,6 +150,8 @@ func NewPullRequestCommentMetrics(generalMetrics GeneralMetrics, pullRequestID s
 
 // GeneralMetrics ...
 type GeneralMetrics struct {
+	ProviderType    string     `json:"provider_type,omitempty"`
+	Repository      string     `json:"repository,omitempty"` // org/repo
 	TimeStamp       time.Time  `json:"timestamp,omitempty"`
 	EventTimestamp  *time.Time `json:"event_timestamp,omitempty"`
 	AppSlug         string     `json:"app_slug,omitempty"`
@@ -159,8 +161,10 @@ type GeneralMetrics struct {
 }
 
 // NewGeneralMetrics ...
-func NewGeneralMetrics(currentTime time.Time, eventTimestamp *time.Time, appSlug string, originalTrigger string, username string, gitRef string) GeneralMetrics {
+func NewGeneralMetrics(providerType string, repository string, currentTime time.Time, eventTimestamp *time.Time, appSlug string, originalTrigger string, username string, gitRef string) GeneralMetrics {
 	return GeneralMetrics{
+		ProviderType:    providerType,
+		Repository:      repository,
 		TimeStamp:       currentTime,
 		EventTimestamp:  eventTimestamp,
 		AppSlug:         appSlug,
@@ -172,14 +176,17 @@ func NewGeneralMetrics(currentTime time.Time, eventTimestamp *time.Time, appSlug
 
 // GeneralPullRequestMetrics ...
 type GeneralPullRequestMetrics struct {
-	PullRequestID  string `json:"pull_request_id,omitempty"` // PR number
-	CommitID       string `json:"commit_id,omitempty"`
-	ChangedFiles   int    `json:"changed_files_count"`
-	Additions      int    `json:"addition_count"`
-	Deletions      int    `json:"deletion_count"`
-	Commits        int    `json:"commit_count"`
-	MergeCommitSHA string `json:"merge_commit_sha,omitempty"`
-	Status         string `json:"status,omitempty"`
+	PullRequestTitle string `json:"pull_request_title,omitempty"`
+	PullRequestID    string `json:"pull_request_id,omitempty"` // PR number
+	PullRequestURL   string `json:"pull_request_url,omitempty"`
+	TargetBranch     string `json:"target_branch,omitempty"`
+	CommitID         string `json:"commit_id,omitempty"`
+	ChangedFiles     int    `json:"changed_files_count"`
+	Additions        int    `json:"addition_count"`
+	Deletions        int    `json:"deletion_count"`
+	Commits          int    `json:"commit_count"`
+	MergeCommitSHA   string `json:"merge_commit_sha,omitempty"`
+	Status           string `json:"status,omitempty"`
 }
 
 // Serialise ...
