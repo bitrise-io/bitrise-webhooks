@@ -100,8 +100,11 @@ func newGeneralPullRequestMetrics(pullRequest *gitlab.MergeEvent) common.General
 	prID := fmt.Sprintf("%d", pullRequest.ObjectAttributes.IID)
 
 	return common.GeneralPullRequestMetrics{
-		PullRequestID: prID,
-		CommitID:      pullRequest.ObjectAttributes.LastCommit.ID,
+		PullRequestTitle: pullRequest.ObjectAttributes.Title,
+		PullRequestID:    prID,
+		PullRequestURL:   pullRequest.ObjectAttributes.URL,
+		TargetBranch:     pullRequest.ObjectAttributes.TargetBranch,
+		CommitID:         pullRequest.ObjectAttributes.LastCommit.ID,
 		//ChangedFiles:   pullRequest.GetChangedFiles(),
 		//Additions:      pullRequest.GetAdditions(),
 		//Deletions:      pullRequest.GetDeletions(),
