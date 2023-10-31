@@ -248,7 +248,7 @@ func newGeneralPullRequestMetrics(pullRequest *github.PullRequest, mergeCommitSH
 		Deletions:        pullRequest.GetDeletions(),
 		Commits:          pullRequest.GetCommits(),
 		MergeCommitSHA:   mergeCommitSHA,
-		Status:           pullRequest.GetState(),
+		Status:           status,
 	}
 }
 
