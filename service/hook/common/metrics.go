@@ -67,6 +67,10 @@ type PushMetrics struct {
 	OldestCommitTimestamp *time.Time `json:"oldest_commit_timestamp,omitempty"`
 	LatestCommitTimestamp *time.Time `json:"latest_commit_timestamp,omitempty"`
 	MasterBranch          string     `json:"master_branch,omitempty"`
+	// Prefer setting these fields on a PullRequestMetrics
+	ChangedFiles int `json:"changed_files_count"`
+	Additions    int `json:"addition_count"`
+	Deletions    int `json:"deletion_count"`
 }
 
 // NewPushCreatedMetrics ...

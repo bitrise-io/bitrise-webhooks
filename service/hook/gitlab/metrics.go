@@ -94,7 +94,9 @@ func newPushMetrics(event *gitlab.PushEvent, appSlug string, currentTime time.Ti
 	latestCommitTime := latestCommitTimestamp(event)
 	masterBranch := event.Project.DefaultBranch
 
-	return constructorFunc(generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTime, latestCommitTime, masterBranch)
+	pushMetrics := constructorFunc(generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTime, latestCommitTime, masterBranch)
+	pushMetrics.ChangedFiles, pushMetrics.Additions, pushMetrics.Deletions = changes(event)
+	return pushMetrics
 }
 
 func newGeneralPullRequestMetrics(pullRequest *gitlab.MergeEvent) common.GeneralPullRequestMetrics {
@@ -140,4 +142,13 @@ func parseTime(s string) *time.Time {
 		return nil
 	}
 	return &t
+}
+
+func changes(event *gitlab.PushEvent) (changedFiles int, additions int, deletions int) {
+	if len(event.Commits) == 0 {
+		return
+	}
+
+	lastCommit := event.Commits[len(event.Commits)-1]
+	return len(lastCommit.Modified), len(lastCommit.Added), len(lastCommit.Removed)
 }
