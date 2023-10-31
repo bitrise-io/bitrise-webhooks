@@ -50,6 +50,11 @@ type MetricsProvider interface {
 	GatherMetrics(r *http.Request, appSlug string) (Metrics, error)
 }
 
+// OriginalTrigger ...
+func OriginalTrigger(webhookType, webhookAction string) string {
+	return fmt.Sprintf("%s:%s", webhookType, webhookAction)
+}
+
 // PushMetrics ...
 type PushMetrics struct {
 	Event  Event  `json:"event,omitempty"`
@@ -225,8 +230,4 @@ func stringer(v interface{}) string {
 		return string(c)
 	}
 	return fmt.Sprintf("#%v", v)
-}
-
-func OriginalTrigger(webhookType, webhookAction string) string {
-	return fmt.Sprintf("%s:%s", webhookType, webhookAction)
 }

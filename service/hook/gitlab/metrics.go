@@ -10,6 +10,7 @@ import (
 	"github.com/xanzy/go-gitlab"
 )
 
+// GatherMetrics ...
 func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (common.Metrics, error) {
 	payload, err := io.ReadAll(r.Body)
 	if err != nil {
