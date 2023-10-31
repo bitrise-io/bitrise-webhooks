@@ -105,12 +105,8 @@ func newGeneralPullRequestMetrics(pullRequest *gitlab.MergeEvent) common.General
 		PullRequestURL:   pullRequest.ObjectAttributes.URL,
 		TargetBranch:     pullRequest.ObjectAttributes.TargetBranch,
 		CommitID:         pullRequest.ObjectAttributes.LastCommit.ID,
-		//ChangedFiles:   pullRequest.GetChangedFiles(),
-		//Additions:      pullRequest.GetAdditions(),
-		//Deletions:      pullRequest.GetDeletions(),
-		//Commits:        0,
-		MergeCommitSHA: pullRequest.ObjectAttributes.MergeCommitSHA,
-		Status:         pullRequest.ObjectAttributes.State,
+		MergeCommitSHA:   pullRequest.ObjectAttributes.MergeCommitSHA,
+		Status:           pullRequest.ObjectAttributes.State,
 	}
 }
 
@@ -140,7 +136,6 @@ func parseTime(s string) *time.Time {
 	// 2023-10-19 11:50:00 UTC
 	t, err := time.Parse("2006-01-02 03:04:05 MST", s)
 	if err != nil {
-		// TODO: log error
 		return nil
 	}
 	return &t
