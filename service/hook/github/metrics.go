@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/google/go-github/v55/github"
 )
 
@@ -234,7 +233,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 func newGeneralPullRequestMetrics(pullRequest *github.PullRequest, mergeCommitSHA string) common.GeneralPullRequestMetrics {
 	prID := fmt.Sprintf("%d", pullRequest.GetNumber())
 
-	return hookCommon.GeneralPullRequestMetrics{
+	return common.GeneralPullRequestMetrics{
 		PullRequestTitle: pullRequest.GetTitle(),
 		PullRequestID:    prID,
 		PullRequestURL:   pullRequest.GetHTMLURL(),
