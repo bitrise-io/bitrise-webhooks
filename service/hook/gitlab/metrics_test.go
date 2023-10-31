@@ -23,7 +23,7 @@ func TestHookProvider_gatherMetrics_commit_id_before_and_after(t *testing.T) {
 			name:    "Push created webhook - commit id before is null, after isn't",
 			event:   testPushWebhook(t),
 			appSlug: "slug",
-			want:    `{"event":"git_push","action":"created","provider_type":"gitlab","repository":"bitrise-io/project","timestamp":"2023-10-26T08:00:00Z","app_slug":"slug","original_trigger":"push:","user_name":"bitrise-bot","git_ref":"refs/heads/dev-1","commit_id_after":"d6666f44e4a5c82c20a783da58c4274a6e3690c3","commit_id_before":"0000000000000000000000000000000000000000","oldest_commit_timestamp":"2023-10-31T09:39:09Z","latest_commit_timestamp":"2023-10-31T09:39:09Z","master_branch":"master"}`,
+			want:    `{"event":"git_push","action":"created","provider_type":"gitlab","repository":"bitrise-io/project","timestamp":"2023-10-26T08:00:00Z","app_slug":"slug","original_trigger":"push:","user_name":"bitrise-bot","git_ref":"dev-1","commit_id_after":"d6666f44e4a5c82c20a783da58c4274a6e3690c3","commit_id_before":"0000000000000000000000000000000000000000","oldest_commit_timestamp":"2023-10-31T09:39:09Z","latest_commit_timestamp":"2023-10-31T09:39:09Z","master_branch":"master"}`,
 		},
 	}
 	for _, tt := range tests {

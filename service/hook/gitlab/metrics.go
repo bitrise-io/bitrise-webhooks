@@ -57,7 +57,7 @@ func newPullRequestMetrics(event *gitlab.MergeEvent, appSlug string, currentTime
 	timestamp := parseTime(event.ObjectAttributes.UpdatedAt)
 	originalTrigger := common.OriginalTrigger(event.EventType, event.ObjectAttributes.Action)
 	userName := event.User.Username
-	gitRef := fmt.Sprintf("refs/heads/%s", event.ObjectAttributes.SourceBranch)
+	gitRef := event.ObjectAttributes.SourceBranch
 	generalMetrics := common.NewGeneralMetrics(provider, repo, currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
 
 	pullRequest := event
