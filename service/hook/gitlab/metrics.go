@@ -36,7 +36,6 @@ func (hp HookProvider) gatherMetrics(event interface{}, appSlug string, currentT
 		metrics = newPullRequestMetrics(event, appSlug, currentTime)
 	}
 
-	fmt.Println(metrics)
 	return metrics
 }
 
