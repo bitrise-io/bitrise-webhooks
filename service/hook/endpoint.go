@@ -43,7 +43,7 @@ func supportedProviders() map[string]hookCommon.Provider {
 		bitbucketserver.ProviderID:          bitbucketserver.HookProvider{},
 		slack.ProviderID:                    slack.HookProvider{},
 		visualstudioteamservices.ProviderID: visualstudioteamservices.HookProvider{},
-		gitlab.ProviderID:                   gitlab.HookProvider{},
+		gitlab.ProviderID:                   gitlab.NewDefaultHookProvider(),
 		gogs.ProviderID:                     gogs.HookProvider{},
 		deveo.ProviderID:                    deveo.HookProvider{},
 		assembla.ProviderID:                 assembla.HookProvider{},

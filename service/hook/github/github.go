@@ -8,7 +8,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
@@ -107,31 +106,13 @@ type PullRequestEventModel struct {
 // ---------------------------------------
 // --- Webhook Provider Implementation ---
 
-// TimeProvider ...
-type TimeProvider interface {
-	CurrentTime() time.Time
-}
-
-type defaultTimeProvider struct {
-}
-
-// NewDefaultTimeProvider ...
-func NewDefaultTimeProvider() TimeProvider {
-	return defaultTimeProvider{}
-}
-
-// CurrentTime ...
-func (p defaultTimeProvider) CurrentTime() time.Time {
-	return time.Now()
-}
-
 // HookProvider ...
 type HookProvider struct {
-	timeProvider TimeProvider
+	timeProvider hookCommon.TimeProvider
 }
 
 // NewHookProvider ...
-func NewHookProvider(timeProvider TimeProvider) hookCommon.Provider {
+func NewHookProvider(timeProvider hookCommon.TimeProvider) hookCommon.Provider {
 	return HookProvider{
 		timeProvider: timeProvider,
 	}
@@ -139,7 +120,7 @@ func NewHookProvider(timeProvider TimeProvider) hookCommon.Provider {
 
 // NewDefaultHookProvider ...
 func NewDefaultHookProvider() hookCommon.Provider {
-	return NewHookProvider(NewDefaultTimeProvider())
+	return NewHookProvider(hookCommon.NewDefaultTimeProvider())
 }
 
 func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
