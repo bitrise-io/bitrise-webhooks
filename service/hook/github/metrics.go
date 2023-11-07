@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/google/go-github/v55/github"
 )
 
@@ -73,7 +72,7 @@ func newPushMetrics(event interface{}, webhookType, appSlug string, currentTime 
 
 		repo = event.GetRepo().GetFullName()
 		timestamp = timestampToTime(event.GetHeadCommit().GetTimestamp())
-		originalTrigger = fmt.Sprintf("%s:%s", webhookType, event.GetAction())
+		originalTrigger = common.OriginalTrigger(webhookType, event.GetAction())
 		userName = event.GetPusher().GetName()
 		gitRef = event.GetRef()
 
@@ -87,7 +86,7 @@ func newPushMetrics(event interface{}, webhookType, appSlug string, currentTime 
 
 		repo = event.GetRepo().GetFullName()
 		timestamp = nil
-		originalTrigger = fmt.Sprintf("%s:%s", webhookType, "")
+		originalTrigger = common.OriginalTrigger(webhookType, "")
 		userName = event.GetSender().GetLogin()
 		gitRef = event.GetRef()
 
@@ -100,7 +99,7 @@ func newPushMetrics(event interface{}, webhookType, appSlug string, currentTime 
 
 		repo = event.GetRepo().GetFullName()
 		timestamp = nil
-		originalTrigger = fmt.Sprintf("%s:%s", webhookType, "")
+		originalTrigger = common.OriginalTrigger(webhookType, "")
 		userName = event.GetSender().GetLogin()
 		gitRef = event.GetRef()
 
@@ -135,7 +134,7 @@ func newPullRequestMetrics(event interface{}, webhookType, appSlug string, curre
 		repo = event.GetRepo().GetFullName()
 		action := event.GetAction()
 		pullRequest = event.GetPullRequest()
-		originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
+		originalTrigger = common.OriginalTrigger(webhookType, action)
 		userName = pullRequest.GetUser().GetLogin()
 		gitRef = pullRequest.GetHead().GetRef()
 
@@ -160,7 +159,7 @@ func newPullRequestMetrics(event interface{}, webhookType, appSlug string, curre
 		constructorFunc = common.NewPullRequestUpdatedMetrics
 		pullRequest = event.GetPullRequest()
 		timestamp = timestampToTime(pullRequest.GetUpdatedAt())
-		originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
+		originalTrigger = common.OriginalTrigger(webhookType, action)
 		userName = pullRequest.GetUser().GetLogin()
 		gitRef = pullRequest.GetHead().GetRef()
 		mergeCommitSHA = ""
@@ -194,7 +193,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 		pullRequest := event.GetPullRequest()
 
 		timestamp = timestampToTime(comment.GetUpdatedAt())
-		originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
+		originalTrigger = common.OriginalTrigger(webhookType, action)
 		userName = event.GetSender().GetLogin()
 		gitRef = pullRequest.GetHead().GetRef()
 		prID = fmt.Sprintf("%d", pullRequest.GetNumber())
@@ -204,7 +203,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 		pullRequest := event.GetPullRequest()
 
 		timestamp = nil
-		originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
+		originalTrigger = common.OriginalTrigger(webhookType, action)
 		userName = event.GetSender().GetLogin()
 		gitRef = pullRequest.GetHead().GetRef()
 		prID = fmt.Sprintf("%d", pullRequest.GetNumber())
@@ -218,7 +217,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 		action := event.GetAction()
 
 		timestamp = timestampToTime(comment.GetUpdatedAt())
-		originalTrigger = fmt.Sprintf("%s:%s", webhookType, action)
+		originalTrigger = common.OriginalTrigger(webhookType, action)
 		userName = event.GetSender().GetLogin()
 		gitRef = ""
 		prID = fmt.Sprintf("%d", event.GetIssue().GetNumber())
@@ -233,8 +232,12 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 
 func newGeneralPullRequestMetrics(pullRequest *github.PullRequest, mergeCommitSHA string) common.GeneralPullRequestMetrics {
 	prID := fmt.Sprintf("%d", pullRequest.GetNumber())
+	status := pullRequest.GetState()
+	if status == "open" {
+		status = "opened"
+	}
 
-	return hookCommon.GeneralPullRequestMetrics{
+	return common.GeneralPullRequestMetrics{
 		PullRequestTitle: pullRequest.GetTitle(),
 		PullRequestID:    prID,
 		PullRequestURL:   pullRequest.GetHTMLURL(),
@@ -245,7 +248,7 @@ func newGeneralPullRequestMetrics(pullRequest *github.PullRequest, mergeCommitSH
 		Deletions:        pullRequest.GetDeletions(),
 		Commits:          pullRequest.GetCommits(),
 		MergeCommitSHA:   mergeCommitSHA,
-		Status:           pullRequest.GetState(),
+		Status:           status,
 	}
 }
 

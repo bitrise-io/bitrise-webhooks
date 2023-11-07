@@ -50,6 +50,11 @@ type MetricsProvider interface {
 	GatherMetrics(r *http.Request, appSlug string) (Metrics, error)
 }
 
+// OriginalTrigger ...
+func OriginalTrigger(webhookType, webhookAction string) string {
+	return fmt.Sprintf("%s:%s", webhookType, webhookAction)
+}
+
 // PushMetrics ...
 type PushMetrics struct {
 	Event  Event  `json:"event,omitempty"`
@@ -62,6 +67,10 @@ type PushMetrics struct {
 	OldestCommitTimestamp *time.Time `json:"oldest_commit_timestamp,omitempty"`
 	LatestCommitTimestamp *time.Time `json:"latest_commit_timestamp,omitempty"`
 	MasterBranch          string     `json:"master_branch,omitempty"`
+	// Prefer setting these fields on a PullRequestMetrics
+	ChangedFiles int `json:"changed_files_count"`
+	Additions    int `json:"addition_count"`
+	Deletions    int `json:"deletion_count"`
 }
 
 // NewPushCreatedMetrics ...

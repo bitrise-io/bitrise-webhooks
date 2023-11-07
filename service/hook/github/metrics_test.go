@@ -22,10 +22,17 @@ func TestHookProvider_gatherMetrics_commit_id_before_and_after(t *testing.T) {
 	}{
 		{
 			name:        "Push deleted webhook - commit id after is null, before isn't",
-			event:       testPushWebhook(t),
+			event:       testPushDeletedWebhook(t),
 			webhookType: "git-push",
 			appSlug:     "slug",
-			want:        `{"event":"git_push","action":"deleted","provider_type":"github","repository":"bitrise-io/project","timestamp":"2023-10-26T08:00:00Z","app_slug":"slug","original_trigger":"git-push:","user_name":"bitrise-bot","git_ref":"refs/heads/tech_improvements","commit_id_after":"0000000000000000000000000000000000000000","commit_id_before":"123ddfe9f740fb229b9cff3e43a484bbcedf7fa8","master_branch":"main"}`,
+			want:        `{"event":"git_push","action":"deleted","provider_type":"github","repository":"bitrise-io/project","timestamp":"2023-10-26T08:00:00Z","app_slug":"slug","original_trigger":"git-push:","user_name":"bitrise-bot","git_ref":"refs/heads/tech_improvements","commit_id_after":"0000000000000000000000000000000000000000","commit_id_before":"123ddfe9f740fb229b9cff3e43a484bbcedf7fa8","master_branch":"main","changed_files_count":0,"addition_count":0,"deletion_count":0}`,
+		},
+		{
+			name:        "Pull Request opened webhook - open status gets transformed to opened",
+			event:       testPullRequestOpenedPayload(t),
+			webhookType: "pull_request",
+			appSlug:     "slug",
+			want:        `{"event":"pull_request","action":"opened","provider_type":"github","repository":"bitrise-io/project","timestamp":"2023-10-26T08:00:00Z","event_timestamp":"2023-10-30T09:48:35Z","app_slug":"slug","original_trigger":"pull_request:opened","user_name":"bitrise-bot","git_ref":"tech_improvements","pull_request_title":"Patch","pull_request_id":"5","pull_request_url":"https://github.com/bitrise-io/project/pull/5","target_branch":"master","commit_id":"11d6f5e55831ab3586f032393aaee1e942caef6e","changed_files_count":1,"addition_count":1,"deletion_count":1,"commit_count":2,"status":"opened"}`,
 		},
 	}
 	for _, tt := range tests {
@@ -119,9 +126,16 @@ func TestHookProvider_gatherMetrics(t *testing.T) {
 	}
 }
 
-func testPushWebhook(t *testing.T) interface{} {
+func testPushDeletedWebhook(t *testing.T) interface{} {
 	var event github.PushEvent
 	err := json.Unmarshal([]byte(pushDeletedWebhookPayload), &event)
+	require.NoError(t, err)
+	return &event
+}
+
+func testPullRequestOpenedPayload(t *testing.T) interface{} {
+	var event github.PullRequestEvent
+	err := json.Unmarshal([]byte(pullRequestOpenedPayload), &event)
 	require.NoError(t, err)
 	return &event
 }
@@ -132,13 +146,11 @@ const pushDeletedWebhookPayload = `{
   "after": "0000000000000000000000000000000000000000",
   "repository": {
     "full_name": "bitrise-io/project",
-    "html_url": "https://github.com/bitrise-io/project",
     "default_branch": "main",
     "master_branch": "main"
   },
   "pusher": {
-    "name": "bitrise-bot",
-    "email": "bitrise-bote@users.noreply.github.com"
+    "name": "bitrise-bot"
   },
   "sender": {
     "login": "bitrise-bot"
@@ -151,4 +163,38 @@ const pushDeletedWebhookPayload = `{
 
   ],
   "head_commit": null
+}`
+
+const pullRequestOpenedPayload = `{
+	"action": "opened",
+	"number": 5,
+	"pull_request": {
+		"html_url": "https://github.com/bitrise-io/project/pull/5",
+		"number": 5,
+		"state": "open",
+		"title": "Patch",
+		"user": {
+			"login": "bitrise-bot"
+		},
+		"created_at": "2023-10-30T09:48:35Z",
+		"updated_at": "2023-10-30T09:48:35Z",
+		"merge_commit_sha": null,
+		"draft": true,
+		"head": {
+			"ref": "tech_improvements",
+			"sha": "11d6f5e55831ab3586f032393aaee1e942caef6e"
+		},
+		"base": {
+			"ref": "master",
+			"sha": "11fc26fbb995653f4a5e45b0d62516d4afbd0627"
+		},
+		"commits": 2,
+		"additions": 1,
+		"deletions": 1,
+		"changed_files": 1
+	},
+	"repository": {
+		"full_name": "bitrise-io/project",
+		"default_branch": "master"
+	}
 }`

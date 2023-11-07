@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 )
@@ -107,4 +108,22 @@ type ResponseTransformer interface {
 	//  success (e.g. if the hook should be skipped, with a success response,
 	//   which is the case for GitHub's "ping" hook).
 	TransformSuccessMessageResponse(msg string) TransformResponseModel
+}
+
+// TimeProvider ...
+type TimeProvider interface {
+	CurrentTime() time.Time
+}
+
+type defaultTimeProvider struct {
+}
+
+// NewDefaultTimeProvider ...
+func NewDefaultTimeProvider() TimeProvider {
+	return defaultTimeProvider{}
+}
+
+// CurrentTime ...
+func (p defaultTimeProvider) CurrentTime() time.Time {
+	return time.Now()
 }
