@@ -16,7 +16,7 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) ([]common.
 		return nil, err
 	}
 
-	payload, err := hook.Parse(r, bitbucket.RepoPushEvent, bitbucket.PullRequestCreatedEvent, bitbucket.PullRequestUpdatedEvent)
+	payload, err := hook.Parse(r, bitbucket.RepoPushEvent, bitbucket.PullRequestCreatedEvent, bitbucket.PullRequestUpdatedEvent, bitbucket.PullRequestMergedEvent, bitbucket.PullRequestDeclinedEvent)
 	if err != nil {
 		if err == bitbucket.ErrEventNotFound {
 			return nil, nil
@@ -32,6 +32,7 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) ([]common.
 		return nil, err
 	}
 	for _, metrics := range metricsList {
+		fmt.Println()
 		fmt.Print(metrics)
 	}
 
@@ -42,7 +43,7 @@ func (hp HookProvider) gatherMetrics(payload interface{}, webhookType, appSlug s
 	switch payload := payload.(type) {
 	case bitbucket.RepoPushPayload:
 		return newPushMetrics(payload, webhookType, appSlug, currentTime)
-	case bitbucket.PullRequestCreatedPayload, bitbucket.PullRequestUpdatedPayload:
+	case bitbucket.PullRequestCreatedPayload, bitbucket.PullRequestUpdatedPayload, bitbucket.PullRequestMergedPayload, bitbucket.PullRequestDeclinedPayload:
 		return newPullRequestMetrics(payload, webhookType, appSlug, currentTime)
 	}
 
@@ -116,12 +117,28 @@ func newPullRequestMetrics(payload interface{}, webhookType, appSlug string, cur
 
 	switch payload := payload.(type) {
 	case bitbucket.PullRequestCreatedPayload:
+		constructorFunc = common.NewPullRequestOpenedMetrics
 		pullRequest = payload.PullRequest
 		repo = payload.Repository.FullName
 		timestamp = &pullRequest.CreatedOn
 		userName = payload.Actor.NickName
 		gitRef = pullRequest.Source.Branch.Name
 	case bitbucket.PullRequestUpdatedPayload:
+		constructorFunc = common.NewPullRequestUpdatedMetrics
+		pullRequest = payload.PullRequest
+		repo = payload.Repository.FullName
+		timestamp = &pullRequest.UpdatedOn
+		userName = payload.Actor.NickName
+		gitRef = pullRequest.Source.Branch.Name
+	case bitbucket.PullRequestMergedPayload:
+		constructorFunc = common.NewPullRequestClosedMetrics
+		pullRequest = payload.PullRequest
+		repo = payload.Repository.FullName
+		timestamp = &pullRequest.UpdatedOn
+		userName = payload.Actor.NickName
+		gitRef = pullRequest.Source.Branch.Name
+	case bitbucket.PullRequestDeclinedPayload:
+		constructorFunc = common.NewPullRequestClosedMetrics
 		pullRequest = payload.PullRequest
 		repo = payload.Repository.FullName
 		timestamp = &pullRequest.UpdatedOn
@@ -138,13 +155,23 @@ func newPullRequestMetrics(payload interface{}, webhookType, appSlug string, cur
 func newGeneralPullRequestMetrics(pullRequest bitbucket.PullRequest) common.GeneralPullRequestMetrics {
 	prID := fmt.Sprintf("%d", pullRequest.ID)
 
+	stateMapping := map[string]string{
+		"OPEN":     "opened",
+		"MERGED":   "closed",
+		"DECLINED": "closed",
+	}
+	status, ok := stateMapping[pullRequest.State]
+	if !ok {
+		status = pullRequest.State
+	}
+
 	return common.GeneralPullRequestMetrics{
 		PullRequestTitle: pullRequest.Title,
 		PullRequestID:    prID,
-		PullRequestURL:   pullRequest.Links.HTML.Href, // TODO: this is the API URL
+		PullRequestURL:   pullRequest.Links.HTML.Href,
 		TargetBranch:     pullRequest.Destination.Branch.Name,
 		CommitID:         pullRequest.Source.Commit.Hash,
 		MergeCommitSHA:   pullRequest.MergeCommit.Hash,
-		Status:           pullRequest.State,
+		Status:           status,
 	}
 }
