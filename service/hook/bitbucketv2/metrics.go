@@ -1,6 +1,7 @@
 package bitbucketv2
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -26,8 +27,15 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) ([]common.
 	event := r.Header.Get("X-Event-Key")
 	currentTime := hp.timeProvider.CurrentTime()
 
-	return hp.gatherMetrics(payload, event, appSlug, currentTime), nil
+	metricsList, err := hp.gatherMetrics(payload, event, appSlug, currentTime), nil
+	if err != nil {
+		return nil, err
+	}
+	for _, metrics := range metricsList {
+		fmt.Print(metrics)
+	}
 
+	return metricsList, nil
 }
 
 func (hp HookProvider) gatherMetrics(payload interface{}, webhookType, appSlug string, currentTime time.Time) []common.Metrics {
@@ -35,7 +43,7 @@ func (hp HookProvider) gatherMetrics(payload interface{}, webhookType, appSlug s
 	case bitbucket.RepoPushPayload:
 		return newPushMetrics(payload, webhookType, appSlug, currentTime)
 	case bitbucket.PullRequestCreatedPayload, bitbucket.PullRequestUpdatedPayload:
-
+		return newPullRequestMetrics(payload, webhookType, appSlug, currentTime)
 	}
 
 	return nil
@@ -92,4 +100,51 @@ func newPushMetrics(payload bitbucket.RepoPushPayload, webhookType, appSlug stri
 	}
 
 	return metricsList
+}
+
+func newPullRequestMetrics(payload interface{}, webhookType, appSlug string, currentTime time.Time) []common.Metrics {
+	var constructorFunc func(generalMetrics common.GeneralMetrics, generalPullRequestMetrics common.GeneralPullRequestMetrics) common.PullRequestMetrics
+	// general metrics
+	provider := ProviderID
+	var repo string
+	var timestamp *time.Time
+	originalTrigger := common.OriginalTrigger(webhookType, "")
+	var userName string
+	var gitRef string
+	// pull request metrics
+	var pullRequest bitbucket.PullRequest
+
+	switch payload := payload.(type) {
+	case bitbucket.PullRequestCreatedPayload:
+		pullRequest = payload.PullRequest
+		repo = payload.Repository.FullName
+		timestamp = &pullRequest.CreatedOn
+		userName = payload.Actor.NickName
+		gitRef = pullRequest.Source.Branch.Name
+	case bitbucket.PullRequestUpdatedPayload:
+		pullRequest = payload.PullRequest
+		repo = payload.Repository.FullName
+		timestamp = &pullRequest.UpdatedOn
+		userName = payload.Actor.NickName
+		gitRef = pullRequest.Source.Branch.Name
+	}
+
+	generalMetrics := common.NewGeneralMetrics(provider, repo, currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
+	generalPullRequestMetrics := newGeneralPullRequestMetrics(pullRequest)
+	metrics := constructorFunc(generalMetrics, generalPullRequestMetrics)
+	return []common.Metrics{metrics}
+}
+
+func newGeneralPullRequestMetrics(pullRequest bitbucket.PullRequest) common.GeneralPullRequestMetrics {
+	prID := fmt.Sprintf("%d", pullRequest.ID)
+
+	return common.GeneralPullRequestMetrics{
+		PullRequestTitle: pullRequest.Title,
+		PullRequestID:    prID,
+		PullRequestURL:   pullRequest.Links.HTML.Href, // TODO: this is the API URL
+		TargetBranch:     pullRequest.Destination.Branch.Name,
+		CommitID:         pullRequest.Source.Commit.Hash,
+		MergeCommitSHA:   pullRequest.MergeCommit.Hash,
+		Status:           pullRequest.State,
+	}
 }

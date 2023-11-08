@@ -11,7 +11,7 @@ import (
 )
 
 // GatherMetrics ...
-func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (common.Metrics, error) {
+func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) ([]common.Metrics, error) {
 	payload, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
@@ -24,7 +24,12 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (common.Me
 	}
 
 	currentTime := hp.timeProvider.CurrentTime()
-	return hp.gatherMetrics(event, appSlug, currentTime), nil
+	metrics, err := hp.gatherMetrics(event, appSlug, currentTime), nil
+	if err != nil {
+		return nil, err
+	}
+
+	return []common.Metrics{metrics}, nil
 }
 
 func (hp HookProvider) gatherMetrics(event interface{}, appSlug string, currentTime time.Time) common.Metrics {
