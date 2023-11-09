@@ -113,7 +113,7 @@ func newGeneralPullRequestMetrics(pullRequest *gitlab.MergeEvent) common.General
 		TargetBranch:     pullRequest.ObjectAttributes.TargetBranch,
 		CommitID:         pullRequest.ObjectAttributes.LastCommit.ID,
 		MergeCommitSHA:   pullRequest.ObjectAttributes.MergeCommitSHA,
-		Status:           pullRequest.ObjectAttributes.State,
+		Status:           pullRequest.ObjectAttributes.State, // opened, closed, locked, or merged
 	}
 }
 

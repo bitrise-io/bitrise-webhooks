@@ -3,6 +3,7 @@ package bitbucketv2
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/common"
@@ -151,14 +152,9 @@ func newPullRequestMetrics(payload interface{}, webhookType, appSlug string, cur
 func newGeneralPullRequestMetrics(pullRequest bitbucket.PullRequest) common.GeneralPullRequestMetrics {
 	prID := fmt.Sprintf("%d", pullRequest.ID)
 
-	stateMapping := map[string]string{
-		"OPEN":     "opened",
-		"MERGED":   "closed",
-		"DECLINED": "closed",
-	}
-	status, ok := stateMapping[pullRequest.State]
-	if !ok {
-		status = pullRequest.State
+	status := strings.ToLower(pullRequest.State) // OPEN, MERGED or DECLINED
+	if status == "open" {
+		status = "opened"
 	}
 
 	return common.GeneralPullRequestMetrics{

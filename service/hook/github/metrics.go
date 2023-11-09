@@ -237,7 +237,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 
 func newGeneralPullRequestMetrics(pullRequest *github.PullRequest, mergeCommitSHA string) common.GeneralPullRequestMetrics {
 	prID := fmt.Sprintf("%d", pullRequest.GetNumber())
-	status := pullRequest.GetState()
+	status := pullRequest.GetState() // open or closed
 	if status == "open" {
 		status = "opened"
 	}
