@@ -31,10 +31,6 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) ([]common.
 	if err != nil {
 		return nil, err
 	}
-	for _, metrics := range metricsList {
-		fmt.Println()
-		fmt.Print(metrics)
-	}
 
 	return metricsList, nil
 }
