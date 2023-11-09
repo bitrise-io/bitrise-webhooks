@@ -45,7 +45,6 @@ func TestHookProvider_gatherMetrics(t *testing.T) {
 	"addition_count": 0,
 	"deletion_count": 0,
 	"commit_count": 0,
-	"merge_commit_sha": "",
 	"status": "opened"
 }
 `,
@@ -68,9 +67,6 @@ func TestHookProvider_gatherMetrics(t *testing.T) {
 	"git_ref": "dev",
 	"commit_id_after": "303f1d584a4299f6e1dabb58731ab2026ef70e05",
 	"commit_id_before": "51cdb0ee811d801a73a099b2e4f011e8d2c98efa",
-	"oldest_commit_timestamp": null,
-	"latest_commit_timestamp": null,
-	"master_branch": "",
 	"changed_files_count": 0,
 	"addition_count": 0,
 	"deletion_count": 0
