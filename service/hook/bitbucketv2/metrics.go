@@ -28,11 +28,7 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) ([]common.
 	event := r.Header.Get("X-Event-Key")
 	currentTime := hp.timeProvider.CurrentTime()
 
-	metricsList, err := hp.gatherMetrics(payload, event, appSlug, currentTime), nil
-	if err != nil {
-		return nil, err
-	}
-
+	metricsList := hp.gatherMetrics(payload, event, appSlug, currentTime)
 	return metricsList, nil
 }
 
