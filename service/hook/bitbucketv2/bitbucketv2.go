@@ -111,21 +111,7 @@ type PullRequestEventModel struct {
 // --- Webhook Provider Implementation ---
 
 // HookProvider ...
-type HookProvider struct {
-	timeProvider hookCommon.TimeProvider
-}
-
-// NewHookProvider ...
-func NewHookProvider(timeProvider hookCommon.TimeProvider) hookCommon.Provider {
-	return HookProvider{
-		timeProvider: timeProvider,
-	}
-}
-
-// NewDefaultHookProvider ...
-func NewDefaultHookProvider() hookCommon.Provider {
-	return NewHookProvider(hookCommon.NewDefaultTimeProvider())
-}
+type HookProvider struct{}
 
 func detectContentTypeAttemptNumberAndEventKey(header http.Header) (string, string, string, error) {
 	contentType := header.Get("Content-Type")
