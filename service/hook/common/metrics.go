@@ -47,7 +47,7 @@ type Metrics interface {
 
 // MetricsProvider ...
 type MetricsProvider interface {
-	GatherMetrics(r *http.Request, appSlug string) ([]Metrics, error)
+	GatherMetrics(r *http.Request, appSlug string) (Metrics, error)
 }
 
 // OriginalTrigger ...

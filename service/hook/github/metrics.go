@@ -10,7 +10,7 @@ import (
 )
 
 // GatherMetrics ...
-func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) ([]common.Metrics, error) {
+func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (common.Metrics, error) {
 	payload, err := github.ValidatePayload(r, nil)
 	if err != nil {
 		return nil, err
@@ -24,8 +24,7 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) ([]common.
 	}
 
 	currentTime := hp.timeProvider.CurrentTime()
-	metrics := hp.gatherMetrics(event, webhookType, appSlug, currentTime)
-	return []common.Metrics{metrics}, nil
+	return hp.gatherMetrics(event, webhookType, appSlug, currentTime), nil
 }
 
 func (hp HookProvider) gatherMetrics(event interface{}, webhookType, appSlug string, currentTime time.Time) common.Metrics {
@@ -233,7 +232,7 @@ func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string
 
 func newGeneralPullRequestMetrics(pullRequest *github.PullRequest, mergeCommitSHA string) common.GeneralPullRequestMetrics {
 	prID := fmt.Sprintf("%d", pullRequest.GetNumber())
-	status := pullRequest.GetState() // open or closed
+	status := pullRequest.GetState()
 	if status == "open" {
 		status = "opened"
 	}
