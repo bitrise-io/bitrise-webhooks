@@ -39,7 +39,7 @@ type Client struct {
 func supportedProviders() map[string]hookCommon.Provider {
 	return map[string]hookCommon.Provider{
 		github.ProviderID:                   github.NewDefaultHookProvider(),
-		bitbucketv2.ProviderID:              bitbucketv2.HookProvider{},
+		bitbucketv2.ProviderID:              bitbucketv2.NewDefaultHookProvider(),
 		bitbucketserver.ProviderID:          bitbucketserver.HookProvider{},
 		slack.ProviderID:                    slack.HookProvider{},
 		visualstudioteamservices.ProviderID: visualstudioteamservices.HookProvider{},
@@ -179,7 +179,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 
 	metricsProvider, isMetricsProvider := hookProvider.(hookCommon.MetricsProvider)
 	if c.PubsubClient != nil && isMetricsProvider {
-		var webhookMetrics hookCommon.Metrics
+		var webhookMetricsList []hookCommon.Metrics
 		var err error
 
 		metrics.Trace("Hook: GatherMetrics", func() {
@@ -198,7 +198,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 				r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
 			}
 
-			webhookMetrics, err = metricsProvider.GatherMetrics(r, appSlug)
+			webhookMetricsList, err = metricsProvider.GatherMetrics(r, appSlug)
 
 			if originalBody != nil {
 				r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
@@ -209,9 +209,11 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 			logger.Error("Failed to gather metrics from the webhook", zap.Error(err))
 		}
 
-		if webhookMetrics != nil {
-			if err := c.PubsubClient.PublishMetrics(reqContext, webhookMetrics); err != nil {
-				logger.Error(" [!] Exception: PublishMetrics: failed to publish metrics results", zap.Error(err))
+		if len(webhookMetricsList) > 0 {
+			for _, webhookMetrics := range webhookMetricsList {
+				if err := c.PubsubClient.PublishMetrics(reqContext, webhookMetrics); err != nil {
+					logger.Error(" [!] Exception: PublishMetrics: failed to publish metrics results", zap.Error(err))
+				}
 			}
 		}
 	}
