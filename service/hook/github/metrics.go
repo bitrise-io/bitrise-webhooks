@@ -25,6 +25,9 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) ([]common.
 
 	currentTime := hp.timeProvider.CurrentTime()
 	metrics := hp.gatherMetrics(event, webhookType, appSlug, currentTime)
+	if metrics == nil {
+		return nil, nil
+	}
 	return []common.Metrics{metrics}, nil
 }
 

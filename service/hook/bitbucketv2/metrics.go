@@ -137,6 +137,8 @@ func newPullRequestMetrics(payload interface{}, webhookType, appSlug string, cur
 		timestamp = &pullRequest.UpdatedOn
 		userName = payload.Actor.NickName
 		gitRef = pullRequest.Source.Branch.Name
+	default:
+		return nil
 	}
 
 	generalMetrics := common.NewGeneralMetrics(provider, repo, currentTime, timestamp, appSlug, originalTrigger, userName, gitRef)
