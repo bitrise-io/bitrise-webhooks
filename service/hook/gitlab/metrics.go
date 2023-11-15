@@ -24,14 +24,12 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) ([]common.
 	}
 
 	currentTime := hp.timeProvider.CurrentTime()
-	metrics := hp.gatherMetrics(event, appSlug, currentTime)
-	if metrics == nil {
-		return nil, nil
-	}
-	return []common.Metrics{metrics}, nil
+	metricsList := hp.gatherMetrics(event, appSlug, currentTime)
+	return metricsList, nil
+
 }
 
-func (hp HookProvider) gatherMetrics(event interface{}, appSlug string, currentTime time.Time) common.Metrics {
+func (hp HookProvider) gatherMetrics(event interface{}, appSlug string, currentTime time.Time) []common.Metrics {
 	var metrics common.Metrics
 	switch event := event.(type) {
 	case *gitlab.PushEvent:
@@ -40,7 +38,11 @@ func (hp HookProvider) gatherMetrics(event interface{}, appSlug string, currentT
 		metrics = newPullRequestMetrics(event, appSlug, currentTime)
 	}
 
-	return metrics
+	if metrics == nil {
+		return nil
+	}
+
+	return []common.Metrics{metrics}
 }
 
 func newPullRequestMetrics(event *gitlab.MergeEvent, appSlug string, currentTime time.Time) common.PullRequestMetrics {

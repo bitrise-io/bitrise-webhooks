@@ -25,14 +25,26 @@ func TestHookProvider_gatherMetrics_commit_id_before_and_after(t *testing.T) {
 			appSlug: "slug",
 			want:    `{"event":"git_push","action":"created","provider_type":"gitlab","repository":"bitrise-io/project","timestamp":"2023-10-26T08:00:00Z","app_slug":"slug","original_trigger":"push:","user_name":"bitrise-bot","git_ref":"refs/heads/dev-1","commit_id_after":"d6666f44e4a5c82c20a783da58c4274a6e3690c3","commit_id_before":"0000000000000000000000000000000000000000","oldest_commit_timestamp":"2023-10-31T09:39:09Z","latest_commit_timestamp":"2023-10-31T09:39:09Z","master_branch":"master","changed_files_count":1,"addition_count":0,"deletion_count":0}`,
 		},
+		{
+			name:    "Unsupported webhook",
+			event:   testDeploymentWebhook(),
+			appSlug: "slug",
+			want:    "",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			hp := HookProvider{}
 			got := hp.gatherMetrics(tt.event, tt.appSlug, currentTime)
-			gotBytes, err := got.Serialise()
-			require.NoError(t, err)
-			require.Equal(t, tt.want, string(gotBytes))
+			if tt.want != "" {
+				require.Equal(t, len(got), 1)
+				gotMetrics := got[0]
+				gotBytes, err := gotMetrics.Serialise()
+				require.NoError(t, err)
+				require.Equal(t, tt.want, string(gotBytes))
+			} else {
+				require.Nil(t, got)
+			}
 		})
 	}
 
@@ -57,6 +69,11 @@ func Test_parseTime(t *testing.T) {
 			}
 		})
 	}
+}
+
+func testDeploymentWebhook() interface{} {
+	event := gitlab.DeploymentEvent{}
+	return &event
 }
 
 func testPushWebhook(t *testing.T) interface{} {
