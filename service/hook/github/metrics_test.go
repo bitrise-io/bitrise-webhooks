@@ -34,14 +34,27 @@ func TestHookProvider_gatherMetrics_commit_id_before_and_after(t *testing.T) {
 			appSlug:     "slug",
 			want:        `{"event":"pull_request","action":"opened","provider_type":"github","repository":"bitrise-io/project","timestamp":"2023-10-26T08:00:00Z","event_timestamp":"2023-10-30T09:48:35Z","app_slug":"slug","original_trigger":"pull_request:opened","user_name":"bitrise-bot","git_ref":"tech_improvements","pull_request_title":"Patch","pull_request_id":"5","pull_request_url":"https://github.com/bitrise-io/project/pull/5","target_branch":"master","commit_id":"11d6f5e55831ab3586f032393aaee1e942caef6e","changed_files_count":1,"addition_count":1,"deletion_count":1,"commit_count":2,"status":"opened"}`,
 		},
+		{
+			name:        "Unsupported webhook",
+			event:       testBranchProtectionRuleWebhook(),
+			webhookType: "branch_protection_rule",
+			appSlug:     "slug",
+			want:        "",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			hp := HookProvider{}
 			got := hp.gatherMetrics(tt.event, tt.webhookType, tt.appSlug, currentTime)
-			gotBytes, err := got.Serialise()
-			require.NoError(t, err)
-			require.Equal(t, tt.want, string(gotBytes))
+			if tt.want != "" {
+				require.Equal(t, len(got), 1)
+				gotMetrics := got[0]
+				gotBytes, err := gotMetrics.Serialise()
+				require.NoError(t, err)
+				require.Equal(t, tt.want, string(gotBytes))
+			} else {
+				require.Nil(t, got)
+			}
 		})
 	}
 
@@ -121,9 +134,20 @@ func TestHookProvider_gatherMetrics(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			hp := HookProvider{}
 			got := hp.gatherMetrics(tt.event, tt.webhookType, tt.appSlug, currentTime)
-			require.Equal(t, tt.want, got)
+			if tt.want != nil {
+				require.Equal(t, 1, len(got))
+				gotMetrics := got[0]
+				require.Equal(t, tt.want, gotMetrics)
+			} else {
+				require.Nil(t, got)
+			}
 		})
 	}
+}
+
+func testBranchProtectionRuleWebhook() interface{} {
+	event := github.BranchProtectionRuleEvent{}
+	return &event
 }
 
 func testPushDeletedWebhook(t *testing.T) interface{} {

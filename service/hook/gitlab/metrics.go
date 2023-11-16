@@ -11,7 +11,7 @@ import (
 )
 
 // GatherMetrics ...
-func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (common.Metrics, error) {
+func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) ([]common.Metrics, error) {
 	payload, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
@@ -24,10 +24,12 @@ func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) (common.Me
 	}
 
 	currentTime := hp.timeProvider.CurrentTime()
-	return hp.gatherMetrics(event, appSlug, currentTime), nil
+	metricsList := hp.gatherMetrics(event, appSlug, currentTime)
+	return metricsList, nil
+
 }
 
-func (hp HookProvider) gatherMetrics(event interface{}, appSlug string, currentTime time.Time) common.Metrics {
+func (hp HookProvider) gatherMetrics(event interface{}, appSlug string, currentTime time.Time) []common.Metrics {
 	var metrics common.Metrics
 	switch event := event.(type) {
 	case *gitlab.PushEvent:
@@ -36,7 +38,11 @@ func (hp HookProvider) gatherMetrics(event interface{}, appSlug string, currentT
 		metrics = newPullRequestMetrics(event, appSlug, currentTime)
 	}
 
-	return metrics
+	if metrics == nil {
+		return nil
+	}
+
+	return []common.Metrics{metrics}
 }
 
 func newPullRequestMetrics(event *gitlab.MergeEvent, appSlug string, currentTime time.Time) common.PullRequestMetrics {
@@ -108,7 +114,7 @@ func newGeneralPullRequestMetrics(pullRequest *gitlab.MergeEvent) common.General
 		TargetBranch:     pullRequest.ObjectAttributes.TargetBranch,
 		CommitID:         pullRequest.ObjectAttributes.LastCommit.ID,
 		MergeCommitSHA:   pullRequest.ObjectAttributes.MergeCommitSHA,
-		Status:           pullRequest.ObjectAttributes.State,
+		Status:           pullRequest.ObjectAttributes.State, // opened, closed, locked, or merged
 	}
 }
 
