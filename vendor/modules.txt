@@ -118,6 +118,9 @@ github.com/ebitengine/purego
 github.com/ebitengine/purego/internal/cgo
 github.com/ebitengine/purego/internal/fakecgo
 github.com/ebitengine/purego/internal/strings
+# github.com/go-playground/webhooks/v6 v6.3.0
+## explicit; go 1.15
+github.com/go-playground/webhooks/v6/bitbucket
 # github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 ## explicit
 github.com/golang/groupcache/lru
