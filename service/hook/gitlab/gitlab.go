@@ -45,6 +45,7 @@ import (
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
+	"go.uber.org/zap"
 )
 
 // --------------------------
@@ -142,18 +143,20 @@ type MergeRequestEventModel struct {
 // HookProvider ...
 type HookProvider struct {
 	timeProvider hookCommon.TimeProvider
+	logger       *zap.Logger
 }
 
 // NewHookProvider ...
-func NewHookProvider(timeProvider hookCommon.TimeProvider) hookCommon.Provider {
+func NewHookProvider(timeProvider hookCommon.TimeProvider, logger *zap.Logger) HookProvider {
 	return HookProvider{
 		timeProvider: timeProvider,
+		logger:       logger,
 	}
 }
 
 // NewDefaultHookProvider ...
-func NewDefaultHookProvider() hookCommon.Provider {
-	return NewHookProvider(hookCommon.NewDefaultTimeProvider())
+func NewDefaultHookProvider(logger *zap.Logger) HookProvider {
+	return NewHookProvider(hookCommon.NewDefaultTimeProvider(), logger)
 }
 
 func detectContentTypeAndEventID(header http.Header) (string, string, error) {
@@ -197,7 +200,7 @@ func (repository RepositoryModel) getRepositoryURL() string {
 	return repository.GitSSHURL
 }
 
-func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
+func (hp HookProvider) transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
 	if !strings.HasPrefix(codePushEvent.Ref, "refs/heads/") {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
@@ -236,6 +239,15 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 		}
 	}
 
+	var commitMessages []string
+	for _, aCommit := range codePushEvent.Commits {
+		commitMessages = append(commitMessages, aCommit.CommitMessage)
+	}
+	commitMessagesStr, err := commitMessagesToString(commitMessages)
+	if err != nil {
+		hp.logger.Warn("gitlab.HookProvider.transformCodePushEvent: failed to convert commit messages", zap.Error(err))
+	}
+
 	return hookCommon.TransformResultModel{
 		DontWaitForTriggerResponse: true,
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
@@ -245,11 +257,22 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 					CommitMessage:     lastCommit.CommitMessage,
 					Branch:            branch,
 					BaseRepositoryURL: codePushEvent.Repository.getRepositoryURL(),
+					Environments: []bitriseapi.EnvironmentItem{
+						{Name: "COMMIT_MESSAGES", Value: commitMessagesStr, IsExpand: false},
+					},
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, codePushEvent.UserUsername),
 			},
 		},
 	}
+}
+
+func commitMessagesToString(commitMessages []string) (string, error) {
+	b, err := json.Marshal(commitMessages)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 func transformTagPushEvent(tagPushEvent TagPushEventModel) hookCommon.TransformResultModel {
@@ -421,7 +444,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 				}
 			}
 		}
-		return transformCodePushEvent(codePushEvent)
+		return hp.transformCodePushEvent(codePushEvent)
 	} else if eventID == tagPushEventID {
 		// tag push
 		var tagPushEvent TagPushEventModel

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 const sampleCodePushData = `{
@@ -188,7 +188,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := NewDefaultHookProvider(zap.NewNop()).transformCodePushEvent(codePush)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -197,6 +197,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 					CommitHash:    "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
 					CommitMessage: `Response: omit the "failed_responses" array if empty`,
 					Branch:        "master",
+					Environments:  []bitriseapi.EnvironmentItem{{Name: "COMMIT_MESSAGES", Value: `["Response: omit the \"failed_responses\" array if empty"]`, IsExpand: false}},
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
@@ -226,7 +227,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := NewDefaultHookProvider(zap.NewNop()).transformCodePushEvent(codePush)
 		require.NoError(t, hookTransformResult.Error)
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
@@ -235,6 +236,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 					CommitHash:    "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
 					CommitMessage: `Response: omit the "failed_responses" array if empty`,
 					Branch:        "master",
+					Environments:  []bitriseapi.EnvironmentItem{{Name: "COMMIT_MESSAGES", Value: `["switch to three component versions","Response: omit the \"failed_responses\" array if empty","get version : three component version"]`, IsExpand: false}},
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
@@ -256,7 +258,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := NewDefaultHookProvider(zap.NewNop()).transformCodePushEvent(codePush)
 		require.EqualError(t, hookTransformResult.Error, "The commit specified by 'checkout_sha' was not included in the 'commits' array - no match found")
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
@@ -272,7 +274,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 			UserUsername: "test_user",
 			Commits:      []CommitModel{},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := NewDefaultHookProvider(zap.NewNop()).transformCodePushEvent(codePush)
 		require.EqualError(t, hookTransformResult.Error, "The 'checkout_sha' field is not set - potential squashed merge request")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
@@ -293,7 +295,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 				},
 			},
 		}
-		hookTransformResult := transformCodePushEvent(codePush)
+		hookTransformResult := NewDefaultHookProvider(zap.NewNop()).transformCodePushEvent(codePush)
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Ref (refs/not/head) is not a head ref")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
