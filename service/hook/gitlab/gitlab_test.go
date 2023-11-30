@@ -197,7 +197,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 					CommitHash:    "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
 					CommitMessage: `Response: omit the "failed_responses" array if empty`,
 					Branch:        "master",
-					Environments:  []bitriseapi.EnvironmentItem{{Name: "COMMIT_MESSAGES", Value: `["Response: omit the \"failed_responses\" array if empty"]`, IsExpand: false}},
+					Environments:  []bitriseapi.EnvironmentItem{{Name: CommitMessagesEnvKey, Value: "- 'Response: omit the \"failed_responses\" array if empty'\n", IsExpand: false}},
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
@@ -236,12 +236,43 @@ func Test_transformCodePushEvent(t *testing.T) {
 					CommitHash:    "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
 					CommitMessage: `Response: omit the "failed_responses" array if empty`,
 					Branch:        "master",
-					Environments:  []bitriseapi.EnvironmentItem{{Name: "COMMIT_MESSAGES", Value: `["switch to three component versions","Response: omit the \"failed_responses\" array if empty","get version : three component version"]`, IsExpand: false}},
+					Environments:  []bitriseapi.EnvironmentItem{{Name: CommitMessagesEnvKey, Value: "- switch to three component versions\n- 'Response: omit the \"failed_responses\" array if empty'\n- 'get version : three component version'\n", IsExpand: false}},
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Trim commit messages")
+	{
+		maxSize := envVarSizeLimitInByte()
+
+		codePush := CodePushEventModel{
+			ObjectKind:   "push",
+			Ref:          "refs/heads/master",
+			CheckoutSHA:  "7782203aaf0daabbd245ec0370c751eac6a4eb55",
+			UserUsername: "test_user",
+			Commits: []CommitModel{
+				{
+					CommitHash:    "7782203aaf0daabbd245ec0370c751eac6a4eb55",
+					CommitMessage: generateText(maxSize),
+				},
+				{
+					CommitHash:    "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
+					CommitMessage: generateText(maxSize),
+				},
+			},
+		}
+
+		hookTransformResult := NewDefaultHookProvider(zap.NewNop()).transformCodePushEvent(codePush)
+		require.Equal(t, 1, len(hookTransformResult.TriggerAPIParams))
+
+		triggerParam := hookTransformResult.TriggerAPIParams[0]
+		require.Equal(t, 1, len(triggerParam.BuildParams.Environments))
+
+		env := triggerParam.BuildParams.Environments[0]
+		require.Equal(t, maxSize, len([]byte(env.Value)))
 	}
 
 	t.Log("No commit matches CheckoutSHA")
@@ -673,6 +704,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitHash:    "1606d3dd4c4dc83ee8fed8d3cfd911da851bf740",
 					CommitMessage: "second commit message",
 					Branch:        "develop",
+					Environments:  []bitriseapi.EnvironmentItem{{Name: CommitMessagesEnvKey, Value: "- first commit message\n- second commit message\n", IsExpand: false}},
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
@@ -840,4 +872,33 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.False(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Failed to read content of request body: no or empty request body")
 	}
+}
+
+func Test_ensureCommitMessagesSize(t *testing.T) {
+	tests := []struct {
+		name           string
+		maxSize        int
+		commitMessages []string
+		want           []string
+	}{
+		{
+			name:           "First two messages needs to be trimmed",
+			maxSize:        4 * len([]byte("123")),
+			commitMessages: []string{"12345", "123456", "123", "1"},
+			want:           []string{"123", "123", "123", "1"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewDefaultHookProvider(zap.NewNop()).ensureCommitMessagesSize(tt.commitMessages, tt.maxSize)
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+
+			require.True(t, messagesSize(got) <= tt.maxSize)
+		})
+	}
+}
+
+func generateText(sizeInKB int) string {
+	return strings.Repeat("0", sizeInKB*1000)
 }

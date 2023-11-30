@@ -39,13 +39,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"slices"
 	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
+	"github.com/bitrise-io/envman/envman"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 )
 
 // --------------------------
@@ -59,6 +62,9 @@ const (
 
 	// ProviderID ...
 	ProviderID = "gitlab"
+
+	CommitMessagesEnvKey      = "BITRISE_WEBHOOK_COMMIT_MESSAGES"
+	fallbackEnvBytesLimitInKB = 256
 )
 
 // CommitModel ...
@@ -243,7 +249,8 @@ func (hp HookProvider) transformCodePushEvent(codePushEvent CodePushEventModel) 
 	for _, aCommit := range codePushEvent.Commits {
 		commitMessages = append(commitMessages, aCommit.CommitMessage)
 	}
-	commitMessagesStr, err := commitMessagesToString(commitMessages)
+	maxSize := envVarSizeLimitInByte()
+	commitMessagesStr, err := hp.commitMessagesToString(commitMessages, maxSize)
 	if err != nil {
 		hp.logger.Warn("gitlab.HookProvider.transformCodePushEvent: failed to convert commit messages", zap.Error(err))
 	}
@@ -258,7 +265,7 @@ func (hp HookProvider) transformCodePushEvent(codePushEvent CodePushEventModel) 
 					Branch:            branch,
 					BaseRepositoryURL: codePushEvent.Repository.getRepositoryURL(),
 					Environments: []bitriseapi.EnvironmentItem{
-						{Name: "COMMIT_MESSAGES", Value: commitMessagesStr, IsExpand: false},
+						{Name: CommitMessagesEnvKey, Value: commitMessagesStr, IsExpand: false},
 					},
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, codePushEvent.UserUsername),
@@ -267,8 +274,62 @@ func (hp HookProvider) transformCodePushEvent(codePushEvent CodePushEventModel) 
 	}
 }
 
-func commitMessagesToString(commitMessages []string) (string, error) {
-	b, err := json.Marshal(commitMessages)
+func envVarSizeLimitInByte() int {
+	config, err := envman.GetConfigs()
+	if err == nil {
+		return config.EnvBytesLimitInKB * 1000
+	}
+	return fallbackEnvBytesLimitInKB * 1000
+}
+
+func (hp HookProvider) ensureCommitMessagesSize(commitMessages []string, maxSize int) ([]string, error) {
+	commitMessagesCount := len(commitMessages)
+	if commitMessagesCount > 20 {
+		// The count of push events commits, shouldn't be more than 20:
+		// https://docs.gitlab.com/ee/user/project/integrations/webhook_events.html#push-events
+		// With this limit, 256KB max env var size, and 20 commits, every commit message has ~12KB (~12.000 chars) limitation.
+		// A higher number of commit messages might require a more sophisticated size limitation mechanism.
+		hp.logger.Warn(fmt.Sprintf("Expected 20 commits in the push event, got: %d, limiting commit messages count to 20", commitMessagesCount))
+		commitMessages = commitMessages[:20]
+	}
+
+	b, err := yaml.Marshal(commitMessages)
+	if err != nil {
+		return nil, err
+	}
+	controlCharsSize := len(b) - messagesSize(commitMessages)
+	maxSize = maxSize - controlCharsSize
+
+	maxMessageSize := int(math.Floor(float64(maxSize) / float64(len(commitMessages))))
+
+	for idx, message := range commitMessages {
+		messageBytes := []byte(message)
+		messageSize := len(messageBytes)
+		if messageSize > maxMessageSize {
+			trimmedMessageBytes := messageBytes[:maxMessageSize]
+			commitMessages[idx] = string(trimmedMessageBytes)
+		}
+	}
+
+	return commitMessages, nil
+}
+
+func messagesSize(messages []string) int {
+	size := 0
+	for _, message := range messages {
+		size += len([]byte(message))
+	}
+	return size
+}
+
+func (hp HookProvider) commitMessagesToString(commitMessages []string, maxSize int) (string, error) {
+	var err error
+	commitMessages, err = hp.ensureCommitMessagesSize(commitMessages, maxSize)
+	if err != nil {
+		return "", err
+	}
+
+	b, err := yaml.Marshal(commitMessages)
 	if err != nil {
 		return "", err
 	}
