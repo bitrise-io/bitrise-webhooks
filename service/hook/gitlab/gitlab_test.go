@@ -883,9 +883,9 @@ func Test_ensureCommitMessagesSize(t *testing.T) {
 	}{
 		{
 			name:           "First two messages needs to be trimmed",
-			maxSize:        4 * len([]byte("123")),
-			commitMessages: []string{"12345", "123456", "123", "1"},
-			want:           []string{"123", "123", "123", "1"},
+			maxSize:        4 * len([]byte("1234567890")), // 4 * 10 bytes - 4 * 4 bytes (yaml control chars) = 24 bytes max
+			commitMessages: []string{"123456789a", "123456789abc", "123", "1"},
+			want:           []string{"123456", "123456", "123", "1"}, // 24 / 4 = 6 bytes max per message
 		},
 	}
 	for _, tt := range tests {

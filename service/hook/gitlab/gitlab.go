@@ -255,6 +255,12 @@ func (hp HookProvider) transformCodePushEvent(codePushEvent CodePushEventModel) 
 		hp.logger.Warn("gitlab.HookProvider.transformCodePushEvent: failed to convert commit messages", zap.Error(err))
 	}
 
+	var environments []bitriseapi.EnvironmentItem
+	if len(commitMessagesStr) > 0 {
+		environments = []bitriseapi.EnvironmentItem{
+			{Name: CommitMessagesEnvKey, Value: commitMessagesStr, IsExpand: false},
+		}
+	}
 	return hookCommon.TransformResultModel{
 		DontWaitForTriggerResponse: true,
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
@@ -264,9 +270,7 @@ func (hp HookProvider) transformCodePushEvent(codePushEvent CodePushEventModel) 
 					CommitMessage:     lastCommit.CommitMessage,
 					Branch:            branch,
 					BaseRepositoryURL: codePushEvent.Repository.getRepositoryURL(),
-					Environments: []bitriseapi.EnvironmentItem{
-						{Name: CommitMessagesEnvKey, Value: commitMessagesStr, IsExpand: false},
-					},
+					Environments:      environments,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, codePushEvent.UserUsername),
 			},
@@ -282,6 +286,18 @@ func envVarSizeLimitInByte() int {
 	return fallbackEnvBytesLimitInKB * 1000
 }
 
+func decreaseMaxMessageSizeByYAMLControlCharsSize(commitMessages []string, maxSize int) (int, error) {
+	yamlMessages, err := yaml.Marshal(commitMessages)
+	if err != nil {
+		return 0, err
+	}
+	yamlMessagesSize := len(yamlMessages)
+	rawMessagesSize := messagesSize(commitMessages)
+
+	controlCharsSize := yamlMessagesSize - rawMessagesSize
+	return maxSize - controlCharsSize, nil
+}
+
 func (hp HookProvider) ensureCommitMessagesSize(commitMessages []string, maxSize int) ([]string, error) {
 	commitMessagesCount := len(commitMessages)
 	if commitMessagesCount > 20 {
@@ -293,12 +309,14 @@ func (hp HookProvider) ensureCommitMessagesSize(commitMessages []string, maxSize
 		commitMessages = commitMessages[:20]
 	}
 
-	b, err := yaml.Marshal(commitMessages)
+	maxSize, err := decreaseMaxMessageSizeByYAMLControlCharsSize(commitMessages, maxSize)
 	if err != nil {
 		return nil, err
 	}
-	controlCharsSize := len(b) - messagesSize(commitMessages)
-	maxSize = maxSize - controlCharsSize
+
+	if maxSize < 0 {
+		return nil, fmt.Errorf("max messages size should be greater than 0, got: %d", maxSize)
+	}
 
 	maxMessageSize := int(math.Floor(float64(maxSize) / float64(len(commitMessages))))
 
