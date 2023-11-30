@@ -63,7 +63,7 @@ const (
 	// ProviderID ...
 	ProviderID = "gitlab"
 
-	CommitMessagesEnvKey      = "BITRISE_WEBHOOK_COMMIT_MESSAGES"
+	commitMessagesEnvKey      = "BITRISE_WEBHOOK_COMMIT_MESSAGES"
 	fallbackEnvBytesLimitInKB = 256
 )
 
@@ -258,7 +258,7 @@ func (hp HookProvider) transformCodePushEvent(codePushEvent CodePushEventModel) 
 	var environments []bitriseapi.EnvironmentItem
 	if len(commitMessagesStr) > 0 {
 		environments = []bitriseapi.EnvironmentItem{
-			{Name: CommitMessagesEnvKey, Value: commitMessagesStr, IsExpand: false},
+			{Name: commitMessagesEnvKey, Value: commitMessagesStr, IsExpand: false},
 		}
 	}
 	return hookCommon.TransformResultModel{
