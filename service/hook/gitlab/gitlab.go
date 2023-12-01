@@ -64,6 +64,7 @@ const (
 
 	commitMessagesEnvKey      = "BITRISE_WEBHOOK_COMMIT_MESSAGES"
 	fallbackEnvBytesLimitInKB = 256
+	kbToB                     = 1024.0
 )
 
 // CommitModel ...
@@ -280,9 +281,9 @@ func (hp HookProvider) transformCodePushEvent(codePushEvent CodePushEventModel) 
 func envVarSizeLimitInByte() int {
 	config, err := envman.GetConfigs()
 	if err == nil {
-		return config.EnvBytesLimitInKB * 1000
+		return config.EnvBytesLimitInKB * kbToB
 	}
-	return fallbackEnvBytesLimitInKB * 1000
+	return fallbackEnvBytesLimitInKB * kbToB
 }
 
 func decreaseMaxMessageSizeByControlCharsSize(commitMessages []string, maxSize int) int {
