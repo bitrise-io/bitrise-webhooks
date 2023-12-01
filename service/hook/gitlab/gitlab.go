@@ -48,7 +48,6 @@ import (
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/bitrise-io/envman/envman"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
 // --------------------------
@@ -286,16 +285,10 @@ func envVarSizeLimitInByte() int {
 	return fallbackEnvBytesLimitInKB * 1000
 }
 
-func decreaseMaxMessageSizeByYAMLControlCharsSize(commitMessages []string, maxSize int) (int, error) {
-	yamlMessages, err := yaml.Marshal(commitMessages)
-	if err != nil {
-		return 0, err
-	}
-	yamlMessagesSize := len(yamlMessages)
-	rawMessagesSize := messagesSize(commitMessages)
-
-	controlCharsSize := yamlMessagesSize - rawMessagesSize
-	return maxSize - controlCharsSize, nil
+func decreaseMaxMessageSizeByControlCharsSize(commitMessages []string, maxSize int) int {
+	controlCharsPerMessageSize := len([]byte("- \n"))
+	controlCharsSize := len(commitMessages) * controlCharsPerMessageSize
+	return maxSize - controlCharsSize
 }
 
 func (hp HookProvider) ensureCommitMessagesSize(commitMessages []string, maxSize int) ([]string, error) {
@@ -309,36 +302,28 @@ func (hp HookProvider) ensureCommitMessagesSize(commitMessages []string, maxSize
 		commitMessages = commitMessages[:20]
 	}
 
-	maxSize, err := decreaseMaxMessageSizeByYAMLControlCharsSize(commitMessages, maxSize)
-	if err != nil {
-		return nil, err
-	}
-
-	if maxSize < 0 {
+	maxSize = decreaseMaxMessageSizeByControlCharsSize(commitMessages, maxSize)
+	if maxSize <= 0 {
 		return nil, fmt.Errorf("max messages size should be greater than 0, got: %d", maxSize)
 	}
 
 	maxMessageSize := int(math.Floor(float64(maxSize) / float64(len(commitMessages))))
+	trimmedMessageSuffix := []byte("...")
+	trimmedMessageSuffixSize := len(trimmedMessageSuffix)
+	if maxMessageSize-trimmedMessageSuffixSize <= 0 {
+		return nil, fmt.Errorf("max message size should be greater than %d, got: %d", trimmedMessageSuffixSize, maxMessageSize)
+	}
 
 	for idx, message := range commitMessages {
 		messageBytes := []byte(message)
 		messageSize := len(messageBytes)
 		if messageSize > maxMessageSize {
-			trimmedMessageSuffix := []byte("...")
-			trimmedMessageBytes := messageBytes[:maxMessageSize-len(trimmedMessageSuffix)]
+			trimmedMessageBytes := messageBytes[:maxMessageSize-trimmedMessageSuffixSize]
 			commitMessages[idx] = string(append(trimmedMessageBytes, trimmedMessageSuffix...))
 		}
 	}
 
 	return commitMessages, nil
-}
-
-func messagesSize(messages []string) int {
-	size := 0
-	for _, message := range messages {
-		size += len([]byte(message))
-	}
-	return size
 }
 
 func (hp HookProvider) commitMessagesToString(commitMessages []string, maxSize int) (string, error) {
@@ -348,11 +333,11 @@ func (hp HookProvider) commitMessagesToString(commitMessages []string, maxSize i
 		return "", err
 	}
 
-	b, err := yaml.Marshal(commitMessages)
-	if err != nil {
-		return "", err
+	commitMessagesStr := ""
+	for _, commitMessage := range commitMessages {
+		commitMessagesStr += fmt.Sprintf("- %s\n", commitMessage)
 	}
-	return string(b), nil
+	return commitMessagesStr, nil
 }
 
 func transformTagPushEvent(tagPushEvent TagPushEventModel) hookCommon.TransformResultModel {

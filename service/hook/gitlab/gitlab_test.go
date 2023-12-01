@@ -197,7 +197,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 					CommitHash:    "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
 					CommitMessage: `Response: omit the "failed_responses" array if empty`,
 					Branch:        "master",
-					Environments:  []bitriseapi.EnvironmentItem{{Name: commitMessagesEnvKey, Value: "- 'Response: omit the \"failed_responses\" array if empty'\n", IsExpand: false}},
+					Environments:  []bitriseapi.EnvironmentItem{{Name: commitMessagesEnvKey, Value: "- Response: omit the \"failed_responses\" array if empty\n", IsExpand: false}},
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
@@ -236,7 +236,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 					CommitHash:    "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
 					CommitMessage: `Response: omit the "failed_responses" array if empty`,
 					Branch:        "master",
-					Environments:  []bitriseapi.EnvironmentItem{{Name: commitMessagesEnvKey, Value: "- switch to three component versions\n- 'Response: omit the \"failed_responses\" array if empty'\n- 'get version : three component version'\n", IsExpand: false}},
+					Environments:  []bitriseapi.EnvironmentItem{{Name: commitMessagesEnvKey, Value: "- switch to three component versions\n- Response: omit the \"failed_responses\" array if empty\n- get version : three component version\n", IsExpand: false}},
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
@@ -901,4 +901,12 @@ func Test_ensureCommitMessagesSize(t *testing.T) {
 
 func generateText(sizeInKB int) string {
 	return strings.Repeat("a", sizeInKB*1000)
+}
+
+func messagesSize(messages []string) int {
+	size := 0
+	for _, message := range messages {
+		size += len([]byte(message))
+	}
+	return size
 }
