@@ -272,7 +272,7 @@ func Test_transformCodePushEvent(t *testing.T) {
 		require.Equal(t, 1, len(triggerParam.BuildParams.Environments))
 
 		env := triggerParam.BuildParams.Environments[0]
-		require.Equal(t, maxSize, len([]byte(env.Value)))
+		require.Equal(t, maxSize, len([]byte(env.Value)), env.Value)
 	}
 
 	t.Log("No commit matches CheckoutSHA")
@@ -885,7 +885,7 @@ func Test_ensureCommitMessagesSize(t *testing.T) {
 			name:           "First two messages needs to be trimmed",
 			maxSize:        4 * len([]byte("1234567890")), // 4 * 10 bytes - 4 * 3 bytes (yaml control chars) = 28 bytes max
 			commitMessages: []string{"123456789a", "123456789abc", "123a", "1a"},
-			want:           []string{"1234567", "1234567", "123a", "1a"}, // 28 / 4 = 7 bytes max per message
+			want:           []string{"1234...", "1234...", "123a", "1a"}, // 28 / 4 = 7 bytes max per message
 		},
 	}
 	for _, tt := range tests {
@@ -900,5 +900,5 @@ func Test_ensureCommitMessagesSize(t *testing.T) {
 }
 
 func generateText(sizeInKB int) string {
-	return strings.Repeat("0", sizeInKB*1000)
+	return strings.Repeat("a", sizeInKB*1000)
 }

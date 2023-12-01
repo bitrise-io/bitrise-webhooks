@@ -324,8 +324,9 @@ func (hp HookProvider) ensureCommitMessagesSize(commitMessages []string, maxSize
 		messageBytes := []byte(message)
 		messageSize := len(messageBytes)
 		if messageSize > maxMessageSize {
-			trimmedMessageBytes := messageBytes[:maxMessageSize]
-			commitMessages[idx] = string(trimmedMessageBytes)
+			trimmedMessageSuffix := []byte("...")
+			trimmedMessageBytes := messageBytes[:maxMessageSize-len(trimmedMessageSuffix)]
+			commitMessages[idx] = string(append(trimmedMessageBytes, trimmedMessageSuffix...))
 		}
 	}
 
