@@ -36,14 +36,14 @@ type Client struct {
 	PubsubClient *pubsub.Client
 }
 
-func supportedProviders() map[string]hookCommon.Provider {
+func supportedProviders(logger *zap.Logger) map[string]hookCommon.Provider {
 	return map[string]hookCommon.Provider{
 		github.ProviderID:                   github.NewDefaultHookProvider(),
 		bitbucketv2.ProviderID:              bitbucketv2.NewDefaultHookProvider(),
 		bitbucketserver.ProviderID:          bitbucketserver.HookProvider{},
 		slack.ProviderID:                    slack.HookProvider{},
 		visualstudioteamservices.ProviderID: visualstudioteamservices.HookProvider{},
-		gitlab.ProviderID:                   gitlab.NewDefaultHookProvider(),
+		gitlab.ProviderID:                   gitlab.NewDefaultHookProvider(logger),
 		gogs.ProviderID:                     gogs.HookProvider{},
 		deveo.ProviderID:                    deveo.HookProvider{},
 		assembla.ProviderID:                 assembla.HookProvider{},
@@ -162,7 +162,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		respondWithErrorString(w, nil, "No service-id defined")
 		return
 	}
-	hookProvider, isSupported := supportedProviders()[serviceID]
+	hookProvider, isSupported := supportedProviders(logger)[serviceID]
 	if !isSupported {
 		respondWithErrorString(w, nil, fmt.Sprintf("Unsupported Webhook Type / Provider: %s", serviceID))
 		return
