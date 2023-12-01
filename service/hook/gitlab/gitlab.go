@@ -64,7 +64,7 @@ const (
 
 	commitMessagesEnvKey      = "BITRISE_WEBHOOK_COMMIT_MESSAGES"
 	fallbackEnvBytesLimitInKB = 256
-	kbToB                     = 1024.0
+	kbToB                     = 1024
 )
 
 // CommitModel ...
