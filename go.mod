@@ -5,6 +5,7 @@ go 1.21
 require (
 	cloud.google.com/go/pubsub v1.33.0
 	github.com/bitrise-io/api-utils v0.0.0-20211025122143-6499571b8433
+	github.com/bitrise-io/envman v0.0.0-20230802102824-1300c57d49c4
 	github.com/go-playground/webhooks/v6 v6.3.0
 	github.com/google/go-github/v55 v55.0.0
 	github.com/gorilla/mux v1.8.0
@@ -30,6 +31,7 @@ require (
 	github.com/DataDog/sketches-go v1.4.2 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
+	github.com/bitrise-io/go-utils v1.0.8 // indirect
 	github.com/blendle/zapdriver v1.3.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect

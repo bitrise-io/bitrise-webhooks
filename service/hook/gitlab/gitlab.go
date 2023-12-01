@@ -39,12 +39,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"slices"
 	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
+	"github.com/bitrise-io/envman/envman"
+	"go.uber.org/zap"
 )
 
 // --------------------------
@@ -58,6 +61,10 @@ const (
 
 	// ProviderID ...
 	ProviderID = "gitlab"
+
+	commitMessagesEnvKey      = "BITRISE_WEBHOOK_COMMIT_MESSAGES"
+	fallbackEnvBytesLimitInKB = 256
+	kbToB                     = 1024
 )
 
 // CommitModel ...
@@ -142,18 +149,20 @@ type MergeRequestEventModel struct {
 // HookProvider ...
 type HookProvider struct {
 	timeProvider hookCommon.TimeProvider
+	logger       *zap.Logger
 }
 
 // NewHookProvider ...
-func NewHookProvider(timeProvider hookCommon.TimeProvider) hookCommon.Provider {
+func NewHookProvider(timeProvider hookCommon.TimeProvider, logger *zap.Logger) HookProvider {
 	return HookProvider{
 		timeProvider: timeProvider,
+		logger:       logger,
 	}
 }
 
 // NewDefaultHookProvider ...
-func NewDefaultHookProvider() hookCommon.Provider {
-	return NewHookProvider(hookCommon.NewDefaultTimeProvider())
+func NewDefaultHookProvider(logger *zap.Logger) HookProvider {
+	return NewHookProvider(hookCommon.NewDefaultTimeProvider(), logger)
 }
 
 func detectContentTypeAndEventID(header http.Header) (string, string, error) {
@@ -197,7 +206,7 @@ func (repository RepositoryModel) getRepositoryURL() string {
 	return repository.GitSSHURL
 }
 
-func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
+func (hp HookProvider) transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
 	if !strings.HasPrefix(codePushEvent.Ref, "refs/heads/") {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
@@ -236,6 +245,22 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 		}
 	}
 
+	var commitMessages []string
+	for _, aCommit := range codePushEvent.Commits {
+		commitMessages = append(commitMessages, aCommit.CommitMessage)
+	}
+	maxSize := envVarSizeLimitInByte()
+	commitMessagesStr, err := hp.commitMessagesToString(commitMessages, maxSize)
+	if err != nil {
+		hp.logger.Warn("gitlab.HookProvider.transformCodePushEvent: failed to convert commit messages", zap.Error(err))
+	}
+
+	var environments []bitriseapi.EnvironmentItem
+	if len(commitMessagesStr) > 0 {
+		environments = []bitriseapi.EnvironmentItem{
+			{Name: commitMessagesEnvKey, Value: commitMessagesStr, IsExpand: false},
+		}
+	}
 	return hookCommon.TransformResultModel{
 		DontWaitForTriggerResponse: true,
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
@@ -245,11 +270,75 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 					CommitMessage:     lastCommit.CommitMessage,
 					Branch:            branch,
 					BaseRepositoryURL: codePushEvent.Repository.getRepositoryURL(),
+					Environments:      environments,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, codePushEvent.UserUsername),
 			},
 		},
 	}
+}
+
+func envVarSizeLimitInByte() int {
+	config, err := envman.GetConfigs()
+	if err == nil {
+		return config.EnvBytesLimitInKB * kbToB
+	}
+	return fallbackEnvBytesLimitInKB * kbToB
+}
+
+func decreaseMaxMessageSizeByControlCharsSize(commitMessages []string, maxSize int) int {
+	controlCharsPerMessageSize := len([]byte("- \n"))
+	controlCharsSize := len(commitMessages) * controlCharsPerMessageSize
+	return maxSize - controlCharsSize
+}
+
+func (hp HookProvider) ensureCommitMessagesSize(commitMessages []string, maxSize int) ([]string, error) {
+	commitMessagesCount := len(commitMessages)
+	if commitMessagesCount > 20 {
+		// The count of push events commits, shouldn't be more than 20:
+		// https://docs.gitlab.com/ee/user/project/integrations/webhook_events.html#push-events
+		// With this limit, 256KB max env var size, and 20 commits, every commit message has ~12KB (~12.000 chars) limitation.
+		// A higher number of commit messages might require a more sophisticated size limitation mechanism.
+		hp.logger.Warn(fmt.Sprintf("Expected 20 commits in the push event, got: %d, limiting commit messages count to 20", commitMessagesCount))
+		commitMessages = commitMessages[:20]
+	}
+
+	maxSize = decreaseMaxMessageSizeByControlCharsSize(commitMessages, maxSize)
+	if maxSize <= 0 {
+		return nil, fmt.Errorf("max messages size should be greater than 0, got: %d", maxSize)
+	}
+
+	maxMessageSize := int(math.Floor(float64(maxSize) / float64(len(commitMessages))))
+	trimmedMessageSuffix := []byte("...")
+	trimmedMessageSuffixSize := len(trimmedMessageSuffix)
+	if maxMessageSize-trimmedMessageSuffixSize <= 0 {
+		return nil, fmt.Errorf("max message size should be greater than %d, got: %d", trimmedMessageSuffixSize, maxMessageSize)
+	}
+
+	for idx, message := range commitMessages {
+		messageBytes := []byte(message)
+		messageSize := len(messageBytes)
+		if messageSize > maxMessageSize {
+			trimmedMessageBytes := messageBytes[:maxMessageSize-trimmedMessageSuffixSize]
+			commitMessages[idx] = string(append(trimmedMessageBytes, trimmedMessageSuffix...))
+		}
+	}
+
+	return commitMessages, nil
+}
+
+func (hp HookProvider) commitMessagesToString(commitMessages []string, maxSize int) (string, error) {
+	var err error
+	commitMessages, err = hp.ensureCommitMessagesSize(commitMessages, maxSize)
+	if err != nil {
+		return "", err
+	}
+
+	commitMessagesStr := ""
+	for _, commitMessage := range commitMessages {
+		commitMessagesStr += fmt.Sprintf("- %s\n", commitMessage)
+	}
+	return commitMessagesStr, nil
 }
 
 func transformTagPushEvent(tagPushEvent TagPushEventModel) hookCommon.TransformResultModel {
@@ -421,7 +510,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 				}
 			}
 		}
-		return transformCodePushEvent(codePushEvent)
+		return hp.transformCodePushEvent(codePushEvent)
 	} else if eventID == tagPushEventID {
 		// tag push
 		var tagPushEvent TagPushEventModel
