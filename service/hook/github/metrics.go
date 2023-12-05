@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/go-github/v57/github"
+
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/google/go-github/v55/github"
 )
 
 // GatherMetrics ...
@@ -176,7 +177,6 @@ func newPullRequestMetrics(event interface{}, webhookType, appSlug string, curre
 	generalPullRequestMetrics := newGeneralPullRequestMetrics(pullRequest, mergeCommitSHA)
 	metrics := constructorFunc(generalMetrics, generalPullRequestMetrics)
 	return &metrics
-
 }
 
 func newPullRequestCommentMetrics(event interface{}, webhookType, appSlug string, currentTime time.Time) *common.PullRequestCommentMetrics {
