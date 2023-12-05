@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v57/github"
 	"github.com/stretchr/testify/require"
+
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 )
 
 func TestHookProvider_gatherMetrics_commit_id_before_and_after(t *testing.T) {
@@ -57,7 +58,6 @@ func TestHookProvider_gatherMetrics_commit_id_before_and_after(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestHookProvider_gatherMetrics(t *testing.T) {
