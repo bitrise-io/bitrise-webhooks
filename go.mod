@@ -13,7 +13,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/xanzy/go-gitlab v0.94.0
 	go.uber.org/zap v1.26.0
-	google.golang.org/api v0.152.0
+	google.golang.org/api v0.153.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.58.0
 )
 
