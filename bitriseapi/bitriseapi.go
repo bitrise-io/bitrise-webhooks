@@ -84,7 +84,7 @@ type BuildParamsModel struct {
 	// paths of changes
 	PushCommitPaths []CommitPaths `json:"commit_paths"`
 	// pull request ready state
-	PullRequestReadyState PullRequestReadyState `json:"pull_request_ready_state"`
+	PullRequestReadyState PullRequestReadyState `json:"pull_request_ready_state,omitempty"`
 }
 
 // TriggerAPIParamsModel ...

@@ -128,6 +128,7 @@ type ObjectAttributesInfoModel struct {
 	Target         BranchInfoModel     `json:"target"`
 	TargetBranch   string              `json:"target_branch"`
 	LastCommit     LastCommitInfoModel `json:"last_commit"`
+	Draft          bool                `json:"draft"`
 }
 
 // UserModel ...
@@ -136,11 +137,19 @@ type UserModel struct {
 	Username string `json:"username"`
 }
 
+type Changes struct {
+	Draft struct {
+		Previous bool `json:"previous"`
+		Current  bool `json:"current"`
+	} `json:"draft"`
+}
+
 // MergeRequestEventModel ...
 type MergeRequestEventModel struct {
 	ObjectKind       string                    `json:"object_kind"`
 	ObjectAttributes ObjectAttributesInfoModel `json:"object_attributes"`
 	User             UserModel                 `json:"user"`
+	Changes          Changes                   `json:"changes"`
 }
 
 // ---------------------------------------
@@ -187,9 +196,23 @@ func isAcceptMergeRequestState(prState string) bool {
 	return slices.Contains([]string{"opened", "reopened"}, prState)
 }
 
-func isAcceptMergeRequestAction(prAction string, prOldrev string) bool {
-	// an "update" without "oldrev" present isn't a code change, so skip
-	return prAction == "open" || prAction == "update" && prOldrev != ""
+func isAcceptMergeRequestAction(prAction string, prOldrev string, changes Changes) bool {
+	if prAction == "open" {
+		return true
+	}
+	if prAction == "update" {
+		// an "update" with "oldrev" present is a code change
+		if prOldrev != "" {
+			return true
+		}
+
+		// converted from draft to ready to review
+		if changes.Draft.Previous == true && changes.Draft.Current == false {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
@@ -413,7 +436,7 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 		}
 	}
 
-	if !isAcceptMergeRequestAction(mergeRequest.ObjectAttributes.Action, mergeRequest.ObjectAttributes.Oldrev) {
+	if !isAcceptMergeRequestAction(mergeRequest.ObjectAttributes.Action, mergeRequest.ObjectAttributes.Oldrev, mergeRequest.Changes) {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
 			Error:                      fmt.Errorf("Merge Request action doesn't require a build: %s", mergeRequest.ObjectAttributes.Action),
@@ -458,6 +481,7 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 					PullRequestAuthor:        mergeRequest.User.Name,
 					PullRequestMergeBranch:   mergeRef,
 					PullRequestHeadBranch:    fmt.Sprintf("merge-requests/%d/head", mergeRequest.ObjectAttributes.ID),
+					PullRequestReadyState:    mergeRequestReadyState(mergeRequest),
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, mergeRequest.User.Username),
 			},
@@ -465,6 +489,24 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(mergeRequest.ObjectAttributes.Title) &&
 			hookCommon.IsSkipBuildByCommitMessage(mergeRequest.ObjectAttributes.Description),
 	}
+}
+
+func mergeRequestReadyState(mergeRequest MergeRequestEventModel) bitriseapi.PullRequestReadyState {
+	// code change
+	if mergeRequest.ObjectAttributes.Oldrev != "" {
+		if mergeRequest.ObjectAttributes.Draft {
+			return bitriseapi.PullRequestReadyStateDraft
+		} else {
+			return bitriseapi.PullRequestReadyStateReadyForReview
+		}
+	}
+
+	// converted from draft to ready to review
+	if mergeRequest.Changes.Draft.Previous == true && mergeRequest.Changes.Draft.Current == false {
+		return bitriseapi.PullRequestReadyStateConvertedToReadyForReview
+	}
+
+	return bitriseapi.PullRequestReadyStateReadyForReview
 }
 
 // TransformRequest ...
