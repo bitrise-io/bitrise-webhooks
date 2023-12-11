@@ -493,18 +493,13 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 }
 
 func mergeRequestReadyState(mergeRequest MergeRequestEventModel) bitriseapi.PullRequestReadyState {
-	// code change
-	if mergeRequest.ObjectAttributes.Oldrev != "" {
-		if mergeRequest.ObjectAttributes.Draft {
-			return bitriseapi.PullRequestReadyStateDraft
-		}
-
-		return bitriseapi.PullRequestReadyStateReadyForReview
-	}
-
 	// converted from draft to ready to review
 	if mergeRequest.Changes.Draft.Previous == true && mergeRequest.Changes.Draft.Current == false {
 		return bitriseapi.PullRequestReadyStateConvertedToReadyForReview
+	}
+
+	if mergeRequest.ObjectAttributes.Draft {
+		return bitriseapi.PullRequestReadyStateDraft
 	}
 
 	return bitriseapi.PullRequestReadyStateReadyForReview
