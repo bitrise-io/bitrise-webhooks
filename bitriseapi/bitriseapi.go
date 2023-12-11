@@ -31,8 +31,10 @@ type CommitPaths struct {
 	Modified []string `json:"modified"`
 }
 
+// PullRequestReadyState ...
 type PullRequestReadyState string
 
+// PullRequestReadyState ...
 const (
 	PullRequestReadyStateDraft                     PullRequestReadyState = "draft"
 	PullRequestReadyStateReadyForReview            PullRequestReadyState = "ready_for_review"

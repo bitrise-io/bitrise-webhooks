@@ -137,6 +137,7 @@ type UserModel struct {
 	Username string `json:"username"`
 }
 
+// Changes ...
 type Changes struct {
 	Draft struct {
 		Previous bool `json:"previous"`
@@ -496,9 +497,9 @@ func mergeRequestReadyState(mergeRequest MergeRequestEventModel) bitriseapi.Pull
 	if mergeRequest.ObjectAttributes.Oldrev != "" {
 		if mergeRequest.ObjectAttributes.Draft {
 			return bitriseapi.PullRequestReadyStateDraft
-		} else {
-			return bitriseapi.PullRequestReadyStateReadyForReview
 		}
+
+		return bitriseapi.PullRequestReadyStateReadyForReview
 	}
 
 	// converted from draft to ready to review
