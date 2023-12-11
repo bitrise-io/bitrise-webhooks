@@ -31,6 +31,14 @@ type CommitPaths struct {
 	Modified []string `json:"modified"`
 }
 
+type PullRequestReadyState string
+
+const (
+	PullRequestReadyStateDraft                     PullRequestReadyState = "draft"
+	PullRequestReadyStateReadyForReview            PullRequestReadyState = "ready_for_review"
+	PullRequestReadyStateConvertedToReadyForReview PullRequestReadyState = "converted_to_ready_for_review"
+)
+
 // BuildParamsModel ...
 type BuildParamsModel struct {
 	// git commit hash
@@ -75,6 +83,8 @@ type BuildParamsModel struct {
 	DiffURL string `json:"diff_url"`
 	// paths of changes
 	PushCommitPaths []CommitPaths `json:"commit_paths"`
+	// pull request ready state
+	PullRequestReadyState PullRequestReadyState `json:"pull_request_ready_state"`
 }
 
 // TriggerAPIParamsModel ...
