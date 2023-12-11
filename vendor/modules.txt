@@ -183,7 +183,7 @@ github.com/stretchr/testify/require
 # github.com/tinylib/msgp v1.1.8
 ## explicit; go 1.15
 github.com/tinylib/msgp/msgp
-# github.com/xanzy/go-gitlab v0.94.0
+# github.com/xanzy/go-gitlab v0.95.0
 ## explicit; go 1.19
 github.com/xanzy/go-gitlab
 # go.opencensus.io v0.24.0
