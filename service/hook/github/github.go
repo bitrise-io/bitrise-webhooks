@@ -288,7 +288,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 
 func pullRequestReadyState(pullRequest PullRequestEventModel) bitriseapi.PullRequestReadyState {
 	switch {
-	case pullRequest.Action == "ready_to_review":
+	case pullRequest.Action == "ready_for_review":
 		return bitriseapi.PullRequestReadyStateConvertedToReadyForReview
 	case pullRequest.PullRequestInfo.Draft:
 		return bitriseapi.PullRequestReadyStateDraft
