@@ -137,12 +137,14 @@ type UserModel struct {
 	Username string `json:"username"`
 }
 
+type BoolChanges struct {
+	Previous bool `json:"previous"`
+	Current  bool `json:"current"`
+}
+
 // Changes ...
 type Changes struct {
-	Draft struct {
-		Previous bool `json:"previous"`
-		Current  bool `json:"current"`
-	} `json:"draft"`
+	Draft BoolChanges `json:"draft"`
 }
 
 // MergeRequestEventModel ...

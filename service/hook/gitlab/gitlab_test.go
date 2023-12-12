@@ -903,6 +903,96 @@ func Test_ensureCommitMessagesSize(t *testing.T) {
 	}
 }
 
+func Test_transformPullRequestEvent_readyState(t *testing.T) {
+	tests := []struct {
+		name           string
+		pullRequest    MergeRequestEventModel
+		wantReadyState bitriseapi.PullRequestReadyState
+	}{
+		{
+			name: "Draft PR opened",
+			pullRequest: MergeRequestEventModel{
+				ObjectKind: "merge_request",
+				ObjectAttributes: ObjectAttributesInfoModel{
+					State:  "opened",
+					Action: "open",
+					Draft:  true,
+				},
+				Changes: Changes{
+					Draft: BoolChanges{
+						Previous: false,
+						Current:  false,
+					},
+				},
+			},
+			wantReadyState: bitriseapi.PullRequestReadyStateDraft,
+		},
+		{
+			name: "Draft PR updated with code push",
+			pullRequest: MergeRequestEventModel{
+				ObjectKind: "merge_request",
+				ObjectAttributes: ObjectAttributesInfoModel{
+					State:  "opened",
+					Action: "update",
+					Oldrev: "asdf",
+					Draft:  true,
+				},
+				Changes: Changes{
+					Draft: BoolChanges{
+						Previous: false,
+						Current:  false,
+					},
+				},
+			},
+			wantReadyState: bitriseapi.PullRequestReadyStateDraft,
+		},
+		{
+			name: "Draft PR converted to ready to review PR",
+			pullRequest: MergeRequestEventModel{
+				ObjectKind: "merge_request",
+				ObjectAttributes: ObjectAttributesInfoModel{
+					State:  "opened",
+					Action: "update",
+					Draft:  false,
+				},
+				Changes: Changes{
+					Draft: BoolChanges{
+						Previous: true,
+						Current:  false,
+					},
+				},
+			},
+			wantReadyState: bitriseapi.PullRequestReadyStateConvertedToReadyForReview,
+		},
+		{
+			name: "Ready to review PR updated with code push",
+			pullRequest: MergeRequestEventModel{
+				ObjectKind: "merge_request",
+				ObjectAttributes: ObjectAttributesInfoModel{
+					State:  "opened",
+					Action: "update",
+					Oldrev: "asdf",
+					Draft:  false,
+				},
+				Changes: Changes{
+					Draft: BoolChanges{
+						Previous: false,
+						Current:  false,
+					},
+				},
+			},
+			wantReadyState: bitriseapi.PullRequestReadyStateReadyForReview,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := transformMergeRequestEvent(tt.pullRequest)
+			require.Equal(t, 1, len(got.TriggerAPIParams))
+			require.Equal(t, tt.wantReadyState, got.TriggerAPIParams[0].BuildParams.PullRequestReadyState)
+		})
+	}
+}
+
 func generateText(sizeInKB int) string {
 	return strings.Repeat("a", sizeInKB*1000)
 }
