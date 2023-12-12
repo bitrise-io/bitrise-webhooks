@@ -1309,3 +1309,59 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
+
+func Test_transformPullRequestEvent_readyState(t *testing.T) {
+	tests := []struct {
+		name           string
+		pullRequest    PullRequestEventModel
+		wantReadyState bitriseapi.PullRequestReadyState
+	}{
+		{
+			name: "Draft PR opened",
+			pullRequest: PullRequestEventModel{
+				Action: "opened",
+				PullRequestInfo: PullRequestInfoModel{
+					Draft: true,
+				},
+			},
+			wantReadyState: bitriseapi.PullRequestReadyStateDraft,
+		},
+		{
+			name: "Draft PR updated with code push",
+			pullRequest: PullRequestEventModel{
+				Action: "synchronize",
+				PullRequestInfo: PullRequestInfoModel{
+					Draft: true,
+				},
+			},
+			wantReadyState: bitriseapi.PullRequestReadyStateDraft,
+		},
+		{
+			name: "Draft PR converted to ready to review PR",
+			pullRequest: PullRequestEventModel{
+				Action: "ready_for_review",
+				PullRequestInfo: PullRequestInfoModel{
+					Draft: false,
+				},
+			},
+			wantReadyState: bitriseapi.PullRequestReadyStateConvertedToReadyForReview,
+		},
+		{
+			name: "Ready to review PR updated with code push",
+			pullRequest: PullRequestEventModel{
+				Action: "synchronize",
+				PullRequestInfo: PullRequestInfoModel{
+					Draft: false,
+				},
+			},
+			wantReadyState: bitriseapi.PullRequestReadyStateReadyForReview,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := transformPullRequestEvent(tt.pullRequest)
+			require.Equal(t, 1, len(got.TriggerAPIParams))
+			require.Equal(t, tt.wantReadyState, got.TriggerAPIParams[0].BuildParams.PullRequestReadyState)
+		})
+	}
+}
