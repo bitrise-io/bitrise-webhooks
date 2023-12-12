@@ -137,6 +137,7 @@ type UserModel struct {
 	Username string `json:"username"`
 }
 
+// BoolChanges ...
 type BoolChanges struct {
 	Previous bool `json:"previous"`
 	Current  bool `json:"current"`
