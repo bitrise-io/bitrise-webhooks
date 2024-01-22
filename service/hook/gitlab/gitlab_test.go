@@ -561,6 +561,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "",
 					PullRequestHeadBranch:    "merge-requests/12/head",
+					PullRequestReadyState:    bitriseapi.PullRequestReadyStateReadyForReview,
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
@@ -615,6 +616,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
 					PullRequestMergeBranch:   "merge-requests/12/merge",
 					PullRequestHeadBranch:    "merge-requests/12/head",
+					PullRequestReadyState:    bitriseapi.PullRequestReadyStateReadyForReview,
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
@@ -790,6 +792,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestAuthor:        "Author Name",
 					PullRequestMergeBranch:   "",
 					PullRequestHeadBranch:    "merge-requests/12/head",
+					PullRequestReadyState:    bitriseapi.PullRequestReadyStateReadyForReview,
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
@@ -825,6 +828,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestAuthor:        "Author Name",
 					PullRequestMergeBranch:   "merge-requests/12/merge",
 					PullRequestHeadBranch:    "merge-requests/12/head",
+					PullRequestReadyState:    bitriseapi.PullRequestReadyStateReadyForReview,
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
@@ -895,6 +899,96 @@ func Test_ensureCommitMessagesSize(t *testing.T) {
 			require.Equal(t, tt.want, got)
 
 			require.True(t, messagesSize(got) <= tt.maxSize)
+		})
+	}
+}
+
+func Test_transformPullRequestEvent_readyState(t *testing.T) {
+	tests := []struct {
+		name           string
+		pullRequest    MergeRequestEventModel
+		wantReadyState bitriseapi.PullRequestReadyState
+	}{
+		{
+			name: "Draft PR opened",
+			pullRequest: MergeRequestEventModel{
+				ObjectKind: "merge_request",
+				ObjectAttributes: ObjectAttributesInfoModel{
+					State:  "opened",
+					Action: "open",
+					Draft:  true,
+				},
+				Changes: Changes{
+					Draft: BoolChanges{
+						Previous: false,
+						Current:  false,
+					},
+				},
+			},
+			wantReadyState: bitriseapi.PullRequestReadyStateDraft,
+		},
+		{
+			name: "Draft PR updated with code push",
+			pullRequest: MergeRequestEventModel{
+				ObjectKind: "merge_request",
+				ObjectAttributes: ObjectAttributesInfoModel{
+					State:  "opened",
+					Action: "update",
+					Oldrev: "asdf",
+					Draft:  true,
+				},
+				Changes: Changes{
+					Draft: BoolChanges{
+						Previous: false,
+						Current:  false,
+					},
+				},
+			},
+			wantReadyState: bitriseapi.PullRequestReadyStateDraft,
+		},
+		{
+			name: "Draft PR converted to ready to review PR",
+			pullRequest: MergeRequestEventModel{
+				ObjectKind: "merge_request",
+				ObjectAttributes: ObjectAttributesInfoModel{
+					State:  "opened",
+					Action: "update",
+					Draft:  false,
+				},
+				Changes: Changes{
+					Draft: BoolChanges{
+						Previous: true,
+						Current:  false,
+					},
+				},
+			},
+			wantReadyState: bitriseapi.PullRequestReadyStateConvertedToReadyForReview,
+		},
+		{
+			name: "Ready to review PR updated with code push",
+			pullRequest: MergeRequestEventModel{
+				ObjectKind: "merge_request",
+				ObjectAttributes: ObjectAttributesInfoModel{
+					State:  "opened",
+					Action: "update",
+					Oldrev: "asdf",
+					Draft:  false,
+				},
+				Changes: Changes{
+					Draft: BoolChanges{
+						Previous: false,
+						Current:  false,
+					},
+				},
+			},
+			wantReadyState: bitriseapi.PullRequestReadyStateReadyForReview,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := transformMergeRequestEvent(tt.pullRequest)
+			require.Equal(t, 1, len(got.TriggerAPIParams))
+			require.Equal(t, tt.wantReadyState, got.TriggerAPIParams[0].BuildParams.PullRequestReadyState)
 		})
 	}
 }
