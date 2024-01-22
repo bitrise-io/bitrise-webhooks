@@ -140,6 +140,7 @@ workflows:
     steps:
       - script:
           title: Update go
+          run_if: .IsCI
           inputs:
             - content: |
                 #!/bin/bash

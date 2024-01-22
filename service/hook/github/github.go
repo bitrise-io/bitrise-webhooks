@@ -193,7 +193,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 }
 
 func isAcceptPullRequestAction(prAction string) bool {
-	return slices.Contains([]string{"opened", "reopened", "synchronize", "edited"}, prAction)
+	return slices.Contains([]string{"opened", "reopened", "synchronize", "edited", "ready_for_review"}, prAction)
 }
 
 func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.TransformResultModel {
@@ -276,12 +276,24 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					PullRequestUnverifiedMergeBranch: unverifiedMergeRefBuildParam,
 					DiffURL:                          pullRequest.PullRequestInfo.DiffURL,
 					Environments:                     buildEnvs,
+					PullRequestReadyState:            pullRequestReadyState(pullRequest),
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Sender.Login),
 			},
 		},
 		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(pullRequest.PullRequestInfo.Title) &&
 			hookCommon.IsSkipBuildByCommitMessage(pullRequest.PullRequestInfo.Body),
+	}
+}
+
+func pullRequestReadyState(pullRequest PullRequestEventModel) bitriseapi.PullRequestReadyState {
+	switch {
+	case pullRequest.Action == "ready_for_review":
+		return bitriseapi.PullRequestReadyStateConvertedToReadyForReview
+	case pullRequest.PullRequestInfo.Draft:
+		return bitriseapi.PullRequestReadyStateDraft
+	default:
+		return bitriseapi.PullRequestReadyStateReadyForReview
 	}
 }
 
