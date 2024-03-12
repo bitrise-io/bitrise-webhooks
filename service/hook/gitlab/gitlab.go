@@ -69,8 +69,11 @@ const (
 
 // CommitModel ...
 type CommitModel struct {
-	CommitHash    string `json:"id"`
-	CommitMessage string `json:"message"`
+	CommitHash    string   `json:"id"`
+	CommitMessage string   `json:"message"`
+	AddedFiles    []string `json:"added"`
+	ModifiedFiles []string `json:"modified"`
+	RemovedFiles  []string `json:"removed"`
 }
 
 // CodePushEventModel ...
@@ -272,8 +275,14 @@ func (hp HookProvider) transformCodePushEvent(codePushEvent CodePushEventModel) 
 		}
 	}
 
+	var commitPaths []bitriseapi.CommitPaths
 	var commitMessages []string
 	for _, aCommit := range codePushEvent.Commits {
+		commitPaths = append(commitPaths, bitriseapi.CommitPaths{
+			Added:    aCommit.AddedFiles,
+			Removed:  aCommit.RemovedFiles,
+			Modified: aCommit.ModifiedFiles,
+		})
 		commitMessages = append(commitMessages, aCommit.CommitMessage)
 	}
 	maxSize := envVarSizeLimitInByte()
@@ -295,6 +304,8 @@ func (hp HookProvider) transformCodePushEvent(codePushEvent CodePushEventModel) 
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        lastCommit.CommitHash,
 					CommitMessage:     lastCommit.CommitMessage,
+					AllCommitMessages: commitMessages,
+					PushCommitPaths:   commitPaths,
 					Branch:            branch,
 					BaseRepositoryURL: codePushEvent.Repository.getRepositoryURL(),
 					Environments:      environments,

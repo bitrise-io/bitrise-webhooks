@@ -20,11 +20,17 @@ const sampleCodePushData = `{
 "commits": [
 	{
 		"id": "29da60ce2c47a6696bc82f2e6ec4a075695eb7c3",
-		"message": "first commit message"
+		"message": "first commit message",
+      "added": ["README.MD"],
+      "modified": ["app/controller/application.rb"],
+      "removed": []
 	},
 	{
 		"id": "1606d3dd4c4dc83ee8fed8d3cfd911da851bf740",
-		"message": "second commit message"
+		"message": "second commit message",
+      "added": ["CHANGELOG"],
+      "modified": ["app/controller/application.rb"],
+      "removed": []
 	}
 ]
 }`
@@ -194,10 +200,12 @@ func Test_transformCodePushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
-					CommitMessage: `Response: omit the "failed_responses" array if empty`,
-					Branch:        "master",
-					Environments:  []bitriseapi.EnvironmentItem{{Name: commitMessagesEnvKey, Value: "- Response: omit the \"failed_responses\" array if empty\n", IsExpand: false}},
+					CommitHash:        "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
+					CommitMessage:     `Response: omit the "failed_responses" array if empty`,
+					AllCommitMessages: []string{"Response: omit the \"failed_responses\" array if empty"},
+					PushCommitPaths:   []bitriseapi.CommitPaths{{}},
+					Branch:            "master",
+					Environments:      []bitriseapi.EnvironmentItem{{Name: commitMessagesEnvKey, Value: "- Response: omit the \"failed_responses\" array if empty\n", IsExpand: false}},
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
@@ -233,10 +241,12 @@ func Test_transformCodePushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
-					CommitMessage: `Response: omit the "failed_responses" array if empty`,
-					Branch:        "master",
-					Environments:  []bitriseapi.EnvironmentItem{{Name: commitMessagesEnvKey, Value: "- switch to three component versions\n- Response: omit the \"failed_responses\" array if empty\n- get version : three component version\n", IsExpand: false}},
+					CommitHash:        "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
+					CommitMessage:     `Response: omit the "failed_responses" array if empty`,
+					AllCommitMessages: []string{"switch to three component versions", "Response: omit the \"failed_responses\" array if empty", "get version : three component version"},
+					PushCommitPaths:   []bitriseapi.CommitPaths{{}, {}, {}},
+					Branch:            "master",
+					Environments:      []bitriseapi.EnvironmentItem{{Name: commitMessagesEnvKey, Value: "- switch to three component versions\n- Response: omit the \"failed_responses\" array if empty\n- get version : three component version\n", IsExpand: false}},
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
@@ -703,10 +713,23 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "1606d3dd4c4dc83ee8fed8d3cfd911da851bf740",
-					CommitMessage: "second commit message",
-					Branch:        "develop",
-					Environments:  []bitriseapi.EnvironmentItem{{Name: commitMessagesEnvKey, Value: "- first commit message\n- second commit message\n", IsExpand: false}},
+					CommitHash:        "1606d3dd4c4dc83ee8fed8d3cfd911da851bf740",
+					CommitMessage:     "second commit message",
+					AllCommitMessages: []string{"first commit message", "second commit message"},
+					PushCommitPaths: []bitriseapi.CommitPaths{
+						{
+							Added:    []string{"README.MD"},
+							Modified: []string{"app/controller/application.rb"},
+							Removed:  []string{},
+						},
+						{
+							Added:    []string{"CHANGELOG"},
+							Modified: []string{"app/controller/application.rb"},
+							Removed:  []string{},
+						},
+					},
+					Branch:       "develop",
+					Environments: []bitriseapi.EnvironmentItem{{Name: commitMessagesEnvKey, Value: "- first commit message\n- second commit message\n", IsExpand: false}},
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
