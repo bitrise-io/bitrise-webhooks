@@ -27,7 +27,38 @@ const (
 					"message": "auto-test",
 					"hash": "966d0bfe79b80f97268c2f6bb45e65e79ef09b31"
 				}
-			}
+			},
+			"commits": [
+			  {
+				"hash": "03f4a7270240708834de475bcf21532d6134777e",
+				"type": "commit",
+				"message": "commit on master",
+				"author": {},
+				"links": {
+				  "self": {
+					"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/03f4a7270240708834de475bcf21532d6134777e"
+				  },
+				  "html": {
+					"href": "https://bitbucket.org/user/repo/commits/03f4a7270240708834de475bcf21532d6134777e"
+				  }
+				}
+			  },
+			  {
+				"hash": "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+				"type": "commit",
+				"message": "auto-test",
+				"author": {},
+				"links": {
+				  "self": {
+					"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/966d0bfe79b80f97268c2f6bb45e65e79ef09b31"
+				  },
+				  "html": {
+					"href": "https://bitbucket.org/user/repo/commits/966d0bfe79b80f97268c2f6bb45e65e79ef09b31"
+				  }
+				}
+			  }
+			],
+			"truncated": false
 		},
 		{
 			"new": {
@@ -38,7 +69,38 @@ const (
 					"message": "auto-test 2",
 					"hash": "19934139a2cf799bbd0f5061ab02e4760902e93f"
 				}
-			}
+			},
+			"commits": [
+			{
+				"hash": "abc123",
+				"type": "commit",
+				"message": "commit on branch",
+				"author": {},
+				"links": {
+				  "self": {
+					"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/abc123"
+				  },
+				  "html": {
+					"href": "https://bitbucket.org/user/repo/commits/abc123"
+				  }
+				}
+			  },
+			{
+				"hash": "19934139a2cf799bbd0f5061ab02e4760902e93f",
+				"type": "commit",
+				"message": "auto-test 2",
+				"author": {},
+				"links": {
+				  "self": {
+					"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/19934139a2cf799bbd0f5061ab02e4760902e93f"
+				  },
+				  "html": {
+					"href": "https://bitbucket.org/user/repo/commits/19934139a2cf799bbd0f5061ab02e4760902e93f"
+				  }
+				}
+			  }
+			],
+			"truncated": false
 		}
 	]
 },
@@ -340,6 +402,16 @@ func Test_transformPushEvent(t *testing.T) {
 								CommitMessage: "auto-test",
 							},
 						},
+						Commits: []CommitModel{
+							{
+								Hash:    "abc123",
+								Message: "first commit",
+							},
+							{
+								Hash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+								Message: "auto-test",
+							},
+						},
 					},
 				},
 			},
@@ -359,6 +431,7 @@ func Test_transformPushEvent(t *testing.T) {
 					BuildParams: bitriseapi.BuildParamsModel{
 						CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 						CommitMessage:     "auto-test",
+						AllCommitMessages: []string{"first commit", "auto-test"},
 						Branch:            "master",
 						BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 					},
@@ -440,6 +513,12 @@ func Test_transformPushEvent(t *testing.T) {
 								CommitMessage: "auto-test",
 							},
 						},
+						Commits: []CommitModel{
+							{
+								Hash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+								Message: "auto-test",
+							},
+						},
 					},
 					{
 						ChangeNewItem: ChangeItemModel{
@@ -449,6 +528,12 @@ func Test_transformPushEvent(t *testing.T) {
 								Type:          "commit",
 								CommitHash:    "178de4f94efbfa99abede5cf0f1868924222839e",
 								CommitMessage: "auto-test 2",
+							},
+						},
+						Commits: []CommitModel{
+							{
+								Hash:    "178de4f94efbfa99abede5cf0f1868924222839e",
+								Message: "auto-test 2",
 							},
 						},
 					},
@@ -467,6 +552,7 @@ func Test_transformPushEvent(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 					CommitMessage:     "auto-test",
+					AllCommitMessages: []string{"auto-test"},
 					Branch:            "master",
 					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
@@ -476,6 +562,7 @@ func Test_transformPushEvent(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "178de4f94efbfa99abede5cf0f1868924222839e",
 					CommitMessage:     "auto-test 2",
+					AllCommitMessages: []string{"auto-test 2"},
 					Branch:            "test",
 					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
@@ -978,6 +1065,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 					CommitMessage:     "auto-test",
+					AllCommitMessages: []string{"commit on master", "auto-test"},
 					Branch:            "master",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
@@ -988,6 +1076,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitHash:        "19934139a2cf799bbd0f5061ab02e4760902e93f",
 					CommitMessage:     "auto-test 2",
 					Branch:            "test",
+					AllCommitMessages: []string{"commit on branch", "auto-test 2"},
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
 				TriggeredBy: "webhook-bitbucket-v2/test_user",
@@ -1153,6 +1242,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 					CommitMessage:     "auto-test",
+					AllCommitMessages: []string{"commit on master", "auto-test"},
 					Branch:            "master",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
@@ -1162,6 +1252,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "19934139a2cf799bbd0f5061ab02e4760902e93f",
 					CommitMessage:     "auto-test 2",
+					AllCommitMessages: []string{"commit on branch", "auto-test 2"},
 					Branch:            "test",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},

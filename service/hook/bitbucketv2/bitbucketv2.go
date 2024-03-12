@@ -43,6 +43,13 @@ type ChangeItemModel struct {
 // ChangeInfoModel ...
 type ChangeInfoModel struct {
 	ChangeNewItem ChangeItemModel `json:"new"`
+	Commits       []CommitModel   `json:"commits"`
+}
+
+// CommitModel ...
+type CommitModel struct {
+	Hash    string `json:"hash"`
+	Message string `json:"message"`
 }
 
 // PushInfoModel ...
@@ -165,19 +172,26 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 	triggerAPIParams := []bitriseapi.TriggerAPIParamsModel{}
 	errs := []string{}
-	for _, aChnage := range pushEvent.PushInfo.Changes {
-		aNewItm := aChnage.ChangeNewItem
+	for _, aChange := range pushEvent.PushInfo.Changes {
+		aNewItm := aChange.ChangeNewItem
 		if (pushEvent.RepositoryInfo.Scm == scmGit && aNewItm.Type == "branch") ||
 			(pushEvent.RepositoryInfo.Scm == scmMercurial && aNewItm.Type == "named_branch") {
 			if aNewItm.Target.Type != "commit" {
 				errs = append(errs, fmt.Sprintf("Target was not a type=commit change. Type was: %s", aNewItm.Target.Type))
 				continue
 			}
+
+			var commitMessages []string
+			for _, commit := range aChange.Commits {
+				commitMessages = append(commitMessages, commit.Message)
+			}
+
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
 				BuildParams: bitriseapi.BuildParamsModel{
 					Branch:            aNewItm.Name,
 					CommitHash:        aNewItm.Target.CommitHash,
 					CommitMessage:     aNewItm.Target.CommitMessage,
+					AllCommitMessages: commitMessages,
 					BaseRepositoryURL: pushEvent.RepositoryInfo.getRepositoryURL(),
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.ActorInfo.Nickname),
@@ -188,11 +202,18 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 				errs = append(errs, fmt.Sprintf("Target was not a type=commit change. Type was: %s", aNewItm.Target.Type))
 				continue
 			}
+
+			var commitMessages []string
+			for _, commit := range aChange.Commits {
+				commitMessages = append(commitMessages, commit.Message)
+			}
+
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
 				BuildParams: bitriseapi.BuildParamsModel{
 					Tag:               aNewItm.Name,
 					CommitHash:        aNewItm.Target.CommitHash,
 					CommitMessage:     aNewItm.Target.CommitMessage,
+					AllCommitMessages: commitMessages,
 					BaseRepositoryURL: pushEvent.RepositoryInfo.getRepositoryURL(),
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.ActorInfo.Nickname),
