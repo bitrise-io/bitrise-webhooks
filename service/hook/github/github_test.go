@@ -13,70 +13,170 @@ import (
 
 const (
 	sampleCodePushData = `{
-  "ref": "refs/heads/master",
-  "deleted": false,
-  "head_commit": {
-    "distinct": true,
-    "id": "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-    "message": "re-structuring Hook Providers, with added tests"
-  },
-  "commits": [
-    {
-      "added": [
-        "added/file/path"
-      ],
-      "removed": [
-        "removed/file/path"
-      ],
-      "modified": [
-        "modified/file/path"
-      ]
+    "ref": "refs/heads/brencs",
+    "before": "61be158044aadc36e08b5a01313e25889360ff38",
+    "after": "0036f6352b470de6ede9428ab6e44791e5894aaf",
+    "repository": {
+      "name": "webhook-test",
+      "full_name": "test_user/webhook-test",
+      "private": true,
+      "html_url": "https://github.com/molnarm/webhook-test",
+      "description": "test repo for webhooks",
+      "fork": false,
+      "url": "https://github.com/molnarm/webhook-test",
+      "ssh_url": "git@github.com:test_user/webhook-test.git",
+      "clone_url": "https://github.com/test_user/webhook-test.git"
+    },
+    "pusher": {
+      "name": "test_user",
+      "email": "test_user@users.noreply.github.com"
+    },
+    "sender": {
+    },
+    "created": false,
+    "deleted": false,
+    "forced": false,
+    "base_ref": null,
+    "compare": "https://github.com/test_user/webhook-test/compare/61be158044aa...0036f6352b47",
+    "commits": [
+      {
+        "id": "08832fbc2946056b3f0a0022060ed028d62f3e6f",
+        "tree_id": "4c3206e509f20adfc7ede21bf6805fe6ad30f77c",
+        "distinct": true,
+        "message": "commit1",
+        "timestamp": "2024-03-11T14:40:53+01:00",
+        "url": "https://github.com/test_user/webhook-test/commit/08832fbc2946056b3f0a0022060ed028d62f3e6f",
+        "author": {
+          "name": "Test User",
+          "email": "test.user@bitrise.io",
+          "username": "test_user"
+        },
+        "committer": {
+          "name": "Test User",
+          "email": "test.user@bitrise.io",
+          "username": "test_user"
+        },
+        "added": [ "added/file/path1" ],
+        "removed": [ "removed/file/path1" ],
+        "modified": [ "modified/file/path1" ]
+      },
+      {
+        "id": "bf19af0c71a0fc32ffea55d926c299e55d14fae5",
+        "tree_id": "3bd8a21192fe87596bdafbe02d510cf4b31a1ded",
+        "distinct": true,
+        "message": "commit2",
+        "timestamp": "2024-03-11T14:41:02+01:00",
+        "url": "https://github.com/test_user/webhook-test/commit/bf19af0c71a0fc32ffea55d926c299e55d14fae5",
+        "author": {
+          "name": "Test User",
+          "email": "test.user@bitrise.io",
+          "username": "test_user"
+        },
+        "committer": {
+          "name": "Test User",
+          "email": "test.user@bitrise.io",
+          "username": "test_user"
+        },
+        "added": [ "added/file/path2" ],
+        "removed": [ "removed/file/path2" ],
+        "modified": [ "modified/file/path2" ]
+      },
+      {
+        "id": "0036f6352b470de6ede9428ab6e44791e5894aaf",
+        "tree_id": "09a572cb4602e70027db2eadceda73f66eff9bfb",
+        "distinct": true,
+        "message": "commit3",
+        "timestamp": "2024-03-11T14:41:10+01:00",
+        "url": "https://github.com/test_user/webhook-test/commit/0036f6352b470de6ede9428ab6e44791e5894aaf",
+        "author": {
+          "name": "Test User",
+          "email": "test.user@bitrise.io",
+          "username": "test_user"
+        },
+        "committer": {
+          "name": "Test User",
+          "email": "test.user@bitrise.io",
+          "username": "test_user"
+        },
+        "added": [ "added/file/path3" ],
+        "removed": [ "removed/file/path3" ],
+        "modified": [ "modified/file/path3" ]
+      }
+    ],
+    "head_commit": {
+      "id": "0036f6352b470de6ede9428ab6e44791e5894aaf",
+      "tree_id": "09a572cb4602e70027db2eadceda73f66eff9bfb",
+      "distinct": true,
+      "message": "commit3",
+      "timestamp": "2024-03-11T14:41:10+01:00",
+      "url": "https://github.com/test_user/webhook-test/commit/0036f6352b470de6ede9428ab6e44791e5894aaf",
+      "author": {
+        "name": "Test User",
+        "email": "test.user@bitrise.io",
+        "username": "test_user"
+      },
+      "committer": {
+        "name": "Test User",
+        "email": "test.user@bitrise.io",
+        "username": "test_user"
+      },
+      "added": [ "added/file/path3" ],
+      "removed": [ "removed/file/path3" ],
+      "modified": [ "modified/file/path3" ]
     }
-  ],
-  "repository": {
-	"private": false,
-	"ssh_url": "git@github.com:bitrise-team/bitrise-webhooks.git",
-	"clone_url": "https://github.com/bitrise-team/bitrise-webhooks.git",
-	"owner": {
-		"login": "bitrise-team"
-	}
-  },
-  "pusher": {
-    "name": "test_user"
-  }
-}`
+  }`
 
 	sampleTagPushData = `{
-  "ref": "refs/tags/v0.0.2",
-  "deleted": false,
-  "head_commit": {
-    "distinct": true,
-    "id": "2e197ebd2330183ae11338151cf3a75db0c23c92",
-    "message": "generalize Push Event (previously Code Push)\n\nwe'll handle the Tag Push too, so related codes are changed to reflect this (removed code from CodePush - e.g. CodePushEventModel -> PushEventModel)"
-  },
-  "commits": [
-    {
-      "added": [
-        "added/file/path"
-      ],
-      "removed": [
-        "removed/file/path"
-      ],
-      "modified": [
-        "modified/file/path"
-      ]
-    }
-  ],
+  "ref": "refs/tags/test-tag",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "0dbf365304fb3001ff58cdcdf18d74699f6e5375",
   "repository": {
-	"private": false,
-	"ssh_url": "git@github.com:bitrise-team/bitrise-webhooks.git",
-	"clone_url": "https://github.com/bitrise-team/bitrise-webhooks.git",
-	"owner": {
-		"login": "bitrise-team"
-	}
+    "name": "webhook-test",
+    "full_name": "test_user/webhook-test",
+    "private": true,
+    "owner": {
+    },
+    "html_url": "https://github.com/test_user/webhook-test",
+    "description": "test repo for webhooks",
+    "fork": false,
+    "url": "https://github.com/test_user/webhook-test",
+    "ssh_url": "git@github.com:test_user/webhook-test.git",
+    "clone_url": "https://github.com/test_user/webhook-test.git"
   },
   "pusher": {
-    "name": "test_user"
+    "name": "test_user",
+    "email": "test_user@users.noreply.github.com"
+  },
+  "sender": {
+  },
+  "created": true,
+  "deleted": false,
+  "forced": false,
+  "base_ref": null,
+  "compare": "https://github.com/test_user/webhook-test/compare/test-tag",
+  "commits": [
+
+  ],
+  "head_commit": {
+    "id": "0036f6352b470de6ede9428ab6e44791e5894aaf",
+    "tree_id": "09a572cb4602e70027db2eadceda73f66eff9bfb",
+    "distinct": true,
+    "message": "commit3",
+    "timestamp": "2024-03-11T14:41:10+01:00",
+    "url": "https://github.com/test_user/webhook-test/commit/0036f6352b470de6ede9428ab6e44791e5894aaf",
+    "author": {
+      "name": "Test User",
+      "email": "test.user@bitrise.io",
+      "username": "test_user"
+    },
+    "committer": {
+      "name": "Test User",
+      "email": "test.user@bitrise.io",
+      "username": "test_user"
+    },
+    "added": [ "added/file/path" ],
+    "removed": [ "removed/file/path" ],
+    "modified": [ "modified/file/path" ]
   }
 }`
 
@@ -214,6 +314,77 @@ const (
 			"login": "test_user"
 		}
 	}`
+
+	samplePullRequestLabelData = `{
+    "action": "labeled",
+    "number": 1,
+    "pull_request": {
+        "url": "https://api.github.com/repos/test_user/webhook-test/pulls/1",
+        "number": 1,
+        "state": "open",
+        "locked": false,
+        "title": "Brencs",
+        "user": {},
+        "body": null,
+        "created_at": "2024-03-08T12:22:56Z",
+        "updated_at": "2024-03-08T12:34:57Z",
+        "closed_at": null,
+        "merged_at": null,
+        "merge_commit_sha": "c96fa0dd145083f4d9c0a525fb525fcfb18489ba",
+        "assignee": null,
+        "assignees": [],
+        "requested_reviewers": [],
+        "requested_teams": [],
+        "labels": [
+            {
+                "id": 6664654046,
+                "node_id": "LA_kwDOLdfcTc8AAAABjT6M3g",
+                "url": "https://api.github.com/repos/test_user/webhook-test/labels/enhancement",
+                "name": "enhancement",
+                "color": "a2eeef",
+                "default": true,
+                "description": "New feature or request"
+            }
+        ],
+        "milestone": null,
+        "draft": false,
+        "head": {
+            "label": "test_user:brencs",
+            "ref": "brencs",
+            "sha": "61be158044aadc36e08b5a01313e25889360ff38",
+            "user": {},
+            "repo": {}
+        },
+        "base": {
+            "label": "test_user:main",
+            "ref": "main",
+            "sha": "17d68567a0ddb19362e3cef6409180af6a02737d",
+            "user": {},
+            "repo": {}
+        },
+        "commits": 4,
+        "additions": 4,
+        "deletions": 3,
+        "changed_files": 4
+    },
+    "label": {
+        "id": 6664654046,
+        "node_id": "LA_kwDOLdfcTc8AAAABjT6M3g",
+        "url": "https://api.github.com/repos/test_user/webhook-test/labels/enhancement",
+        "name": "enhancement",
+        "color": "a2eeef",
+        "default": true,
+        "description": "New feature or request"
+    },
+    "repository": {
+        "name": "webhook-test",
+        "full_name": "test_user/webhook-test",
+        "private": true
+    },
+    "sender": {
+        "login": "test_user"
+    }
+}`
 )
 
 var boolFalse = false
@@ -243,6 +414,18 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "application/json", contentType)
 		require.Equal(t, "pull_request", ghEvent)
+	}
+
+	t.Log("Issue comment event - should handle")
+	{
+		header := http.Header{
+			"X-Github-Event": {"issue_comment"},
+			"Content-Type":   {"application/json"},
+		}
+		contentType, ghEvent, err := detectContentTypeAndEventID(header)
+		require.NoError(t, err)
+		require.Equal(t, "application/json", contentType)
+		require.Equal(t, "issue_comment", ghEvent)
 	}
 
 	t.Log("Ping event")
@@ -312,9 +495,11 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					CommitMessage: "re-structuring Hook Providers, with added tests",
-					Branch:        "master",
+					CommitHash:        "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					CommitMessage:     "re-structuring Hook Providers, with added tests",
+					AllCommitMessages: []string{"re-structuring Hook Providers, with added tests"},
+					PushCommitPaths:   []bitriseapi.CommitPaths{{}},
+					Branch:            "master",
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},
@@ -341,9 +526,11 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:           "v0.0.2",
-					CommitHash:    "2e197ebd2330183ae11338151cf3a75db0c23c92",
-					CommitMessage: "generalize Push Event (previously Code Push)",
+					Tag:               "v0.0.2",
+					CommitHash:        "2e197ebd2330183ae11338151cf3a75db0c23c92",
+					CommitMessage:     "generalize Push Event (previously Code Push)",
+					AllCommitMessages: []string{"generalize Push Event (previously Code Push)"},
+					PushCommitPaths:   []bitriseapi.CommitPaths{{}},
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},
@@ -370,9 +557,11 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					CommitMessage: "re-structuring Hook Providers, with added tests",
-					Branch:        "master",
+					CommitHash:        "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					CommitMessage:     "re-structuring Hook Providers, with added tests",
+					AllCommitMessages: []string{"re-structuring Hook Providers, with added tests"},
+					PushCommitPaths:   []bitriseapi.CommitPaths{{}},
+					Branch:            "master",
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},
@@ -399,9 +588,11 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:           "v0.0.2",
-					CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					CommitMessage: "re-structuring Hook Providers, with added tests",
+					Tag:               "v0.0.2",
+					CommitHash:        "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					CommitMessage:     "re-structuring Hook Providers, with added tests",
+					AllCommitMessages: []string{"re-structuring Hook Providers, with added tests"},
+					PushCommitPaths:   []bitriseapi.CommitPaths{{}},
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},
@@ -1059,7 +1250,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.EqualError(t, hookTransformResult.Error, "ping event received")
 	}
 
-	t.Log("Unsuported Content-Type")
+	t.Log("Unsupported Content-Type")
 	{
 		request := http.Request{
 			Header: http.Header{
@@ -1139,17 +1330,28 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					CommitMessage: "re-structuring Hook Providers, with added tests",
-					Branch:        "master",
+					CommitHash:        "0036f6352b470de6ede9428ab6e44791e5894aaf",
+					CommitMessage:     "commit3",
+					AllCommitMessages: []string{"commit1", "commit2", "commit3"},
+					Branch:            "brencs",
 					PushCommitPaths: []bitriseapi.CommitPaths{
 						{
-							Added:    []string{"added/file/path"},
-							Removed:  []string{"removed/file/path"},
-							Modified: []string{"modified/file/path"},
+							Added:    []string{"added/file/path1"},
+							Removed:  []string{"removed/file/path1"},
+							Modified: []string{"modified/file/path1"},
+						},
+						{
+							Added:    []string{"added/file/path2"},
+							Removed:  []string{"removed/file/path2"},
+							Modified: []string{"modified/file/path2"},
+						},
+						{
+							Added:    []string{"added/file/path3"},
+							Removed:  []string{"removed/file/path3"},
+							Modified: []string{"modified/file/path3"},
 						},
 					},
-					BaseRepositoryURL: "https://github.com/bitrise-team/bitrise-webhooks.git",
+					BaseRepositoryURL: "git@github.com:test_user/webhook-test.git",
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},
@@ -1172,9 +1374,10 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:           "v0.0.2",
-					CommitHash:    "2e197ebd2330183ae11338151cf3a75db0c23c92",
-					CommitMessage: "generalize Push Event (previously Code Push)\n\nwe'll handle the Tag Push too, so related codes are changed to reflect this (removed code from CodePush - e.g. CodePushEventModel -> PushEventModel)",
+					Tag:               "test-tag",
+					CommitHash:        "0036f6352b470de6ede9428ab6e44791e5894aaf",
+					CommitMessage:     "commit3",
+					AllCommitMessages: []string{"commit3"},
 					PushCommitPaths: []bitriseapi.CommitPaths{
 						{
 							Added:    []string{"added/file/path"},
@@ -1182,7 +1385,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 							Modified: []string{"modified/file/path"},
 						},
 					},
-					BaseRepositoryURL: "https://github.com/bitrise-team/bitrise-webhooks.git",
+					BaseRepositoryURL: "git@github.com:test_user/webhook-test.git",
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},
