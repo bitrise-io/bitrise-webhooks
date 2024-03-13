@@ -89,7 +89,7 @@ type BuildParamsModel struct {
 	Environments []EnvironmentItem `json:"environments,omitempty"`
 	// URL of the diff
 	DiffURL string `json:"diff_url"`
-	// paths of changes of head commit
+	// paths of changes of all commits
 	PushCommitPaths []CommitPaths `json:"commit_paths"`
 	// pull request ready state
 	PullRequestReadyState PullRequestReadyState `json:"pull_request_ready_state,omitempty"`
