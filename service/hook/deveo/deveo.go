@@ -28,6 +28,7 @@ type CommitModel struct {
 	CommitMessage string `json:"message"`
 }
 
+// FilesChangedModel ...
 type FilesChangedModel struct {
 	Added    []string           `json:"added"`
 	Modified []string           `json:"modified"`
@@ -35,11 +36,13 @@ type FilesChangedModel struct {
 	Renamed  []RenamedFileModel `json:"renamed"`
 }
 
+// RenamedFileModel ...
 type RenamedFileModel struct {
 	From VersionedPathModel `json:"from"`
 	To   VersionedPathModel `json:"to"`
 }
 
+// VersionedPathModel ...
 type VersionedPathModel struct {
 	Path string `json:"path"`
 	Rev  string `json:"rev"`
@@ -117,7 +120,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			},
 		}
 
-		if !commitPaths.IsEmpty() {
+		if !isCommitPathsEmpty(&commitPaths) {
 			result.BuildParams.PushCommitPaths = []bitriseapi.CommitPaths{commitPaths}
 		}
 
@@ -145,7 +148,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			},
 		}
 
-		if !commitPaths.IsEmpty() {
+		if !isCommitPathsEmpty(&commitPaths) {
 			result.BuildParams.PushCommitPaths = []bitriseapi.CommitPaths{commitPaths}
 		}
 
@@ -235,4 +238,8 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 // returns the repository clone URL
 func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
 	return branchInfoModel.Repo.SSHURL
+}
+
+func isCommitPathsEmpty(cp *bitriseapi.CommitPaths) bool {
+	return len(cp.Added) == 0 && len(cp.Modified) == 0 && len(cp.Removed) == 0
 }

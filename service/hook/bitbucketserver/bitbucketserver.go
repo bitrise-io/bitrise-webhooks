@@ -74,7 +74,7 @@ type RepositoryInfoModel struct {
 
 // CommitModel ...
 type CommitModel struct {
-	Id      string `json:"id"`
+	ID      string `json:"id"`
 	Message string `json:"message"`
 }
 
@@ -174,7 +174,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 	var allCommitMessages []string
 	if !multipleChanges {
 		for _, commit := range pushEvent.Commits {
-			commitMessages[commit.Id] = commit.Message
+			commitMessages[commit.ID] = commit.Message
 			allCommitMessages = append(allCommitMessages, commit.Message)
 		}
 	}

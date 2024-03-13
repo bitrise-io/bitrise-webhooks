@@ -31,10 +31,6 @@ type CommitPaths struct {
 	Modified []string `json:"modified"`
 }
 
-func (cp *CommitPaths) IsEmpty() bool {
-	return len(cp.Added) == 0 && len(cp.Modified) == 0 && len(cp.Removed) == 0
-}
-
 // PullRequestReadyState ...
 type PullRequestReadyState string
 

@@ -631,11 +631,11 @@ func Test_transformPushEvent(t *testing.T) {
 			},
 			Commits: []CommitModel{
 				{
-					Id:      "abc123",
+					ID:      "abc123",
 					Message: "first commit",
 				},
 				{
-					Id:      "TO-966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					ID:      "TO-966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 					Message: "second commit",
 				},
 			},
@@ -832,7 +832,7 @@ func Test_transformPushEvent(t *testing.T) {
 			// As such, when detecting multiple sets of changes, commit messages and changed files will be left empty.
 			Commits: []CommitModel{
 				{
-					Id:      "abc123",
+					ID:      "abc123",
 					Message: "this commit message should not be included",
 				},
 			},
@@ -913,7 +913,7 @@ func Test_transformPushEvent(t *testing.T) {
 			// As such, when detecting multiple sets of changes, commit messages and changed files will be left empty.
 			Commits: []CommitModel{
 				{
-					Id:      "abc123",
+					ID:      "abc123",
 					Message: "this commit message should not be included",
 				},
 			},
