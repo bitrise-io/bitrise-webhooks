@@ -200,12 +200,12 @@ func Test_transformCodePushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:        "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
-					CommitMessage:     `Response: omit the "failed_responses" array if empty`,
-					AllCommitMessages: []string{"Response: omit the \"failed_responses\" array if empty"},
-					PushCommitPaths:   []bitriseapi.CommitPaths{{}},
-					Branch:            "master",
-					Environments:      []bitriseapi.EnvironmentItem{{Name: commitMessagesEnvKey, Value: "- Response: omit the \"failed_responses\" array if empty\n", IsExpand: false}},
+					CommitHash:      "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
+					CommitMessage:   `Response: omit the "failed_responses" array if empty`,
+					CommitMessages:  []string{"Response: omit the \"failed_responses\" array if empty"},
+					PushCommitPaths: []bitriseapi.CommitPaths{{}},
+					Branch:          "master",
+					Environments:    []bitriseapi.EnvironmentItem{{Name: commitMessagesEnvKey, Value: "- Response: omit the \"failed_responses\" array if empty\n", IsExpand: false}},
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
@@ -241,12 +241,12 @@ func Test_transformCodePushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:        "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
-					CommitMessage:     `Response: omit the "failed_responses" array if empty`,
-					AllCommitMessages: []string{"switch to three component versions", "Response: omit the \"failed_responses\" array if empty", "get version : three component version"},
-					PushCommitPaths:   []bitriseapi.CommitPaths{{}, {}, {}},
-					Branch:            "master",
-					Environments:      []bitriseapi.EnvironmentItem{{Name: commitMessagesEnvKey, Value: "- switch to three component versions\n- Response: omit the \"failed_responses\" array if empty\n- get version : three component version\n", IsExpand: false}},
+					CommitHash:      "f8f37818dc89a67516adfc21896d0c9ec43d05c2",
+					CommitMessage:   `Response: omit the "failed_responses" array if empty`,
+					CommitMessages:  []string{"switch to three component versions", "Response: omit the \"failed_responses\" array if empty", "get version : three component version"},
+					PushCommitPaths: []bitriseapi.CommitPaths{{}, {}, {}},
+					Branch:          "master",
+					Environments:    []bitriseapi.EnvironmentItem{{Name: commitMessagesEnvKey, Value: "- switch to three component versions\n- Response: omit the \"failed_responses\" array if empty\n- get version : three component version\n", IsExpand: false}},
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
@@ -713,9 +713,9 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:        "1606d3dd4c4dc83ee8fed8d3cfd911da851bf740",
-					CommitMessage:     "second commit message",
-					AllCommitMessages: []string{"first commit message", "second commit message"},
+					CommitHash:     "1606d3dd4c4dc83ee8fed8d3cfd911da851bf740",
+					CommitMessage:  "second commit message",
+					CommitMessages: []string{"first commit message", "second commit message"},
 					PushCommitPaths: []bitriseapi.CommitPaths{
 						{
 							Added:    []string{"README.MD"},

@@ -152,9 +152,9 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:        "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					CommitMessage:     "re-structuring Hook Providers, with added tests",
-					AllCommitMessages: []string{"earlier commit", "re-structuring Hook Providers, with added tests"},
+					CommitHash:     "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					CommitMessage:  "re-structuring Hook Providers, with added tests",
+					CommitMessages: []string{"earlier commit", "re-structuring Hook Providers, with added tests"},
 					PushCommitPaths: []bitriseapi.CommitPaths{
 						{
 							Added:    []string{"added/file/1", "added/file/2", "new/path"},
@@ -187,10 +187,10 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:               "v0.0.2",
-					CommitHash:        "2e197ebd2330183ae11338151cf3a75db0c23c92",
-					CommitMessage:     "generalize Push Event (previously Code Push)",
-					AllCommitMessages: []string{"generalize Push Event (previously Code Push)"},
+					Tag:            "v0.0.2",
+					CommitHash:     "2e197ebd2330183ae11338151cf3a75db0c23c92",
+					CommitMessage:  "generalize Push Event (previously Code Push)",
+					CommitMessages: []string{"generalize Push Event (previously Code Push)"},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -215,10 +215,10 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:        "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					CommitMessage:     "re-structuring Hook Providers, with added tests",
-					AllCommitMessages: []string{"re-structuring Hook Providers, with added tests"},
-					Branch:            "master",
+					CommitHash:     "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					CommitMessage:  "re-structuring Hook Providers, with added tests",
+					CommitMessages: []string{"re-structuring Hook Providers, with added tests"},
+					Branch:         "master",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -243,10 +243,10 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:               "v0.0.2",
-					CommitHash:        "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					CommitMessage:     "re-structuring Hook Providers, with added tests",
-					AllCommitMessages: []string{"re-structuring Hook Providers, with added tests"},
+					Tag:            "v0.0.2",
+					CommitHash:     "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					CommitMessage:  "re-structuring Hook Providers, with added tests",
+					CommitMessages: []string{"re-structuring Hook Providers, with added tests"},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -419,10 +419,10 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:        "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					CommitMessage:     "re-structuring Hook Providers, with added tests",
-					Branch:            "master",
-					AllCommitMessages: []string{"another commit", "re-structuring Hook Providers, with added tests"},
+					CommitHash:     "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					CommitMessage:  "re-structuring Hook Providers, with added tests",
+					Branch:         "master",
+					CommitMessages: []string{"another commit", "re-structuring Hook Providers, with added tests"},
 					PushCommitPaths: []bitriseapi.CommitPaths{
 						{
 							Added:    []string{"//space_jam_stream/images/mainline/city.jpeg", "//space_jam_stream/images/mainline/renamed.jpeg"},
@@ -451,10 +451,10 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:               "v0.0.2",
-					CommitHash:        "2e197ebd2330183ae11338151cf3a75db0c23c92",
-					CommitMessage:     "generalize Push Event (previously Code Push)\n\nwe'll handle the Tag Push too, so related codes are changed to reflect this (removed code from CodePush - e.g. CodePushEventModel -> PushEventModel)",
-					AllCommitMessages: []string{"generalize Push Event (previously Code Push)\n\nwe'll handle the Tag Push too, so related codes are changed to reflect this (removed code from CodePush - e.g. CodePushEventModel -> PushEventModel)"},
+					Tag:            "v0.0.2",
+					CommitHash:     "2e197ebd2330183ae11338151cf3a75db0c23c92",
+					CommitMessage:  "generalize Push Event (previously Code Push)\n\nwe'll handle the Tag Push too, so related codes are changed to reflect this (removed code from CodePush - e.g. CodePushEventModel -> PushEventModel)",
+					CommitMessages: []string{"generalize Push Event (previously Code Push)\n\nwe'll handle the Tag Push too, so related codes are changed to reflect this (removed code from CodePush - e.g. CodePushEventModel -> PushEventModel)"},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)

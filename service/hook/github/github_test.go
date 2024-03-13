@@ -495,11 +495,11 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:        "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					CommitMessage:     "re-structuring Hook Providers, with added tests",
-					AllCommitMessages: []string{"re-structuring Hook Providers, with added tests"},
-					PushCommitPaths:   []bitriseapi.CommitPaths{{}},
-					Branch:            "master",
+					CommitHash:      "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					CommitMessage:   "re-structuring Hook Providers, with added tests",
+					CommitMessages:  []string{"re-structuring Hook Providers, with added tests"},
+					PushCommitPaths: []bitriseapi.CommitPaths{{}},
+					Branch:          "master",
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},
@@ -526,11 +526,11 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:               "v0.0.2",
-					CommitHash:        "2e197ebd2330183ae11338151cf3a75db0c23c92",
-					CommitMessage:     "generalize Push Event (previously Code Push)",
-					AllCommitMessages: []string{"generalize Push Event (previously Code Push)"},
-					PushCommitPaths:   []bitriseapi.CommitPaths{{}},
+					Tag:             "v0.0.2",
+					CommitHash:      "2e197ebd2330183ae11338151cf3a75db0c23c92",
+					CommitMessage:   "generalize Push Event (previously Code Push)",
+					CommitMessages:  []string{"generalize Push Event (previously Code Push)"},
+					PushCommitPaths: []bitriseapi.CommitPaths{{}},
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},
@@ -557,11 +557,11 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:        "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					CommitMessage:     "re-structuring Hook Providers, with added tests",
-					AllCommitMessages: []string{"re-structuring Hook Providers, with added tests"},
-					PushCommitPaths:   []bitriseapi.CommitPaths{{}},
-					Branch:            "master",
+					CommitHash:      "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					CommitMessage:   "re-structuring Hook Providers, with added tests",
+					CommitMessages:  []string{"re-structuring Hook Providers, with added tests"},
+					PushCommitPaths: []bitriseapi.CommitPaths{{}},
+					Branch:          "master",
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},
@@ -588,11 +588,11 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:               "v0.0.2",
-					CommitHash:        "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					CommitMessage:     "re-structuring Hook Providers, with added tests",
-					AllCommitMessages: []string{"re-structuring Hook Providers, with added tests"},
-					PushCommitPaths:   []bitriseapi.CommitPaths{{}},
+					Tag:             "v0.0.2",
+					CommitHash:      "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					CommitMessage:   "re-structuring Hook Providers, with added tests",
+					CommitMessages:  []string{"re-structuring Hook Providers, with added tests"},
+					PushCommitPaths: []bitriseapi.CommitPaths{{}},
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},
@@ -1330,10 +1330,10 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:        "0036f6352b470de6ede9428ab6e44791e5894aaf",
-					CommitMessage:     "commit3",
-					AllCommitMessages: []string{"commit1", "commit2", "commit3"},
-					Branch:            "brencs",
+					CommitHash:     "0036f6352b470de6ede9428ab6e44791e5894aaf",
+					CommitMessage:  "commit3",
+					CommitMessages: []string{"commit1", "commit2", "commit3"},
+					Branch:         "brencs",
 					PushCommitPaths: []bitriseapi.CommitPaths{
 						{
 							Added:    []string{"added/file/path1"},
@@ -1374,10 +1374,10 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:               "test-tag",
-					CommitHash:        "0036f6352b470de6ede9428ab6e44791e5894aaf",
-					CommitMessage:     "commit3",
-					AllCommitMessages: []string{"commit3"},
+					Tag:            "test-tag",
+					CommitHash:     "0036f6352b470de6ede9428ab6e44791e5894aaf",
+					CommitMessage:  "commit3",
+					CommitMessages: []string{"commit3"},
 					PushCommitPaths: []bitriseapi.CommitPaths{
 						{
 							Added:    []string{"added/file/path"},

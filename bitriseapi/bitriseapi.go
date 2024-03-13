@@ -52,7 +52,7 @@ type BuildParamsModel struct {
 	// git commit message of head commit
 	CommitMessage string `json:"commit_message,omitempty"`
 	// git commit messages of all commits
-	AllCommitMessages []string `json:"all_commit_messages,omitempty"`
+	CommitMessages []string `json:"commit_messages,omitempty"`
 	// source branch
 	Branch string `json:"branch,omitempty"`
 	// source branch repo owner

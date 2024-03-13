@@ -431,7 +431,7 @@ func Test_transformPushEvent(t *testing.T) {
 					BuildParams: bitriseapi.BuildParamsModel{
 						CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 						CommitMessage:     "auto-test",
-						AllCommitMessages: []string{"first commit", "auto-test"},
+						CommitMessages:    []string{"first commit", "auto-test"},
 						Branch:            "master",
 						BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 					},
@@ -552,7 +552,7 @@ func Test_transformPushEvent(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 					CommitMessage:     "auto-test",
-					AllCommitMessages: []string{"auto-test"},
+					CommitMessages:    []string{"auto-test"},
 					Branch:            "master",
 					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
@@ -562,7 +562,7 @@ func Test_transformPushEvent(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "178de4f94efbfa99abede5cf0f1868924222839e",
 					CommitMessage:     "auto-test 2",
-					AllCommitMessages: []string{"auto-test 2"},
+					CommitMessages:    []string{"auto-test 2"},
 					Branch:            "test",
 					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
@@ -1065,7 +1065,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 					CommitMessage:     "auto-test",
-					AllCommitMessages: []string{"commit on master", "auto-test"},
+					CommitMessages:    []string{"commit on master", "auto-test"},
 					Branch:            "master",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
@@ -1076,7 +1076,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitHash:        "19934139a2cf799bbd0f5061ab02e4760902e93f",
 					CommitMessage:     "auto-test 2",
 					Branch:            "test",
-					AllCommitMessages: []string{"commit on branch", "auto-test 2"},
+					CommitMessages:    []string{"commit on branch", "auto-test 2"},
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
 				TriggeredBy: "webhook-bitbucket-v2/test_user",
@@ -1242,7 +1242,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 					CommitMessage:     "auto-test",
-					AllCommitMessages: []string{"commit on master", "auto-test"},
+					CommitMessages:    []string{"commit on master", "auto-test"},
 					Branch:            "master",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
@@ -1252,7 +1252,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "19934139a2cf799bbd0f5061ab02e4760902e93f",
 					CommitMessage:     "auto-test 2",
-					AllCommitMessages: []string{"commit on branch", "auto-test 2"},
+					CommitMessages:    []string{"commit on branch", "auto-test 2"},
 					Branch:            "test",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},

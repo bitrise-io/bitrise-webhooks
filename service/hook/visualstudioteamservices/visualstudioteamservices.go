@@ -201,10 +201,10 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 				{
 					BuildParams: bitriseapi.BuildParamsModel{
-						Branch:            branch,
-						CommitHash:        headCommit.CommitID,
-						CommitMessage:     headCommit.Comment,
-						AllCommitMessages: commitMessages,
+						Branch:         branch,
+						CommitHash:     headCommit.CommitID,
+						CommitMessage:  headCommit.Comment,
+						CommitMessages: commitMessages,
 					},
 				},
 			},

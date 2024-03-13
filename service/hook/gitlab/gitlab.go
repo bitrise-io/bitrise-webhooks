@@ -304,7 +304,7 @@ func (hp HookProvider) transformCodePushEvent(codePushEvent CodePushEventModel) 
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        lastCommit.CommitHash,
 					CommitMessage:     lastCommit.CommitMessage,
-					AllCommitMessages: commitMessages,
+					CommitMessages:    commitMessages,
 					PushCommitPaths:   commitPaths,
 					Branch:            branch,
 					BaseRepositoryURL: codePushEvent.Repository.getRepositoryURL(),

@@ -649,10 +649,10 @@ func Test_transformPushEvent(t *testing.T) {
 			require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 				{
 					BuildParams: bitriseapi.BuildParamsModel{
-						CommitHash:        "TO-966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
-						CommitMessage:     "second commit",
-						AllCommitMessages: []string{"first commit", "second commit"},
-						Branch:            "master",
+						CommitHash:     "TO-966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+						CommitMessage:  "second commit",
+						CommitMessages: []string{"first commit", "second commit"},
+						Branch:         "master",
 					},
 					TriggeredBy: "webhook-bitbucket-server/user",
 				},
