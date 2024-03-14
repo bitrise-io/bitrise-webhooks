@@ -68,19 +68,26 @@ type BranchInfoModel struct {
 	Repo       RepoInfoModel `json:"repo"`
 }
 
+// LabelInfoModel ...
+type LabelInfoModel struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
 // PullRequestInfoModel ...
 type PullRequestInfoModel struct {
 	// source branch for the pull request
 	HeadBranchInfo BranchInfoModel `json:"head"`
 	// destination branch for the pull request
-	BaseBranchInfo BranchInfoModel `json:"base"`
-	Title          string          `json:"title"`
-	Body           string          `json:"body"`
-	Merged         bool            `json:"merged"`
-	Mergeable      *bool           `json:"mergeable"`
-	Draft          bool            `json:"draft"`
-	DiffURL        string          `json:"diff_url"`
-	User           UserModel       `json:"user"`
+	BaseBranchInfo BranchInfoModel  `json:"base"`
+	Title          string           `json:"title"`
+	Body           string           `json:"body"`
+	Merged         bool             `json:"merged"`
+	Mergeable      *bool            `json:"mergeable"`
+	Draft          bool             `json:"draft"`
+	DiffURL        string           `json:"diff_url"`
+	User           UserModel        `json:"user"`
+	Labels         []LabelInfoModel `json:"labels"`
 }
 
 // PullRequestChangeFromItemModel ...
@@ -101,6 +108,7 @@ type PullRequestEventModel struct {
 	PullRequestID   int                         `json:"number"`
 	PullRequestInfo PullRequestInfoModel        `json:"pull_request"`
 	Changes         PullRequestChangesInfoModel `json:"changes"`
+	Label           *LabelInfoModel             `json:"label"`
 	Sender          UserModel                   `json:"sender"`
 }
 
@@ -205,7 +213,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 }
 
 func isAcceptPullRequestAction(prAction string) bool {
-	return slices.Contains([]string{"opened", "reopened", "synchronize", "edited", "ready_for_review"}, prAction)
+	return slices.Contains([]string{"opened", "reopened", "synchronize", "edited", "ready_for_review", "labeled"}, prAction)
 }
 
 func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.TransformResultModel {
@@ -235,6 +243,12 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	if pullRequest.PullRequestInfo.Merged {
 		return hookCommon.TransformResultModel{
 			Error:      errors.New("pull Request already merged"),
+			ShouldSkip: true,
+		}
+	}
+	if pullRequest.Action == "labeled" && pullRequest.PullRequestInfo.Mergeable == nil {
+		return hookCommon.TransformResultModel{
+			Error:      errors.New("pull Request label added to PR that is not open yet"),
 			ShouldSkip: true,
 		}
 	}
@@ -268,6 +282,16 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		})
 	}
 
+	var labels []string
+	for _, label := range pullRequest.PullRequestInfo.Labels {
+		labels = append(labels, label.Name)
+	}
+
+	var newLabel string
+	if pullRequest.Label != nil {
+		newLabel = pullRequest.Label.Name
+	}
+
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
@@ -289,6 +313,8 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					DiffURL:                          pullRequest.PullRequestInfo.DiffURL,
 					Environments:                     buildEnvs,
 					PullRequestReadyState:            pullRequestReadyState(pullRequest),
+					PullRequestLabels:                labels,
+					NewPullRequestLabel:              newLabel,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Sender.Login),
 			},
