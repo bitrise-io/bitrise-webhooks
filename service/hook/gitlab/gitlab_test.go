@@ -941,7 +941,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 					PullRequestHeadBranch:    "merge-requests/12/head",
 					PullRequestReadyState:    bitriseapi.PullRequestReadyStateReadyForReview,
 					PullRequestLabels:        []string{"existing1", "new1", "new2"},
-					NewPullRequestLabels:     []string{"new1", "new2"},
+					PullRequestLabelsAdded:   []string{"new1", "new2"},
 				},
 				TriggeredBy: "webhook-gitlab/test_user",
 			},
