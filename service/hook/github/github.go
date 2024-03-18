@@ -312,7 +312,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	}
 
 	if pullRequest.Label != nil {
-		result.BuildParams.NewPullRequestLabels = []string{pullRequest.Label.Name}
+		result.BuildParams.PullRequestLabelsAdded = []string{pullRequest.Label.Name}
 	}
 
 	return hookCommon.TransformResultModel{

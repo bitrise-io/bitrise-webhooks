@@ -538,7 +538,7 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 					PullRequestMergeBranch:   mergeRef,
 					PullRequestHeadBranch:    fmt.Sprintf("merge-requests/%d/head", mergeRequest.ObjectAttributes.ID),
 					PullRequestReadyState:    mergeRequestReadyState(mergeRequest),
-					NewPullRequestLabels:     mergeRequest.Changes.getNewLabels(),
+					PullRequestLabelsAdded:   mergeRequest.Changes.getNewLabels(),
 					PullRequestLabels:        labels,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, mergeRequest.User.Username),
