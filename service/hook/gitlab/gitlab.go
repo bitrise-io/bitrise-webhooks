@@ -115,6 +115,7 @@ type LastCommitInfoModel struct {
 	SHA string `json:"id"`
 }
 
+// LabelInfoModel ...
 type LabelInfoModel struct {
 	ID    int64  `json:"id"`
 	Title string `json:"title"`
@@ -158,6 +159,7 @@ type Changes struct {
 	Labels LabelChanges `json:"labels"`
 }
 
+// LabelChanges ...
 type LabelChanges struct {
 	Previous []LabelInfoModel `json:"previous"`
 	Current  []LabelInfoModel `json:"current"`
@@ -252,7 +254,7 @@ func (changes Changes) getNewLabels() []string {
 	for _, label := range labelMap {
 		newLabels = append(newLabels, label)
 	}
-
+	slices.Sort(newLabels)
 	return newLabels
 }
 
