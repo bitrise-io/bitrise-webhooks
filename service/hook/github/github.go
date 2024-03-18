@@ -287,37 +287,37 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		labels = append(labels, label.Name)
 	}
 
-	var newLabel string
+	result := bitriseapi.TriggerAPIParamsModel{
+		BuildParams: bitriseapi.BuildParamsModel{
+			CommitMessage:                    commitMsg,
+			CommitHash:                       pullRequest.PullRequestInfo.HeadBranchInfo.CommitHash,
+			Branch:                           pullRequest.PullRequestInfo.HeadBranchInfo.Ref,
+			BranchRepoOwner:                  pullRequest.PullRequestInfo.HeadBranchInfo.Repo.Owner.Login,
+			BranchDest:                       pullRequest.PullRequestInfo.BaseBranchInfo.Ref,
+			BranchDestRepoOwner:              pullRequest.PullRequestInfo.BaseBranchInfo.Repo.Owner.Login,
+			PullRequestID:                    &pullRequest.PullRequestID,
+			BaseRepositoryURL:                pullRequest.PullRequestInfo.BaseBranchInfo.getRepositoryURL(),
+			HeadRepositoryURL:                pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
+			PullRequestRepositoryURL:         pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
+			PullRequestAuthor:                pullRequest.PullRequestInfo.User.Login,
+			PullRequestHeadBranch:            headRefBuildParam,
+			PullRequestMergeBranch:           mergeRefBuildParam,
+			PullRequestUnverifiedMergeBranch: unverifiedMergeRefBuildParam,
+			DiffURL:                          pullRequest.PullRequestInfo.DiffURL,
+			Environments:                     buildEnvs,
+			PullRequestReadyState:            pullRequestReadyState(pullRequest),
+			PullRequestLabels:                labels,
+		},
+		TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Sender.Login),
+	}
+
 	if pullRequest.Label != nil {
-		newLabel = pullRequest.Label.Name
+		result.BuildParams.NewPullRequestLabels = []string{pullRequest.Label.Name}
 	}
 
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					CommitMessage:                    commitMsg,
-					CommitHash:                       pullRequest.PullRequestInfo.HeadBranchInfo.CommitHash,
-					Branch:                           pullRequest.PullRequestInfo.HeadBranchInfo.Ref,
-					BranchRepoOwner:                  pullRequest.PullRequestInfo.HeadBranchInfo.Repo.Owner.Login,
-					BranchDest:                       pullRequest.PullRequestInfo.BaseBranchInfo.Ref,
-					BranchDestRepoOwner:              pullRequest.PullRequestInfo.BaseBranchInfo.Repo.Owner.Login,
-					PullRequestID:                    &pullRequest.PullRequestID,
-					BaseRepositoryURL:                pullRequest.PullRequestInfo.BaseBranchInfo.getRepositoryURL(),
-					HeadRepositoryURL:                pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
-					PullRequestRepositoryURL:         pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
-					PullRequestAuthor:                pullRequest.PullRequestInfo.User.Login,
-					PullRequestHeadBranch:            headRefBuildParam,
-					PullRequestMergeBranch:           mergeRefBuildParam,
-					PullRequestUnverifiedMergeBranch: unverifiedMergeRefBuildParam,
-					DiffURL:                          pullRequest.PullRequestInfo.DiffURL,
-					Environments:                     buildEnvs,
-					PullRequestReadyState:            pullRequestReadyState(pullRequest),
-					PullRequestLabels:                labels,
-					NewPullRequestLabel:              newLabel,
-				},
-				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Sender.Login),
-			},
+			result,
 		},
 		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(pullRequest.PullRequestInfo.Title) &&
 			hookCommon.IsSkipBuildByCommitMessage(pullRequest.PullRequestInfo.Body),
