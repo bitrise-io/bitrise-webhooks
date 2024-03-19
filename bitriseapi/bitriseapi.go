@@ -45,8 +45,10 @@ const (
 type BuildParamsModel struct {
 	// git commit hash
 	CommitHash string `json:"commit_hash,omitempty"`
-	// git commit message
+	// git commit message of head commit
 	CommitMessage string `json:"commit_message,omitempty"`
+	// git commit messages of all commits
+	CommitMessages []string `json:"commit_messages,omitempty"`
 	// source branch
 	Branch string `json:"branch,omitempty"`
 	// source branch repo owner
@@ -83,7 +85,7 @@ type BuildParamsModel struct {
 	Environments []EnvironmentItem `json:"environments,omitempty"`
 	// URL of the diff
 	DiffURL string `json:"diff_url"`
-	// paths of changes
+	// paths of changes of all commits
 	PushCommitPaths []CommitPaths `json:"commit_paths"`
 	// pull request ready state
 	PullRequestReadyState PullRequestReadyState `json:"pull_request_ready_state,omitempty"`

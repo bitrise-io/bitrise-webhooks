@@ -24,6 +24,7 @@ const (
 
 // CommitModel ...
 type CommitModel struct {
+	bitriseapi.CommitPaths
 	Distinct      bool   `json:"distinct"`
 	CommitHash    string `json:"id"`
 	CommitMessage string `json:"message"`
@@ -31,12 +32,12 @@ type CommitModel struct {
 
 // PushEventModel ...
 type PushEventModel struct {
-	Ref         string                   `json:"ref"`
-	Deleted     bool                     `json:"deleted"`
-	HeadCommit  CommitModel              `json:"head_commit"`
-	CommitPaths []bitriseapi.CommitPaths `json:"commits"`
-	Repo        RepoInfoModel            `json:"repository"`
-	Pusher      PusherModel              `json:"pusher"`
+	Ref        string        `json:"ref"`
+	Deleted    bool          `json:"deleted"`
+	HeadCommit CommitModel   `json:"head_commit"`
+	Commits    []CommitModel `json:"commits"`
+	Repo       RepoInfoModel `json:"repository"`
+	Pusher     PusherModel   `json:"pusher"`
 }
 
 // UserModel ...
@@ -134,17 +135,35 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		}
 	}
 
+	if !strings.HasPrefix(pushEvent.Ref, "refs/heads/") && !strings.HasPrefix(pushEvent.Ref, "refs/tags/") {
+		return hookCommon.TransformResultModel{
+			Error:      fmt.Errorf("ref (%s) is not a head nor a tag ref", pushEvent.Ref),
+			ShouldSkip: true,
+		}
+	}
+
 	headCommit := pushEvent.HeadCommit
+	if len(headCommit.CommitHash) == 0 {
+		return hookCommon.TransformResultModel{
+			Error: fmt.Errorf("missing commit hash"),
+		}
+	}
+
+	var commits = pushEvent.Commits
+	if len(commits) == 0 {
+		commits = []CommitModel{pushEvent.HeadCommit}
+	}
+
+	var commitPaths []bitriseapi.CommitPaths
+	var commitMessages []string
+	for _, commit := range commits {
+		commitPaths = append(commitPaths, commit.CommitPaths)
+		commitMessages = append(commitMessages, commit.CommitMessage)
+	}
 
 	if strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
 		// code push
 		branch := strings.TrimPrefix(pushEvent.Ref, "refs/heads/")
-
-		if len(headCommit.CommitHash) == 0 {
-			return hookCommon.TransformResultModel{
-				Error: fmt.Errorf("missing commit hash"),
-			}
-		}
 
 		return hookCommon.TransformResultModel{
 			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
@@ -153,7 +172,8 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 						Branch:            branch,
 						CommitHash:        headCommit.CommitHash,
 						CommitMessage:     headCommit.CommitMessage,
-						PushCommitPaths:   pushEvent.CommitPaths,
+						CommitMessages:    commitMessages,
+						PushCommitPaths:   commitPaths,
 						BaseRepositoryURL: pushEvent.Repo.getRepositoryURL(),
 					},
 					TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Pusher.Name),
@@ -164,12 +184,6 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		// tag push
 		tag := strings.TrimPrefix(pushEvent.Ref, "refs/tags/")
 
-		if len(headCommit.CommitHash) == 0 {
-			return hookCommon.TransformResultModel{
-				Error: fmt.Errorf("missing commit hash"),
-			}
-		}
-
 		return hookCommon.TransformResultModel{
 			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 				{
@@ -177,7 +191,8 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 						Tag:               tag,
 						CommitHash:        headCommit.CommitHash,
 						CommitMessage:     headCommit.CommitMessage,
-						PushCommitPaths:   pushEvent.CommitPaths,
+						CommitMessages:    commitMessages,
+						PushCommitPaths:   commitPaths,
 						BaseRepositoryURL: pushEvent.Repo.getRepositoryURL(),
 					},
 					TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Pusher.Name),
@@ -186,10 +201,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		}
 	}
 
-	return hookCommon.TransformResultModel{
-		Error:      fmt.Errorf("ref (%s) is not a head nor a tag ref", pushEvent.Ref),
-		ShouldSkip: true,
-	}
+	return hookCommon.TransformResultModel{}
 }
 
 func isAcceptPullRequestAction(prAction string) bool {
