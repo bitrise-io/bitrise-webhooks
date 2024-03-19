@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
@@ -27,11 +28,32 @@ type CommitModel struct {
 	CommitMessage string `json:"message"`
 }
 
+// FilesChangedModel ...
+type FilesChangedModel struct {
+	Added    []string           `json:"added"`
+	Modified []string           `json:"modified"`
+	Deleted  []string           `json:"deleted"`
+	Renamed  []RenamedFileModel `json:"renamed"`
+}
+
+// RenamedFileModel ...
+type RenamedFileModel struct {
+	From VersionedPathModel `json:"from"`
+	To   VersionedPathModel `json:"to"`
+}
+
+// VersionedPathModel ...
+type VersionedPathModel struct {
+	Path string `json:"path"`
+	Rev  string `json:"rev"`
+}
+
 // PushEventModel ...
 type PushEventModel struct {
-	Ref     string        `json:"ref"`
-	Deleted bool          `json:"deleted"`
-	Commits []CommitModel `json:"commits"`
+	Ref     string            `json:"ref"`
+	Deleted bool              `json:"deleted"`
+	Commits []CommitModel     `json:"commits"`
+	Files   FilesChangedModel `json:"files"`
 }
 
 // RepoInfoModel ...
@@ -60,7 +82,24 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		}
 	}
 
+	// Commits are in descending order, by commit date-time (first one is the latest)
 	headCommit := pushEvent.Commits[0]
+
+	var commitMessages []string
+	for _, commit := range pushEvent.Commits {
+		commitMessages = append(commitMessages, commit.CommitMessage)
+	}
+	slices.Reverse(commitMessages)
+
+	commitPaths := bitriseapi.CommitPaths{
+		Added:    pushEvent.Files.Added,
+		Removed:  pushEvent.Files.Deleted,
+		Modified: pushEvent.Files.Modified,
+	}
+	for _, file := range pushEvent.Files.Renamed {
+		commitPaths.Added = append(commitPaths.Added, file.To.Path)
+		commitPaths.Removed = append(commitPaths.Removed, file.From.Path)
+	}
 
 	if strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
 		// code push
@@ -72,15 +111,22 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			}
 		}
 
+		result := bitriseapi.TriggerAPIParamsModel{
+			BuildParams: bitriseapi.BuildParamsModel{
+				Branch:         branch,
+				CommitHash:     headCommit.CommitHash,
+				CommitMessage:  headCommit.CommitMessage,
+				CommitMessages: commitMessages,
+			},
+		}
+
+		if !isCommitPathsEmpty(&commitPaths) {
+			result.BuildParams.PushCommitPaths = []bitriseapi.CommitPaths{commitPaths}
+		}
+
 		return hookCommon.TransformResultModel{
 			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
-				{
-					BuildParams: bitriseapi.BuildParamsModel{
-						Branch:        branch,
-						CommitHash:    headCommit.CommitHash,
-						CommitMessage: headCommit.CommitMessage,
-					},
-				},
+				result,
 			},
 		}
 	} else if strings.HasPrefix(pushEvent.Ref, "refs/tags/") {
@@ -93,15 +139,22 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 			}
 		}
 
+		result := bitriseapi.TriggerAPIParamsModel{
+			BuildParams: bitriseapi.BuildParamsModel{
+				Tag:            tag,
+				CommitHash:     headCommit.CommitHash,
+				CommitMessage:  headCommit.CommitMessage,
+				CommitMessages: commitMessages,
+			},
+		}
+
+		if !isCommitPathsEmpty(&commitPaths) {
+			result.BuildParams.PushCommitPaths = []bitriseapi.CommitPaths{commitPaths}
+		}
+
 		return hookCommon.TransformResultModel{
 			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
-				{
-					BuildParams: bitriseapi.BuildParamsModel{
-						Tag:           tag,
-						CommitHash:    headCommit.CommitHash,
-						CommitMessage: headCommit.CommitMessage,
-					},
-				},
+				result,
 			},
 		}
 	}
@@ -185,4 +238,8 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 // returns the repository clone URL
 func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
 	return branchInfoModel.Repo.SSHURL
+}
+
+func isCommitPathsEmpty(cp *bitriseapi.CommitPaths) bool {
+	return len(cp.Added) == 0 && len(cp.Modified) == 0 && len(cp.Removed) == 0
 }

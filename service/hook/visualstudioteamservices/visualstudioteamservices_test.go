@@ -268,16 +268,17 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "33b55f7cb7e7e245323987634f960cf4a6e6bc74",
-					CommitMessage: "Fixed bug",
-					Branch:        "master",
+					CommitHash:     "33b55f7cb7e7e245323987634f960cf4a6e6bc74",
+					CommitMessage:  "Fixed bug",
+					CommitMessages: []string{"Fixed bug"},
+					Branch:         "master",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
-	t.Log("Push with multiple commits - only the first one (latest commit) should be picked")
+	t.Log("Push with multiple commits")
 	{
 		request := http.Request{
 			Header: http.Header{
@@ -291,9 +292,10 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "0c23515bcd14e30961356a0a129c732asd9d0wds",
-					CommitMessage: "More changes",
-					Branch:        "master",
+					CommitHash:     "0c23515bcd14e30961356a0a129c732asd9d0wds",
+					CommitMessage:  "More changes",
+					CommitMessages: []string{"Fixed bug", "More changes"},
+					Branch:         "master",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)

@@ -17,7 +17,11 @@ import (
 )
 
 const (
-	scmGit = "git"
+	scmGit        = "git"
+	actionAdd     = "ADD"
+	actionUpdate  = "UPDATE"
+	refTypeBranch = "BRANCH"
+	refTypeTag    = "TAG"
 
 	// ProviderID ...
 	ProviderID = "bitbucket-server"
@@ -33,6 +37,7 @@ type PushEventModel struct {
 	Actor          UserInfoModel       `json:"actor"`
 	RepositoryInfo RepositoryInfoModel `json:"repository"`
 	Changes        []ChangeItemModel   `json:"changes"`
+	Commits        []CommitModel       `json:"commits"`
 }
 
 // ChangeItemModel ...
@@ -65,6 +70,12 @@ type RepositoryInfoModel struct {
 	Public  bool             `json:"public"`
 	Scm     string           `json:"scmId"`
 	Project ProjectInfoModel `json:"owner"`
+}
+
+// CommitModel ...
+type CommitModel struct {
+	ID      string `json:"id"`
+	Message string `json:"message"`
 }
 
 // ProjectInfoModel ...
@@ -148,29 +159,59 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 	triggerAPIParams := []bitriseapi.TriggerAPIParamsModel{}
 	var errs []string
+
+	var validChangeCount = 0
+	for _, change := range pushEvent.Changes {
+		if change.Ref.Type == refTypeBranch && (change.Type == actionAdd || change.Type == actionUpdate) {
+			validChangeCount++
+		} else if change.Ref.Type == refTypeTag && change.Type == actionAdd {
+			validChangeCount++
+		}
+	}
+	multipleChanges := validChangeCount > 1
+
+	var commitMessages = make(map[string]string)
+	var allCommitMessages []string
+	if !multipleChanges {
+		for _, commit := range pushEvent.Commits {
+			commitMessages[commit.ID] = commit.Message
+			allCommitMessages = append(allCommitMessages, commit.Message)
+		}
+	}
+
 	for _, aChange := range pushEvent.Changes {
-		if pushEvent.RepositoryInfo.Scm == scmGit && aChange.Ref.Type == "BRANCH" {
-			if aChange.Type != "ADD" && aChange.Type != "UPDATE" {
+		if pushEvent.RepositoryInfo.Scm == scmGit && aChange.Ref.Type == refTypeBranch {
+			if aChange.Type != actionAdd && aChange.Type != actionUpdate {
 				errs = append(errs, fmt.Sprintf("Not a type=UPDATE nor type=ADD change. Change.Type was: %s", aChange.Type))
 				continue
 			}
+
+			headCommmitMessage, _ := commitMessages[aChange.ToHash]
+
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch:     aChange.Ref.DisplayID,
-					CommitHash: aChange.ToHash,
+					Branch:         aChange.Ref.DisplayID,
+					CommitHash:     aChange.ToHash,
+					CommitMessage:  headCommmitMessage,
+					CommitMessages: allCommitMessages,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Actor.Name),
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
-		} else if aChange.Ref.Type == "TAG" { //tag
-			if aChange.Type != "ADD" {
+		} else if aChange.Ref.Type == refTypeTag { //tag
+			if aChange.Type != actionAdd {
 				errs = append(errs, fmt.Sprintf("Not a type=ADD change. Change.Type was: %s", aChange.Type))
 				continue
 			}
+
+			headCommmitMessage, _ := commitMessages[aChange.ToHash]
+
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:        aChange.Ref.DisplayID,
-					CommitHash: aChange.ToHash,
+					Tag:            aChange.Ref.DisplayID,
+					CommitHash:     aChange.ToHash,
+					CommitMessage:  headCommmitMessage,
+					CommitMessages: allCommitMessages,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Actor.Name),
 			}
