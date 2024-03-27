@@ -5,6 +5,5 @@
 
 #include "textflag.h"
 
-TEXT _noop_free(SB), NOSPLIT, $0-0
+TEXT _noop_free_v2(SB), NOSPLIT, $0-0
 	RET
-
