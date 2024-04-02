@@ -68,26 +68,19 @@ type BranchInfoModel struct {
 	Repo       RepoInfoModel `json:"repo"`
 }
 
-// LabelInfoModel ...
-type LabelInfoModel struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-}
-
 // PullRequestInfoModel ...
 type PullRequestInfoModel struct {
 	// source branch for the pull request
 	HeadBranchInfo BranchInfoModel `json:"head"`
 	// destination branch for the pull request
-	BaseBranchInfo BranchInfoModel  `json:"base"`
-	Title          string           `json:"title"`
-	Body           string           `json:"body"`
-	Merged         bool             `json:"merged"`
-	Mergeable      *bool            `json:"mergeable"`
-	Draft          bool             `json:"draft"`
-	DiffURL        string           `json:"diff_url"`
-	User           UserModel        `json:"user"`
-	Labels         []LabelInfoModel `json:"labels"`
+	BaseBranchInfo BranchInfoModel `json:"base"`
+	Title          string          `json:"title"`
+	Body           string          `json:"body"`
+	Merged         bool            `json:"merged"`
+	Mergeable      *bool           `json:"mergeable"`
+	Draft          bool            `json:"draft"`
+	DiffURL        string          `json:"diff_url"`
+	User           UserModel       `json:"user"`
 }
 
 // PullRequestChangeFromItemModel ...
@@ -108,7 +101,6 @@ type PullRequestEventModel struct {
 	PullRequestID   int                         `json:"number"`
 	PullRequestInfo PullRequestInfoModel        `json:"pull_request"`
 	Changes         PullRequestChangesInfoModel `json:"changes"`
-	Label           *LabelInfoModel             `json:"label"`
 	Sender          UserModel                   `json:"sender"`
 }
 
@@ -213,7 +205,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 }
 
 func isAcceptPullRequestAction(prAction string) bool {
-	return slices.Contains([]string{"opened", "reopened", "synchronize", "edited", "ready_for_review", "labeled"}, prAction)
+	return slices.Contains([]string{"opened", "reopened", "synchronize", "edited", "ready_for_review"}, prAction)
 }
 
 func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.TransformResultModel {
@@ -243,12 +235,6 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	if pullRequest.PullRequestInfo.Merged {
 		return hookCommon.TransformResultModel{
 			Error:      errors.New("pull Request already merged"),
-			ShouldSkip: true,
-		}
-	}
-	if pullRequest.Action == "labeled" && pullRequest.PullRequestInfo.Mergeable == nil {
-		return hookCommon.TransformResultModel{
-			Error:      errors.New("pull Request label added to PR that is not open yet"),
 			ShouldSkip: true,
 		}
 	}
@@ -282,42 +268,30 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		})
 	}
 
-	var labels []string
-	for _, label := range pullRequest.PullRequestInfo.Labels {
-		labels = append(labels, label.Name)
-	}
-
-	result := bitriseapi.TriggerAPIParamsModel{
-		BuildParams: bitriseapi.BuildParamsModel{
-			CommitMessage:                    commitMsg,
-			CommitHash:                       pullRequest.PullRequestInfo.HeadBranchInfo.CommitHash,
-			Branch:                           pullRequest.PullRequestInfo.HeadBranchInfo.Ref,
-			BranchRepoOwner:                  pullRequest.PullRequestInfo.HeadBranchInfo.Repo.Owner.Login,
-			BranchDest:                       pullRequest.PullRequestInfo.BaseBranchInfo.Ref,
-			BranchDestRepoOwner:              pullRequest.PullRequestInfo.BaseBranchInfo.Repo.Owner.Login,
-			PullRequestID:                    &pullRequest.PullRequestID,
-			BaseRepositoryURL:                pullRequest.PullRequestInfo.BaseBranchInfo.getRepositoryURL(),
-			HeadRepositoryURL:                pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
-			PullRequestRepositoryURL:         pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
-			PullRequestAuthor:                pullRequest.PullRequestInfo.User.Login,
-			PullRequestHeadBranch:            headRefBuildParam,
-			PullRequestMergeBranch:           mergeRefBuildParam,
-			PullRequestUnverifiedMergeBranch: unverifiedMergeRefBuildParam,
-			DiffURL:                          pullRequest.PullRequestInfo.DiffURL,
-			Environments:                     buildEnvs,
-			PullRequestReadyState:            pullRequestReadyState(pullRequest),
-			PullRequestLabels:                labels,
-		},
-		TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Sender.Login),
-	}
-
-	if pullRequest.Label != nil {
-		result.BuildParams.PullRequestLabelsAdded = []string{pullRequest.Label.Name}
-	}
-
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
-			result,
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitMessage:                    commitMsg,
+					CommitHash:                       pullRequest.PullRequestInfo.HeadBranchInfo.CommitHash,
+					Branch:                           pullRequest.PullRequestInfo.HeadBranchInfo.Ref,
+					BranchRepoOwner:                  pullRequest.PullRequestInfo.HeadBranchInfo.Repo.Owner.Login,
+					BranchDest:                       pullRequest.PullRequestInfo.BaseBranchInfo.Ref,
+					BranchDestRepoOwner:              pullRequest.PullRequestInfo.BaseBranchInfo.Repo.Owner.Login,
+					PullRequestID:                    &pullRequest.PullRequestID,
+					BaseRepositoryURL:                pullRequest.PullRequestInfo.BaseBranchInfo.getRepositoryURL(),
+					HeadRepositoryURL:                pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
+					PullRequestRepositoryURL:         pullRequest.PullRequestInfo.HeadBranchInfo.getRepositoryURL(),
+					PullRequestAuthor:                pullRequest.PullRequestInfo.User.Login,
+					PullRequestHeadBranch:            headRefBuildParam,
+					PullRequestMergeBranch:           mergeRefBuildParam,
+					PullRequestUnverifiedMergeBranch: unverifiedMergeRefBuildParam,
+					DiffURL:                          pullRequest.PullRequestInfo.DiffURL,
+					Environments:                     buildEnvs,
+					PullRequestReadyState:            pullRequestReadyState(pullRequest),
+				},
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Sender.Login),
+			},
 		},
 		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(pullRequest.PullRequestInfo.Title) &&
 			hookCommon.IsSkipBuildByCommitMessage(pullRequest.PullRequestInfo.Body),
