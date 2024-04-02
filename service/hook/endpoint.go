@@ -110,12 +110,8 @@ func respondWithResults(w http.ResponseWriter, provider *hookCommon.Provider, re
 
 func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitriseapi.TriggerAPIParamsModel) (bitriseapi.TriggerAPIResponseModel, bool, error) {
 	logger := logging.WithContext(nil)
-	defer func() {
-		err := logger.Sync()
-		if err != nil {
-			fmt.Println("Failed to Sync logger") // TODO: fix
-		}
-	}()
+	defer logger.Sync()
+
 	logger.Info(" ===> trigger build", zap.String("triggerURL", triggerURL.String()))
 	isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
 	if isOnlyLog {
@@ -151,12 +147,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	reqContext := r.Context()
 
 	logger := logging.WithContext(reqContext)
-	defer func() {
-		err := logger.Sync()
-		if err != nil {
-			fmt.Println("Failed to Sync logger") // TODO: fix
-		}
-	}()
+	defer logger.Sync()
 
 	if serviceID == "" {
 		respondWithErrorString(w, nil, "No service-id defined")

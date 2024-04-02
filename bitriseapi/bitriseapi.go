@@ -140,12 +140,8 @@ func BuildTriggerURL(apiRootURL string, appSlug string) (*url.URL, error) {
 // If the response is an HTTP success response then the whole response body will be returned, and error will be nil.
 func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) (TriggerAPIResponseModel, bool, error) {
 	logger := logging.WithContext(nil)
-	defer func() {
-		err := logger.Sync()
-		if err != nil {
-			fmt.Println("Failed to Sync logger") // TODO: fix
-		}
-	}()
+	defer logger.Sync()
+
 	if err := params.Validate(); err != nil {
 		return TriggerAPIResponseModel{}, false, errors.Wrapf(err, "TriggerBuild (url:%s): build trigger parameter invalid", url.String())
 	}
