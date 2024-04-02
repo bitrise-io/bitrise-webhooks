@@ -23,7 +23,7 @@ func RespondWith(w http.ResponseWriter, httpStatusCode int, respModel interface{
 	defer func() {
 		err := logger.Sync()
 		if err != nil {
-			fmt.Println("Failed to Sync logger")
+			fmt.Println("Failed to Sync logger") // TODO: fix
 		}
 	}()
 	w.Header().Set("Content-Type", "application/json")
@@ -68,7 +68,7 @@ func RespondWithErrorJSON(w http.ResponseWriter, httpErrCode int, respModel inte
 	defer func() {
 		err := logger.Sync()
 		if err != nil {
-			fmt.Println("Failed to Sync logger")
+			fmt.Println("Failed to Sync logger") // TODO: fix
 		}
 	}()
 	w.Header().Set("Content-Type", "application/json")

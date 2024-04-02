@@ -143,7 +143,7 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	defer func() {
 		err := logger.Sync()
 		if err != nil {
-			fmt.Println("Failed to Sync logger")
+			fmt.Println("Failed to Sync logger") // TODO: fix
 		}
 	}()
 	if err := params.Validate(); err != nil {
@@ -156,8 +156,8 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	}
 
 	if isOnlyLog {
-		log.Printf("\\x1b[33;1m===> Triggering Build: (url:%s)\\x1b[0m\n", url)
-		log.Printf("\\x1b[33;1m====> JSON body: %s\\x1b[0m\n", jsonStr)
+		log.Printf("\\x1b[33;1m===> Triggering Build: (url:%s)\\x1b[0m\n", url) // TODO: fix
+		log.Printf("\\x1b[33;1m====> JSON body: %s\\x1b[0m\n", jsonStr)         // TODO: fix
 	}
 
 	if isOnlyLog {

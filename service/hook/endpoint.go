@@ -113,7 +113,7 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 	defer func() {
 		err := logger.Sync()
 		if err != nil {
-			fmt.Println("Failed to Sync logger")
+			fmt.Println("Failed to Sync logger") // TODO: fix
 		}
 	}()
 	logger.Info(" ===> trigger build", zap.String("triggerURL", triggerURL.String()))
@@ -134,7 +134,7 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 	}
 
 	logger.Info(" ===> trigger build - DONE", zap.Bool("success", isSuccess), zap.String("triggerURL", triggerURL.String()))
-	log.Printf("      (debug) response: (%#v)", responseModel)
+	log.Printf("      (debug) response: (%#v)", responseModel) // TODO: fix
 	return responseModel, isSuccess, nil
 }
 
@@ -154,7 +154,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		err := logger.Sync()
 		if err != nil {
-			fmt.Println("Failed to Sync logger")
+			fmt.Println("Failed to Sync logger") // TODO: fix
 		}
 	}()
 
@@ -229,7 +229,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if hookTransformResult.Error != nil {
 		errMsg := fmt.Sprintf("Failed to transform the webhook: %s", hookTransformResult.Error)
-		log.Printf(" (debug) %s", errMsg)
+		log.Printf(" (debug) %s", errMsg) // TODO: fix
 		respondWithErrorString(w, &hookProvider, errMsg)
 		return
 	}

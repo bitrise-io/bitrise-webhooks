@@ -11,7 +11,7 @@ func WrapHandlerFunc(h func(http.ResponseWriter, *http.Request)) func(http.Respo
 	requestWrap := func(w http.ResponseWriter, req *http.Request) {
 		startTime := time.Now()
 		h(w, req)
-		log.Printf(" => %s: %s - %s (%s)", req.Method, req.RequestURI, time.Since(startTime), req.Header.Get("Content-Type"))
+		log.Printf(" => %s: %s - %s (%s)", req.Method, req.RequestURI, time.Since(startTime), req.Header.Get("Content-Type")) // TODO: fix
 	}
 	return requestWrap
 	// if newRelicAgent == nil {
@@ -25,7 +25,7 @@ func Trace(name string, fn func()) {
 	wrapFn := func() {
 		startTime := time.Now()
 		fn()
-		log.Printf(" ==> TRACE (%s) - %s", name, time.Since(startTime))
+		log.Printf(" ==> TRACE (%s) - %s", name, time.Since(startTime)) // TODO: fix
 	}
 	wrapFn()
 	return
