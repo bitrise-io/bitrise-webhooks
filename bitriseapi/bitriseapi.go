@@ -93,6 +93,8 @@ type BuildParamsModel struct {
 	PullRequestLabelsAdded []string `json:"pull_request_labels_added,omitempty"`
 	// pull request labels
 	PullRequestLabels []string `json:"pull_request_labels,omitempty"`
+	// newly added pull request comment
+	PullRequestComment string `json:"pull_request_comment,omitempty"`
 }
 
 // TriggerAPIParamsModel ...

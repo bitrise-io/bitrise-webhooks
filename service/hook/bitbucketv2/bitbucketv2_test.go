@@ -282,6 +282,234 @@ const (
 	}
 }
 }`
+
+	samplePRCommentCreatedData = `{
+  "repository": {
+  },
+  "actor": {
+  },
+  "pullrequest": {
+    "comment_count": 1,
+    "task_count": 0,
+    "type": "pullrequest",
+    "id": 1,
+    "title": "PR",
+    "description": "deszkripson",
+    "rendered": {
+    },
+    "state": "OPEN",
+    "merge_commit": null,
+    "close_source_branch": false,
+    "closed_by": null,
+    "author": {
+      "display_name": "Test User",
+      "links": {
+      },
+      "type": "user",
+      "uuid": "{bfe5f0f9-cf81-4cbb-830a-59e9f030eac2}",
+      "account_id": "712020:8440da8e-0559-401d-8ca7-1c0dd078a47f",
+      "nickname": "Test User"
+    },
+    "reason": "",
+    "created_on": "2024-03-19T15:21:27.520720+00:00",
+    "updated_on": "2024-03-28T14:36:27.931806+00:00",
+    "destination": {
+      "branch": {
+        "name": "master"
+      },
+      "commit": {
+        "hash": "521d1cf0bfe3",
+        "links": {
+        },
+        "type": "commit"
+      },
+      "repository": {
+        "type": "repository",
+        "full_name": "webhooks-test/bitbucket-webhooks-test",
+        "links": {
+        },
+        "name": "bitbucket-webhooks-test",
+        "uuid": "{d5e8d18c-f427-4ebc-a2d6-720f3d72c68a}"
+      }
+    },
+    "source": {
+      "branch": {
+        "name": "brencs"
+      },
+      "commit": {
+        "hash": "be2bc2f8a884",
+        "links": {
+        },
+        "type": "commit"
+      },
+      "repository": {
+        "type": "repository",
+        "full_name": "webhooks-test/bitbucket-webhooks-test",
+        "links": {
+        },
+        "name": "bitbucket-webhooks-test",
+        "uuid": "{d5e8d18c-f427-4ebc-a2d6-720f3d72c68a}"
+      }
+    },
+    "reviewers": [],
+    "participants": [
+    ],
+    "links": {
+    },
+    "summary": {
+      "type": "rendered",
+      "raw": "deszkripson",
+      "markup": "markdown",
+      "html": "<p>deszkripson</p>"
+    }
+  },
+  "comment": {
+    "id": 486836690,
+    "created_on": "2024-03-28T14:36:27.931720+00:00",
+    "updated_on": "2024-03-28T14:36:27.931806+00:00",
+    "content": {
+      "type": "rendered",
+      "raw": "test comment",
+      "markup": "markdown",
+      "html": "<p>test comment</p>"
+    },
+    "user": {
+      "display_name": "Test User",
+      "links": {
+      },
+      "type": "user",
+      "uuid": "{bfe5f0f9-cf81-4cbb-830a-59e9f030eac2}",
+      "account_id": "712020:8440da8e-0559-401d-8ca7-1c0dd078a47f",
+      "nickname": "Test User"
+    },
+    "deleted": false,
+    "pending": false,
+    "type": "pullrequest_comment",
+    "links": {
+    },
+    "pullrequest": {
+      "type": "pullrequest",
+      "id": 1,
+      "title": "PR",
+      "links": {
+      }
+    }
+  }
+}`
+
+	samplePRCommentUpdatedData = `{
+  "repository": {
+  },
+  "actor": {
+  },
+  "pullrequest": {
+    "comment_count": 2,
+    "task_count": 0,
+    "type": "pullrequest",
+    "id": 1,
+    "title": "PR",
+    "description": "deszkripson",
+    "rendered": {
+    },
+    "state": "OPEN",
+    "merge_commit": null,
+    "close_source_branch": false,
+    "closed_by": null,
+    "author": {
+      "display_name": "Test User",
+      "links": {
+      },
+      "type": "user",
+      "uuid": "{bfe5f0f9-cf81-4cbb-830a-59e9f030eac2}",
+      "account_id": "712020:8440da8e-0559-401d-8ca7-1c0dd078a47f",
+      "nickname": "Test User"
+    },
+    "reason": "",
+    "created_on": "2024-03-19T15:21:27.520720+00:00",
+    "updated_on": "2024-04-02T08:54:20.372341+00:00",
+    "destination": {
+      "branch": {
+        "name": "master"
+      },
+      "commit": {
+        "hash": "521d1cf0bfe3",
+        "links": {
+        },
+        "type": "commit"
+      },
+      "repository": {
+        "type": "repository",
+        "full_name": "webhooks-test/bitbucket-webhooks-test",
+        "links": {
+        },
+        "name": "bitbucket-webhooks-test",
+        "uuid": "{d5e8d18c-f427-4ebc-a2d6-720f3d72c68a}"
+      }
+    },
+    "source": {
+      "branch": {
+        "name": "brencs"
+      },
+      "commit": {
+        "hash": "be2bc2f8a884",
+        "links": {
+        },
+        "type": "commit"
+      },
+      "repository": {
+        "type": "repository",
+        "full_name": "webhooks-test/bitbucket-webhooks-test",
+        "links": {
+        },
+        "name": "bitbucket-webhooks-test",
+        "uuid": "{d5e8d18c-f427-4ebc-a2d6-720f3d72c68a}"
+      }
+    },
+    "reviewers": [],
+    "participants": [
+    ],
+    "links": {
+    },
+    "summary": {
+      "type": "rendered",
+      "raw": "deszkripson",
+      "markup": "markdown",
+      "html": "<p>deszkripson</p>"
+    }
+  },
+  "comment": {
+    "id": 486839723,
+    "created_on": "2024-03-28T14:45:21.414067+00:00",
+    "updated_on": "2024-04-02T08:54:20.372341+00:00",
+    "content": {
+      "type": "rendered",
+      "raw": "edited comment",
+      "markup": "markdown",
+      "html": "<p>edited comment</p>"
+    },
+    "user": {
+      "display_name": "Test User",
+      "links": {
+      },
+      "type": "user",
+      "uuid": "{bfe5f0f9-cf81-4cbb-830a-59e9f030eac2}",
+      "account_id": "712020:8440da8e-0559-401d-8ca7-1c0dd078a47f",
+      "nickname": "Test User"
+    },
+    "deleted": false,
+    "pending": false,
+    "type": "pullrequest_comment",
+    "links": {
+    },
+    "pullrequest": {
+      "type": "pullrequest",
+      "id": 1,
+      "title": "PR",
+      "links": {
+      }
+    }
+  }
+}`
 )
 
 var intOne = 1
@@ -966,7 +1194,7 @@ func Test_isAcceptEventType(t *testing.T) {
 	t.Log("Accept")
 	{
 		for _, anAction := range []string{"repo:push",
-			"pullrequest:created", "pullrequest:updated",
+			"pullrequest:created", "pullrequest:updated", "pullrequest:comment_created", "pullrequest:comment_updated",
 		} {
 			t.Log(" * " + anAction)
 			require.Equal(t, true, isAcceptEventType(anAction))
@@ -977,8 +1205,7 @@ func Test_isAcceptEventType(t *testing.T) {
 	{
 		for _, anAction := range []string{"",
 			"a", "not-an-action",
-			"pullrequest:approved", "pullrequest:unapproved", "pullrequest:fulfilled", "pullrequest:rejected",
-			"pullrequest:comment_created", "pullrequest:comment_updated", "pull_request:comment_deleted",
+			"pullrequest:approved", "pullrequest:unapproved", "pullrequest:fulfilled", "pullrequest:rejected", "pull_request:comment_deleted",
 		} {
 			t.Log(" * " + anAction)
 			require.Equal(t, false, isAcceptEventType(anAction))
@@ -1120,6 +1347,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
+
 	t.Log("Test with Sample Tag Push data")
 	{
 		request := http.Request{
@@ -1185,6 +1413,72 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestAuthor:        "Author Name",
 				},
 				TriggeredBy: "webhook-bitbucket-v2/Author Name",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Test with Sample Pull Request comment created data")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":      {"pullrequest:comment_created"},
+				"Content-Type":     {"application/json"},
+				"X-Attempt-Number": {"1"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(samplePRCommentCreatedData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "be2bc2f8a884",
+					CommitMessage:            "PR\n\ndeszkripson",
+					Branch:                   "brencs",
+					BranchDest:               "master",
+					PullRequestID:            &intOne,
+					BaseRepositoryURL:        "https://bitbucket.org/webhooks-test/bitbucket-webhooks-test.git",
+					HeadRepositoryURL:        "https://bitbucket.org/webhooks-test/bitbucket-webhooks-test.git",
+					PullRequestRepositoryURL: "https://bitbucket.org/webhooks-test/bitbucket-webhooks-test.git",
+					PullRequestAuthor:        "Test User",
+					PullRequestComment:       "test comment",
+				},
+				TriggeredBy: "webhook-bitbucket-v2/Test User",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Test with Sample Pull Request comment updated data")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":      {"pullrequest:comment_updated"},
+				"Content-Type":     {"application/json"},
+				"X-Attempt-Number": {"1"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(samplePRCommentUpdatedData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "be2bc2f8a884",
+					CommitMessage:            "PR\n\ndeszkripson",
+					Branch:                   "brencs",
+					BranchDest:               "master",
+					PullRequestID:            &intOne,
+					BaseRepositoryURL:        "https://bitbucket.org/webhooks-test/bitbucket-webhooks-test.git",
+					HeadRepositoryURL:        "https://bitbucket.org/webhooks-test/bitbucket-webhooks-test.git",
+					PullRequestRepositoryURL: "https://bitbucket.org/webhooks-test/bitbucket-webhooks-test.git",
+					PullRequestAuthor:        "Test User",
+					PullRequestComment:       "edited comment",
+				},
+				TriggeredBy: "webhook-bitbucket-v2/Test User",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)

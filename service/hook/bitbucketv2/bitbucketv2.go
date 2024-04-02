@@ -112,6 +112,16 @@ type PullRequestInfoModel struct {
 type PullRequestEventModel struct {
 	PullRequestInfo PullRequestInfoModel `json:"pullrequest"`
 	RepositoryInfo  RepositoryInfoModel  `json:"repository"`
+	CommentInfo     *CommentModel        `json:"comment"`
+}
+
+type CommentModel struct {
+	ID      int                 `json:"id"`
+	Content CommentContentModel `json:"content"`
+}
+
+type CommentContentModel struct {
+	Raw string `json:"raw"`
 }
 
 // ---------------------------------------
@@ -268,6 +278,11 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.IsPrivate = (res.StatusCode != 200)
 	}
 
+	var comment string
+	if pullRequest.CommentInfo != nil {
+		comment = pullRequest.CommentInfo.Content.Raw
+	}
+
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
@@ -283,6 +298,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					HeadRepositoryURL:        pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.getRepositoryURL(),
 					PullRequestRepositoryURL: pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.getRepositoryURL(),
 					PullRequestAuthor:        pullRequest.PullRequestInfo.Author.Nickname,
+					PullRequestComment:       comment,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.PullRequestInfo.Author.Nickname),
 			},
@@ -301,7 +317,7 @@ func (repository RepositoryInfoModel) getRepositoryURL() string {
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return slices.Contains([]string{"repo:push", "pullrequest:created", "pullrequest:updated"}, eventKey)
+	return slices.Contains([]string{"repo:push", "pullrequest:created", "pullrequest:updated", "pullrequest:comment_created", "pullrequest:comment_updated"}, eventKey)
 }
 
 // TransformRequest ...
@@ -345,7 +361,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 
 		return transformPushEvent(pushEvent)
-	} else if eventKey == "pullrequest:created" || eventKey == "pullrequest:updated" {
+	} else if eventKey == "pullrequest:created" || eventKey == "pullrequest:updated" || eventKey == "pullrequest:comment_created" || eventKey == "pullrequest:comment_updated" {
 		var pullRequestEvent PullRequestEventModel
 		if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
 			return hookCommon.TransformResultModel{
