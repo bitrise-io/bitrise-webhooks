@@ -115,6 +115,12 @@ type LastCommitInfoModel struct {
 	SHA string `json:"id"`
 }
 
+// LabelInfoModel ...
+type LabelInfoModel struct {
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
+}
+
 // ObjectAttributesInfoModel ...
 type ObjectAttributesInfoModel struct {
 	ID             int                 `json:"iid"`
@@ -132,6 +138,7 @@ type ObjectAttributesInfoModel struct {
 	TargetBranch   string              `json:"target_branch"`
 	LastCommit     LastCommitInfoModel `json:"last_commit"`
 	Draft          bool                `json:"draft"`
+	Labels         []LabelInfoModel    `json:"labels"`
 }
 
 // UserModel ...
@@ -148,13 +155,21 @@ type BoolChanges struct {
 
 // Changes ...
 type Changes struct {
-	Draft BoolChanges `json:"draft"`
+	Draft  BoolChanges  `json:"draft"`
+	Labels LabelChanges `json:"labels"`
+}
+
+// LabelChanges ...
+type LabelChanges struct {
+	Previous []LabelInfoModel `json:"previous"`
+	Current  []LabelInfoModel `json:"current"`
 }
 
 // MergeRequestEventModel ...
 type MergeRequestEventModel struct {
 	ObjectKind       string                    `json:"object_kind"`
 	ObjectAttributes ObjectAttributesInfoModel `json:"object_attributes"`
+	Labels           []LabelInfoModel          `json:"labels"`
 	User             UserModel                 `json:"user"`
 	Changes          Changes                   `json:"changes"`
 }
@@ -217,9 +232,30 @@ func isAcceptMergeRequestAction(prAction string, prOldrev string, changes Change
 		if changes.Draft.Previous == true && changes.Draft.Current == false {
 			return true
 		}
+
+		// new labels were added
+		newLabels := changes.getNewLabels()
+		return len(newLabels) > 0
 	}
 
 	return false
+}
+
+func (changes Changes) getNewLabels() []string {
+	labelMap := make(map[int64]string)
+	for _, label := range changes.Labels.Current {
+		labelMap[label.ID] = label.Title
+	}
+	for _, label := range changes.Labels.Previous {
+		delete(labelMap, label.ID)
+	}
+
+	var newLabels []string
+	for _, label := range labelMap {
+		newLabels = append(newLabels, label)
+	}
+	slices.Sort(newLabels)
+	return newLabels
 }
 
 func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
@@ -478,6 +514,11 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 		mergeRef = fmt.Sprintf("merge-requests/%d/merge", mergeRequest.ObjectAttributes.ID)
 	}
 
+	var labels []string
+	for _, label := range mergeRequest.Labels {
+		labels = append(labels, label.Title)
+	}
+
 	return hookCommon.TransformResultModel{
 		DontWaitForTriggerResponse: true,
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
@@ -497,6 +538,8 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 					PullRequestMergeBranch:   mergeRef,
 					PullRequestHeadBranch:    fmt.Sprintf("merge-requests/%d/head", mergeRequest.ObjectAttributes.ID),
 					PullRequestReadyState:    mergeRequestReadyState(mergeRequest),
+					PullRequestLabelsAdded:   mergeRequest.Changes.getNewLabels(),
+					PullRequestLabels:        labels,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, mergeRequest.User.Username),
 			},
