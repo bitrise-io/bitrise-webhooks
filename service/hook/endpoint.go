@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"syscall"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -110,12 +109,6 @@ func respondWithResults(w http.ResponseWriter, provider *hookCommon.Provider, re
 
 func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitriseapi.TriggerAPIParamsModel) (bitriseapi.TriggerAPIResponseModel, bool, error) {
 	logger := logging.WithContext(nil)
-	defer func() {
-		err := logger.Sync()
-		if err != nil && !errors.Is(err, syscall.ENOTTY) {
-			fmt.Println("Failed to Sync logger", err)
-		}
-	}()
 
 	logger.Info(" ===> trigger build", zap.String("triggerURL", triggerURL.String()))
 	isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
@@ -152,12 +145,6 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	reqContext := r.Context()
 
 	logger := logging.WithContext(reqContext)
-	defer func() {
-		err := logger.Sync()
-		if err != nil && !errors.Is(err, syscall.ENOTTY) {
-			fmt.Println("Failed to Sync logger", err)
-		}
-	}()
 
 	if serviceID == "" {
 		respondWithErrorString(w, nil, "No service-id defined")
