@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"syscall"
 	"time"
 
 	"go.uber.org/zap"
@@ -142,10 +143,11 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	logger := logging.WithContext(nil)
 	defer func() {
 		err := logger.Sync()
-		if err != nil {
-			fmt.Println("Failed to Sync logger")
+		if err != nil && !errors.Is(err, syscall.ENOTTY) {
+			fmt.Println("Failed to Sync logger", err)
 		}
 	}()
+
 	if err := params.Validate(); err != nil {
 		return TriggerAPIResponseModel{}, false, errors.Wrapf(err, "TriggerBuild (url:%s): build trigger parameter invalid", url.String())
 	}

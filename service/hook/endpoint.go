@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
+	"syscall"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -112,10 +112,11 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 	logger := logging.WithContext(nil)
 	defer func() {
 		err := logger.Sync()
-		if err != nil {
-			fmt.Println("Failed to Sync logger")
+		if err != nil && !errors.Is(err, syscall.ENOTTY) {
+			fmt.Println("Failed to Sync logger", err)
 		}
 	}()
+
 	logger.Info(" ===> trigger build", zap.String("triggerURL", triggerURL.String()))
 	isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
 	if isOnlyLog {
@@ -134,7 +135,7 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 	}
 
 	logger.Info(" ===> trigger build - DONE", zap.Bool("success", isSuccess), zap.String("triggerURL", triggerURL.String()))
-	log.Printf("      (debug) response: (%#v)", responseModel)
+	logger.Debug(fmt.Sprintf("      (debug) response: (%#v)", responseModel))
 	return responseModel, isSuccess, nil
 }
 
@@ -153,8 +154,8 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	logger := logging.WithContext(reqContext)
 	defer func() {
 		err := logger.Sync()
-		if err != nil {
-			fmt.Println("Failed to Sync logger")
+		if err != nil && !errors.Is(err, syscall.ENOTTY) {
+			fmt.Println("Failed to Sync logger", err)
 		}
 	}()
 
@@ -229,7 +230,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if hookTransformResult.Error != nil {
 		errMsg := fmt.Sprintf("Failed to transform the webhook: %s", hookTransformResult.Error)
-		log.Printf(" (debug) %s", errMsg)
+		logger.Debug(fmt.Sprintf(" (debug) %s", errMsg))
 		respondWithErrorString(w, &hookProvider, errMsg)
 		return
 	}
