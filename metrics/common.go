@@ -1,8 +1,10 @@
 package metrics
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"syscall"
 	"time"
 
 	"github.com/bitrise-io/api-utils/logging"
@@ -11,7 +13,12 @@ import (
 // WrapHandlerFunc ...
 func WrapHandlerFunc(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	logger := logging.WithContext(nil)
-	defer logger.Sync()
+	defer func() {
+		err := logger.Sync()
+		if err != nil && !errors.Is(err, syscall.ENOTTY) {
+			fmt.Println("Failed to Sync logger", err)
+		}
+	}()
 
 	requestWrap := func(w http.ResponseWriter, req *http.Request) {
 		startTime := time.Now()
@@ -28,7 +35,12 @@ func WrapHandlerFunc(h func(http.ResponseWriter, *http.Request)) func(http.Respo
 // Trace ...
 func Trace(name string, fn func()) {
 	logger := logging.WithContext(nil)
-	defer logger.Sync()
+	defer func() {
+		err := logger.Sync()
+		if err != nil && !errors.Is(err, syscall.ENOTTY) {
+			fmt.Println("Failed to Sync logger", err)
+		}
+	}()
 
 	wrapFn := func() {
 		startTime := time.Now()

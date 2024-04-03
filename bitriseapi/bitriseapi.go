@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"syscall"
 	"time"
 
 	"go.uber.org/zap"
@@ -140,7 +141,12 @@ func BuildTriggerURL(apiRootURL string, appSlug string) (*url.URL, error) {
 // If the response is an HTTP success response then the whole response body will be returned, and error will be nil.
 func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) (TriggerAPIResponseModel, bool, error) {
 	logger := logging.WithContext(nil)
-	defer logger.Sync()
+	defer func() {
+		err := logger.Sync()
+		if err != nil && !errors.Is(err, syscall.ENOTTY) {
+			fmt.Println("Failed to Sync logger", err)
+		}
+	}()
 
 	if err := params.Validate(); err != nil {
 		return TriggerAPIResponseModel{}, false, errors.Wrapf(err, "TriggerBuild (url:%s): build trigger parameter invalid", url.String())

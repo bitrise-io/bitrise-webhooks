@@ -2,7 +2,10 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
+	"syscall"
 
 	"github.com/bitrise-io/api-utils/logging"
 	"go.uber.org/zap"
@@ -19,7 +22,12 @@ type StandardErrorRespModel struct {
 // RespondWith ...
 func RespondWith(w http.ResponseWriter, httpStatusCode int, respModel interface{}) {
 	logger := logging.WithContext(nil)
-	defer logger.Sync()
+	defer func() {
+		err := logger.Sync()
+		if err != nil && !errors.Is(err, syscall.ENOTTY) {
+			fmt.Println("Failed to Sync logger", err)
+		}
+	}()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpStatusCode)
@@ -60,7 +68,12 @@ func RespondWithError(w http.ResponseWriter, httpErrCode int, errMsg string) {
 // RespondWithErrorJSON ...
 func RespondWithErrorJSON(w http.ResponseWriter, httpErrCode int, respModel interface{}) {
 	logger := logging.WithContext(nil)
-	defer logger.Sync()
+	defer func() {
+		err := logger.Sync()
+		if err != nil && !errors.Is(err, syscall.ENOTTY) {
+			fmt.Println("Failed to Sync logger", err)
+		}
+	}()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpErrCode)
