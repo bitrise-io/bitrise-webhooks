@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -130,7 +129,7 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 	}
 
 	logger.Info(" ===> trigger build - DONE", zap.Bool("success", isSuccess), zap.String("triggerURL", triggerURL.String()))
-	log.Printf("      (debug) response: (%#v)", responseModel) // TODO: fix
+	logger.Debug(fmt.Sprintf("      (debug) response: (%#v)", responseModel))
 	return responseModel, isSuccess, nil
 }
 
@@ -220,7 +219,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if hookTransformResult.Error != nil {
 		errMsg := fmt.Sprintf("Failed to transform the webhook: %s", hookTransformResult.Error)
-		log.Printf(" (debug) %s", errMsg) // TODO: fix
+		logger.Debug(fmt.Sprintf(" (debug) %s", errMsg))
 		respondWithErrorString(w, &hookProvider, errMsg)
 		return
 	}

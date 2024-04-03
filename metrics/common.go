@@ -1,17 +1,22 @@
 package metrics
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/bitrise-io/api-utils/logging"
 )
 
 // WrapHandlerFunc ...
 func WrapHandlerFunc(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	logger := logging.WithContext(nil)
+	defer logger.Sync()
+
 	requestWrap := func(w http.ResponseWriter, req *http.Request) {
 		startTime := time.Now()
 		h(w, req)
-		log.Printf(" => %s: %s - %s (%s)", req.Method, req.RequestURI, time.Since(startTime), req.Header.Get("Content-Type")) // TODO: fix
+		logger.Info(fmt.Sprintf(" => %s: %s - %s (%s)", req.Method, req.RequestURI, time.Since(startTime), req.Header.Get("Content-Type")))
 	}
 	return requestWrap
 	// if newRelicAgent == nil {
@@ -22,10 +27,13 @@ func WrapHandlerFunc(h func(http.ResponseWriter, *http.Request)) func(http.Respo
 
 // Trace ...
 func Trace(name string, fn func()) {
+	logger := logging.WithContext(nil)
+	defer logger.Sync()
+
 	wrapFn := func() {
 		startTime := time.Now()
 		fn()
-		log.Printf(" ==> TRACE (%s) - %s", name, time.Since(startTime)) // TODO: fix
+		logger.Info(fmt.Sprintf(" ==> TRACE (%s) - %s", name, time.Since(startTime)))
 	}
 	wrapFn()
 	return
