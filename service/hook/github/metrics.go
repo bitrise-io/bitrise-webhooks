@@ -2,6 +2,7 @@ package github
 
 import (
 	"fmt"
+	"mime"
 	"net/http"
 	"time"
 
@@ -12,7 +13,12 @@ import (
 
 // GatherMetrics ...
 func (hp HookProvider) GatherMetrics(r *http.Request, appSlug string) ([]common.Metrics, error) {
-	payload, err := github.ValidatePayload(r, nil)
+	contentType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil {
+		return nil, err
+	}
+
+	payload, err := github.ValidatePayloadFromBody(contentType, r.Body, "", nil)
 	if err != nil {
 		return nil, err
 	}
