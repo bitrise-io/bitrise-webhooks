@@ -172,7 +172,7 @@ workflows:
       - script:
           title: Err check
           inputs:
-            - content: errcheck -asserts=true -blank=true -ignore 'Sync()' $GOLIST_WITHOUT_VENDOR
+            - content: errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
       - script:
           title: Go Lint
           inputs:
