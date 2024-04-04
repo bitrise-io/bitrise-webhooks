@@ -112,6 +112,38 @@ type PullRequestEventModel struct {
 	Sender          UserModel                   `json:"sender"`
 }
 
+type IssueCommentEventModel struct {
+	Action  string           `json:"action"`
+	Issue   IssueInfoModel   `json:"issue"`
+	Comment CommentInfoModel `json:"comment"`
+	Repo    RepoInfoModel    `json:"repository"`
+	Sender  UserModel        `json:"sender"`
+}
+
+type CommentInfoModel struct {
+	ID   int64  `json:"id"`
+	Body string `json:"body"`
+}
+
+type IssueInfoModel struct {
+	ID            int64                      `json:"id"`
+	PullRequestID int                        `json:"number"`
+	Title         string                     `json:"title"`
+	Body          string                     `json:"body"`
+	Draft         bool                       `json:"draft"`
+	User          UserModel                  `json:"user"`
+	Labels        []LabelInfoModel           `json:"labels"`
+	State         string                     `json:"state"`
+	URL           string                     `json:"url"`
+	PullRequest   *IssuePullRequestInfoModel `json:"pull_request"`
+}
+
+type IssuePullRequestInfoModel struct {
+	URL      string `json:"url"`
+	DiffURL  string `json:"diff_url"`
+	MergedAt string `json:"merged_at"`
+}
+
 // ---------------------------------------
 // --- Webhook Provider Implementation ---
 
@@ -335,6 +367,111 @@ func pullRequestReadyState(pullRequest PullRequestEventModel) bitriseapi.PullReq
 	}
 }
 
+func isAcceptIssueCommentAction(action string) bool {
+	return slices.Contains([]string{"created", "edited"}, action)
+}
+
+func transformIssueCommentEvent(eventModel IssueCommentEventModel) hookCommon.TransformResultModel {
+	if eventModel.Action == "" {
+		return hookCommon.TransformResultModel{
+			Error:      errors.New("no issue comment action specified"),
+			ShouldSkip: true,
+		}
+	}
+	if !isAcceptIssueCommentAction(eventModel.Action) {
+		return hookCommon.TransformResultModel{
+			Error:      fmt.Errorf("issue comment action doesn't require a build: %s", eventModel.Action),
+			ShouldSkip: true,
+		}
+	}
+
+	issue := eventModel.Issue
+	if issue.PullRequest == nil {
+		return hookCommon.TransformResultModel{
+			Error:      errors.New("issue comment is not for a pull request"),
+			ShouldSkip: true,
+		}
+	}
+	if issue.State == "" {
+		return hookCommon.TransformResultModel{
+			Error:      errors.New("issue comment is for a pull request that has an unknown state"),
+			ShouldSkip: true,
+		}
+	}
+	if issue.State != "open" {
+		return hookCommon.TransformResultModel{
+			Error:      fmt.Errorf("issue comment is for a pull request that is not open: %s", issue.State),
+			ShouldSkip: true,
+		}
+	}
+
+	pullRequest := issue.PullRequest
+	if pullRequest.MergedAt != "" {
+		return hookCommon.TransformResultModel{
+			Error:      errors.New("issue comment is for a pull request that is already merged"),
+			ShouldSkip: true,
+		}
+	}
+
+	// NOTE: we cannot do the other PR checks because the payload doesn't have enough data
+
+	headRefBuildParam := fmt.Sprintf("pull/%d/head", issue.PullRequestID)
+	unverifiedMergeRefBuildParam := fmt.Sprintf("pull/%d/merge", issue.PullRequestID)
+
+	commitMsg := issue.Title
+	if issue.Body != "" {
+		commitMsg = fmt.Sprintf("%s\n\n%s", commitMsg, issue.Body)
+	}
+
+	buildEnvs := make([]bitriseapi.EnvironmentItem, 0)
+	if issue.Draft {
+		buildEnvs = append(buildEnvs, bitriseapi.EnvironmentItem{
+			Name:     "GITHUB_PR_IS_DRAFT",
+			Value:    strconv.FormatBool(issue.Draft),
+			IsExpand: false,
+		})
+	}
+
+	var readyState bitriseapi.PullRequestReadyState
+	if issue.Draft {
+		readyState = bitriseapi.PullRequestReadyStateDraft
+	} else {
+		readyState = bitriseapi.PullRequestReadyStateReadyForReview
+	}
+
+	var labels []string
+	for _, label := range issue.Labels {
+		labels = append(labels, label.Name)
+	}
+
+	result := bitriseapi.TriggerAPIParamsModel{
+		BuildParams: bitriseapi.BuildParamsModel{
+			CommitMessage:                    commitMsg,
+			BranchDestRepoOwner:              eventModel.Repo.Owner.Login,
+			PullRequestID:                    &issue.PullRequestID,
+			HeadRepositoryURL:                eventModel.Repo.getRepositoryURL(),
+			PullRequestRepositoryURL:         eventModel.Repo.getRepositoryURL(),
+			PullRequestAuthor:                issue.User.Login,
+			PullRequestHeadBranch:            headRefBuildParam,
+			PullRequestUnverifiedMergeBranch: unverifiedMergeRefBuildParam,
+			DiffURL:                          pullRequest.DiffURL,
+			Environments:                     buildEnvs,
+			PullRequestReadyState:            readyState,
+			PullRequestLabels:                labels,
+			PullRequestComment:               eventModel.Comment.Body,
+		},
+		TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, eventModel.Sender.Login),
+	}
+
+	return hookCommon.TransformResultModel{
+		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
+			result,
+		},
+		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(issue.Title) &&
+			hookCommon.IsSkipBuildByCommitMessage(issue.Body),
+	}
+}
+
 func detectContentTypeAndEventID(header http.Header) (string, string, error) {
 	contentType := header.Get("Content-Type")
 	if contentType == "" {
@@ -370,7 +507,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 			ShouldSkip: true,
 		}
 	}
-	if ghEvent != "push" && ghEvent != "pull_request" {
+	if ghEvent != "push" && ghEvent != "pull_request" && ghEvent != "issue_comment" {
 		// Unsupported GitHub Event
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("unsupported GitHub Webhook event: %s", ghEvent),
@@ -384,52 +521,52 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	}
 
 	if ghEvent == "push" {
-		// push (code & tag)
-		var pushEvent PushEventModel
-		if contentType == hookCommon.ContentTypeApplicationJSON {
-			if err := json.NewDecoder(r.Body).Decode(&pushEvent); err != nil {
-				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body: %s", err)}
-			}
-		} else if contentType == hookCommon.ContentTypeApplicationXWWWFormURLEncoded {
-			payloadValue := r.PostFormValue("payload")
-			if payloadValue == "" {
-				return hookCommon.TransformResultModel{Error: fmt.Errorf("failed to parse request body: empty payload")}
-			}
-			if err := json.NewDecoder(strings.NewReader(payloadValue)).Decode(&pushEvent); err != nil {
-				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse payload: %s", err)}
-			}
-		} else {
-			return hookCommon.TransformResultModel{
-				Error: fmt.Errorf("Unsupported Content-Type: %s", contentType),
-			}
+		eventModel, err := decodeEventPayload[PushEventModel](r, contentType)
+		if err != nil {
+			return hookCommon.TransformResultModel{Error: err}
 		}
-		return transformPushEvent(pushEvent)
 
+		return transformPushEvent(*eventModel)
 	} else if ghEvent == "pull_request" {
-		var pullRequestEvent PullRequestEventModel
-		if contentType == hookCommon.ContentTypeApplicationJSON {
-			if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
-				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse request body as JSON: %s", err)}
-			}
-		} else if contentType == hookCommon.ContentTypeApplicationXWWWFormURLEncoded {
-			payloadValue := r.PostFormValue("payload")
-			if payloadValue == "" {
-				return hookCommon.TransformResultModel{Error: fmt.Errorf("failed to parse request body: empty payload")}
-			}
-			if err := json.NewDecoder(strings.NewReader(payloadValue)).Decode(&pullRequestEvent); err != nil {
-				return hookCommon.TransformResultModel{Error: fmt.Errorf("Failed to parse payload: %s", err)}
-			}
-		} else {
-			return hookCommon.TransformResultModel{
-				Error: fmt.Errorf("Unsupported Content-Type: %s", contentType),
-			}
+		eventModel, err := decodeEventPayload[PullRequestEventModel](r, contentType)
+		if err != nil {
+			return hookCommon.TransformResultModel{Error: err}
 		}
-		return transformPullRequestEvent(pullRequestEvent)
+
+		return transformPullRequestEvent(*eventModel)
+	} else if ghEvent == "issue_comment" {
+		eventModel, err := decodeEventPayload[IssueCommentEventModel](r, contentType)
+		if err != nil {
+			return hookCommon.TransformResultModel{Error: err}
+		}
+
+		return transformIssueCommentEvent(*eventModel)
 	}
 
 	return hookCommon.TransformResultModel{
 		Error: fmt.Errorf("Unsupported GitHub event type: %s", ghEvent),
 	}
+}
+
+func decodeEventPayload[T interface{}](r *http.Request, contentType string) (*T, error) {
+	var eventModel T
+	if contentType == hookCommon.ContentTypeApplicationJSON {
+		if err := json.NewDecoder(r.Body).Decode(&eventModel); err != nil {
+			return nil, fmt.Errorf("Failed to parse request body as JSON: %s", err)
+		}
+	} else if contentType == hookCommon.ContentTypeApplicationXWWWFormURLEncoded {
+		payloadValue := r.PostFormValue("payload")
+		if payloadValue == "" {
+			return nil, fmt.Errorf("failed to parse request body: empty payload")
+		}
+		if err := json.NewDecoder(strings.NewReader(payloadValue)).Decode(&eventModel); err != nil {
+			return nil, fmt.Errorf("Failed to parse payload: %s", err)
+		}
+	} else {
+		return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
+	}
+
+	return &eventModel, nil
 }
 
 func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
