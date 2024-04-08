@@ -216,7 +216,27 @@ const (
 		"mergeable": true,
 		"user": {
 			"login": "Author Name"
-		}
+		},
+        "labels": [
+            {
+                "id": 6664654046,
+                "node_id": "LA_kwDOLdfcTc8AAAABjT6M3g",
+                "url": "https://api.github.com/repos/test_user/webhook-test/labels/enhancement",
+                "name": "enhancement",
+                "color": "a2eeef",
+                "default": true,
+                "description": "New feature or request"
+            },
+		    {
+		      "id": 6664654053,
+		      "node_id": "LA_kwDOLdfcTc8AAAABjT6M5Q",
+		      "url": "https://api.github.com/repos/molnarm/webhook-test/labels/good%20first%20issue",
+		      "name": "good first issue",
+		      "color": "7057ff",
+		      "default": true,
+		      "description": "Good for newcomers"
+		    }
+        ]
 	},
 	"sender": {
         "login": "test_user"
@@ -249,7 +269,27 @@ const (
     "title": "PR test",
     "body": "PR text body",
     "merged": false,
-    "mergeable": true
+    "mergeable": true,
+	"labels": [
+		{
+			"id": 6664654046,
+			"node_id": "LA_kwDOLdfcTc8AAAABjT6M3g",
+			"url": "https://api.github.com/repos/test_user/webhook-test/labels/enhancement",
+			"name": "enhancement",
+			"color": "a2eeef",
+			"default": true,
+			"description": "New feature or request"
+		},
+		{
+		  "id": 6664654053,
+		  "node_id": "LA_kwDOLdfcTc8AAAABjT6M5Q",
+		  "url": "https://api.github.com/repos/molnarm/webhook-test/labels/good%20first%20issue",
+		  "name": "good first issue",
+		  "color": "7057ff",
+		  "default": true,
+		  "description": "Good for newcomers"
+		}
+	]
   },
   "changes": {
     "body": {
@@ -306,6 +346,26 @@ const (
 			"body": "PR text body",
 			"merged": false,
 			"mergeable": true,
+			"labels": [
+				{
+					"id": 6664654046,
+					"node_id": "LA_kwDOLdfcTc8AAAABjT6M3g",
+					"url": "https://api.github.com/repos/test_user/webhook-test/labels/enhancement",
+					"name": "enhancement",
+					"color": "a2eeef",
+					"default": true,
+					"description": "New feature or request"
+				},
+				{
+				  "id": 6664654053,
+				  "node_id": "LA_kwDOLdfcTc8AAAABjT6M5Q",
+				  "url": "https://api.github.com/repos/molnarm/webhook-test/labels/good%20first%20issue",
+				  "name": "good first issue",
+				  "color": "7057ff",
+				  "default": true,
+				  "description": "Good for newcomers"
+				}
+			],
 			"user": {
 				"login": "Author Name"
 			}
@@ -315,7 +375,7 @@ const (
 		}
 	}`
 
-	samplePullRequestLabelData = `{
+	samplePullRequestLabeledData = `{
     "action": "labeled",
     "number": 1,
     "pull_request": {
@@ -344,7 +404,16 @@ const (
                 "color": "a2eeef",
                 "default": true,
                 "description": "New feature or request"
-            }
+            },
+		    {
+		      "id": 6664654053,
+		      "node_id": "LA_kwDOLdfcTc8AAAABjT6M5Q",
+		      "url": "https://api.github.com/repos/molnarm/webhook-test/labels/good%20first%20issue",
+		      "name": "good first issue",
+		      "color": "7057ff",
+		      "default": true,
+		      "description": "Good for newcomers"
+		    }
         ],
         "milestone": null,
         "draft": false,
@@ -353,15 +422,31 @@ const (
             "ref": "brencs",
             "sha": "61be158044aadc36e08b5a01313e25889360ff38",
             "user": {},
-            "repo": {}
+            "repo": {
+				"name": "webhook-test",
+				"full_name": "test_user/webhook-test",
+				"private": true,
+				"ssh_url": "git@github.com:molnarm/webhook-test.git",
+				"clone_url": "https://github.com/molnarm/webhook-test.git"
+			}
         },
         "base": {
             "label": "test_user:main",
             "ref": "main",
             "sha": "17d68567a0ddb19362e3cef6409180af6a02737d",
             "user": {},
-            "repo": {}
+            "repo": {
+				"name": "webhook-test",
+				"full_name": "test_user/webhook-test",
+				"private": true,
+				"ssh_url": "git@github.com:molnarm/webhook-test.git",
+				"clone_url": "https://github.com/molnarm/webhook-test.git"
+			}
         },
+		"merged": false,
+		"mergeable": true,
+		"rebaseable": true,
+		"mergeable_state": "clean",
         "commits": 4,
         "additions": 4,
         "deletions": 3,
@@ -379,7 +464,9 @@ const (
     "repository": {
         "name": "webhook-test",
         "full_name": "test_user/webhook-test",
-        "private": true
+        "private": true,
+        "ssh_url": "git@github.com:molnarm/webhook-test.git",
+        "clone_url": "https://github.com/molnarm/webhook-test.git"
     },
     "sender": {
         "login": "test_user"
@@ -389,6 +476,7 @@ const (
 
 var boolFalse = false
 var boolTrue = true
+var intOne = 1
 var intTwelve = 12
 
 func Test_detectContentTypeAndEventID(t *testing.T) {
@@ -705,11 +793,11 @@ func Test_transformPullRequestEvent(t *testing.T) {
 	t.Log("Unsupported Pull Request action")
 	{
 		pullRequest := PullRequestEventModel{
-			Action: "labeled",
+			Action: "milestoned",
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
 		require.True(t, hookTransformResult.ShouldSkip)
-		require.EqualError(t, hookTransformResult.Error, "pull Request action doesn't require a build: labeled")
+		require.EqualError(t, hookTransformResult.Error, "pull Request action doesn't require a build: milestoned")
 	}
 
 	t.Log("Empty Pull Request action")
@@ -834,6 +922,16 @@ func Test_transformPullRequestEvent(t *testing.T) {
 						CloneURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
 					},
 				},
+				Labels: []LabelInfoModel{
+					{
+						ID:   1,
+						Name: "first label",
+					},
+					{
+						ID:   2,
+						Name: "second label",
+					},
+				},
 			},
 			Sender: UserModel{
 				Login: "test_user",
@@ -858,6 +956,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					PullRequestHeadBranch:            "pull/12/head",
 					Environments:                     make([]bitriseapi.EnvironmentItem, 0),
 					PullRequestReadyState:            bitriseapi.PullRequestReadyStateReadyForReview,
+					PullRequestLabels:                []string{"first label", "second label"},
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},
@@ -1212,12 +1311,143 @@ func Test_transformPullRequestEvent(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
+
+	t.Log("Pull Request - labeled - not open yet - no build")
+	{
+		pullRequest := PullRequestEventModel{
+			Action:        "labeled",
+			PullRequestID: 12,
+			PullRequestInfo: PullRequestInfoModel{
+				Title:     "PR test",
+				Body:      "PR text body",
+				Merged:    false,
+				Mergeable: nil,
+				Draft:     false,
+				HeadBranchInfo: BranchInfoModel{
+					Ref:        "feature/github-pr",
+					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					Repo: RepoInfoModel{
+						Private:  false,
+						SSHURL:   "git@github.com:bitrise-io/bitrise-webhooks.git",
+						CloneURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
+					},
+				},
+				BaseBranchInfo: BranchInfoModel{
+					Ref:        "develop",
+					CommitHash: "3c86b996d8014000a93f3c202fc0963e81e56c4c",
+					Repo: RepoInfoModel{
+						Private:  false,
+						SSHURL:   "git@github.com:bitrise-io/bitrise-webhooks.git",
+						CloneURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
+					},
+				},
+				Labels: []LabelInfoModel{
+					{
+						ID:   1,
+						Name: "first label",
+					},
+					{
+						ID:   2,
+						Name: "second label",
+					},
+				},
+			},
+			Label: &LabelInfoModel{
+				ID:   3,
+				Name: "third label",
+			},
+			Sender: UserModel{
+				Login: "test_user",
+			},
+		}
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.EqualError(t, hookTransformResult.Error, "pull Request label added to PR that is not open yet")
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel(nil), hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Pull Request - labeled - mergeable")
+	{
+		pullRequest := PullRequestEventModel{
+			Action:        "labeled",
+			PullRequestID: 12,
+			PullRequestInfo: PullRequestInfoModel{
+				Title:     "PR test",
+				Body:      "PR text body",
+				Merged:    false,
+				Mergeable: &boolTrue,
+				Draft:     false,
+				HeadBranchInfo: BranchInfoModel{
+					Ref:        "feature/github-pr",
+					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					Repo: RepoInfoModel{
+						Private:  false,
+						SSHURL:   "git@github.com:bitrise-io/bitrise-webhooks.git",
+						CloneURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
+					},
+				},
+				BaseBranchInfo: BranchInfoModel{
+					Ref:        "develop",
+					CommitHash: "3c86b996d8014000a93f3c202fc0963e81e56c4c",
+					Repo: RepoInfoModel{
+						Private:  false,
+						SSHURL:   "git@github.com:bitrise-io/bitrise-webhooks.git",
+						CloneURL: "https://github.com/bitrise-io/bitrise-webhooks.git",
+					},
+				},
+				Labels: []LabelInfoModel{
+					{
+						ID:   1,
+						Name: "first label",
+					},
+					{
+						ID:   2,
+						Name: "second label",
+					},
+				},
+			},
+			Label: &LabelInfoModel{
+				ID:   3,
+				Name: "third label",
+			},
+			Sender: UserModel{
+				Login: "test_user",
+			},
+		}
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:                       "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					CommitMessage:                    "PR test\n\nPR text body",
+					Branch:                           "feature/github-pr",
+					BranchDest:                       "develop",
+					PullRequestID:                    &intTwelve,
+					PullRequestRepositoryURL:         "https://github.com/bitrise-io/bitrise-webhooks.git",
+					BaseRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
+					HeadRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
+					PullRequestMergeBranch:           "pull/12/merge",
+					PullRequestUnverifiedMergeBranch: "pull/12/merge",
+					PullRequestHeadBranch:            "pull/12/head",
+					Environments:                     make([]bitriseapi.EnvironmentItem, 0),
+					PullRequestReadyState:            bitriseapi.PullRequestReadyStateReadyForReview,
+					PullRequestLabels:                []string{"first label", "second label"},
+					PullRequestLabelsAdded:           []string{"third label"},
+				},
+				TriggeredBy: "webhook-github/test_user",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
 }
 
 func Test_isAcceptPullRequestAction(t *testing.T) {
 	t.Log("Accept")
 	{
-		for _, anAction := range []string{"opened", "reopened", "synchronize", "edited"} {
+		for _, anAction := range []string{"opened", "reopened", "synchronize", "edited", "ready_for_review", "labeled"} {
 			t.Log(" * " + anAction)
 			require.Equal(t, true, isAcceptPullRequestAction(anAction))
 		}
@@ -1227,7 +1457,7 @@ func Test_isAcceptPullRequestAction(t *testing.T) {
 	{
 		for _, anAction := range []string{"",
 			"a", "not-an-action",
-			"assigned", "unassigned", "labeled", "unlabeled", "closed"} {
+			"assigned", "unassigned", "unlabeled", "closed"} {
 			t.Log(" * " + anAction)
 			require.Equal(t, false, isAcceptPullRequestAction(anAction))
 		}
@@ -1425,6 +1655,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestHeadBranch:            "pull/12/head",
 					Environments:                     make([]bitriseapi.EnvironmentItem, 0),
 					PullRequestReadyState:            bitriseapi.PullRequestReadyStateReadyForReview,
+					PullRequestLabels:                []string{"enhancement", "good first issue"},
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},
@@ -1470,6 +1701,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 						},
 					},
 					PullRequestReadyState: bitriseapi.PullRequestReadyStateDraft,
+					PullRequestLabels:     []string{"enhancement", "good first issue"},
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},
@@ -1505,6 +1737,45 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestHeadBranch:            "pull/12/head",
 					Environments:                     make([]bitriseapi.EnvironmentItem, 0),
 					PullRequestReadyState:            bitriseapi.PullRequestReadyStateReadyForReview,
+					PullRequestLabels:                []string{"enhancement", "good first issue"},
+				},
+				TriggeredBy: "webhook-github/test_user",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Pull Request :: labeled - should be handled")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Github-Event": {"pull_request"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestLabeledData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:                       "61be158044aadc36e08b5a01313e25889360ff38",
+					CommitMessage:                    "Brencs",
+					CommitMessages:                   nil,
+					Branch:                           "brencs",
+					BranchDest:                       "main",
+					PullRequestID:                    &intOne,
+					PullRequestRepositoryURL:         "git@github.com:molnarm/webhook-test.git",
+					BaseRepositoryURL:                "git@github.com:molnarm/webhook-test.git",
+					HeadRepositoryURL:                "git@github.com:molnarm/webhook-test.git",
+					PullRequestMergeBranch:           "pull/1/merge",
+					PullRequestUnverifiedMergeBranch: "pull/1/merge",
+					PullRequestHeadBranch:            "pull/1/head",
+					Environments:                     make([]bitriseapi.EnvironmentItem, 0),
+					PullRequestReadyState:            bitriseapi.PullRequestReadyStateReadyForReview,
+					PullRequestLabels:                []string{"enhancement", "good first issue"},
+					PullRequestLabelsAdded:           []string{"enhancement"},
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},
