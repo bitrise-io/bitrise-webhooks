@@ -199,6 +199,10 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 
 		if len(webhookMetricsList) > 0 {
 			for _, webhookMetrics := range webhookMetricsList {
+				if webhookMetrics == nil {
+					continue
+				}
+
 				if err := c.PubsubClient.PublishMetrics(reqContext, webhookMetrics); err != nil {
 					logger.Error(" [!] Exception: PublishMetrics: failed to publish metrics results", zap.Error(err))
 				}
