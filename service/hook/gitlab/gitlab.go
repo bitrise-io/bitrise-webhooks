@@ -177,7 +177,7 @@ type MergeRequestEventModel struct {
 
 // CommentInfoModel ...
 type CommentInfoModel struct {
-	Id           int    `json:"id"`
+	ID           int    `json:"id"`
 	Note         string `json:"note"`
 	NoteableType string `json:"noteable_type"`
 }

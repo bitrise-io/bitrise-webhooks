@@ -112,6 +112,7 @@ type PullRequestEventModel struct {
 	Sender          UserModel                   `json:"sender"`
 }
 
+// IssueCommentEventModel ...
 type IssueCommentEventModel struct {
 	Action  string           `json:"action"`
 	Issue   IssueInfoModel   `json:"issue"`
@@ -120,11 +121,13 @@ type IssueCommentEventModel struct {
 	Sender  UserModel        `json:"sender"`
 }
 
+// CommentInfoModel ...
 type CommentInfoModel struct {
 	ID   int64  `json:"id"`
 	Body string `json:"body"`
 }
 
+// IssueInfoModel ...
 type IssueInfoModel struct {
 	ID            int64                      `json:"id"`
 	PullRequestID int                        `json:"number"`
@@ -138,6 +141,7 @@ type IssueInfoModel struct {
 	PullRequest   *IssuePullRequestInfoModel `json:"pull_request"`
 }
 
+// IssuePullRequestInfoModel ...
 type IssuePullRequestInfoModel struct {
 	URL      string `json:"url"`
 	DiffURL  string `json:"diff_url"`
