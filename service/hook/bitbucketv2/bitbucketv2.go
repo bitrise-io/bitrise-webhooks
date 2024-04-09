@@ -115,11 +115,13 @@ type PullRequestEventModel struct {
 	CommentInfo     *CommentModel        `json:"comment"`
 }
 
+// CommentModel ...
 type CommentModel struct {
 	ID      int                 `json:"id"`
 	Content CommentContentModel `json:"content"`
 }
 
+// CommentContentModel ...
 type CommentContentModel struct {
 	Raw string `json:"raw"`
 }
