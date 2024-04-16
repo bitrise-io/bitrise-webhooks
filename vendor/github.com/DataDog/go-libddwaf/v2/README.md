@@ -41,6 +41,24 @@ But with the appearance of `ddwaf_object` tree like structure,
 but also with the intention to build CGO-less bindings, this project size has grown to be a fully integrated brick in the DataDog tracer structure.
 Which in turn made it necessary to document the project, to maintain it in an orderly fashion.
 
+## Supported platforms
+
+This library currently support the following platform doublets:
+
+| OS    | Arch    |
+| ----- | ------- |
+| Linux | amd64   |
+| Linux | aarch64 |
+| OSX   | amd64   |
+| OSX   | arm64   |
+
+This means that when the platform is not supported, top-level functions will return a `WafDisabledError` error including the purpose of it.
+
+Note that:
+* Linux support include for glibc and musl variants
+* OSX under 10.9 is not supported
+* A build tag named `datadog.no_waf` can be manually added to force the WAF to be disabled.
+
 ## Design
 
 The WAF bindings have multiple moving parts that are necessary to understand:

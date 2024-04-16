@@ -109,32 +109,37 @@ func decodeDiagnosticsEntry(obj *wafObject) (*DiagnosticEntry, error) {
 	return &entry, nil
 }
 
-func decodeDiagnosticAddresses(obj *wafObject) (res DiagnosticAddresses, err error) {
+func decodeDiagnosticAddresses(obj *wafObject) (*DiagnosticAddresses, error) {
 	if !obj.isMap() {
-		return res, errInvalidObjectType
+		return nil, errInvalidObjectType
 	}
 	if obj.value == 0 && obj.nbEntries > 0 {
-		return res, errNilObjectPtr
+		return nil, errNilObjectPtr
 	}
 
+	addrs := &DiagnosticAddresses{}
+
+	var err error
 	for i := uint64(0); i < obj.nbEntries; i++ {
 		objElem := castWithOffset[wafObject](obj.value, i)
 		key := gostringSized(cast[byte](objElem.parameterName), objElem.parameterNameLength)
 		switch key {
 		case "required":
-			res.Required, err = decodeStringArray(objElem)
+			addrs.Required, err = decodeStringArray(objElem)
+			if err != nil {
+				return nil, err
+			}
 		case "optional":
-			res.Optional, err = decodeStringArray(objElem)
+			addrs.Optional, err = decodeStringArray(objElem)
+			if err != nil {
+				return nil, err
+			}
 		default:
-			err = errUnsupportedValue
-		}
-
-		if err != nil {
-			return
+			return nil, errUnsupportedValue
 		}
 	}
 
-	return
+	return addrs, nil
 }
 
 func decodeStringArray(obj *wafObject) ([]string, error) {
