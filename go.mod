@@ -5,12 +5,12 @@ go 1.21
 require (
 	cloud.google.com/go/pubsub v1.33.0
 	github.com/bitrise-io/api-utils v0.0.0-20211025122143-6499571b8433
-	github.com/bitrise-io/envman v0.0.0-20230802102824-1300c57d49c4
+	github.com/bitrise-io/envman v0.0.0-20240410092641-54d928c910ed
 	github.com/go-playground/webhooks/v6 v6.3.0
 	github.com/google/go-github/v57 v57.0.0
 	github.com/gorilla/mux v1.8.1
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/xanzy/go-gitlab v0.95.0
 	go.uber.org/zap v1.26.0
 	google.golang.org/api v0.153.0
@@ -30,7 +30,7 @@ require (
 	github.com/DataDog/go-tuf v1.0.2-0.5.2 // indirect
 	github.com/DataDog/sketches-go v1.4.2 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
-	github.com/bitrise-io/go-utils v1.0.8 // indirect
+	github.com/bitrise-io/go-utils v1.0.13 // indirect
 	github.com/blendle/zapdriver v1.3.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -55,12 +55,12 @@ require (
 	go.uber.org/multierr v1.10.0 // indirect
 	go4.org/intern v0.0.0-20230525184215-6c62f75575cb // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
-	golang.org/x/net v0.18.0 // indirect
+	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/oauth2 v0.14.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846 // indirect
