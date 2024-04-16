@@ -6,9 +6,11 @@
 package waf
 
 import (
+	"context"
 	"math"
 	"reflect"
 	"strings"
+	"time"
 	"unicode"
 )
 
@@ -20,11 +22,28 @@ import (
 // reference now or in the future, are stored and referenced in the `cgoRefs` field. The user MUST leverage
 // `keepAlive()` with it according to its ddwaf use-case.
 type encoder struct {
+	// For each TruncationReason, holds the size that is required to avoid truncation for each truncation that happened.
+	truncations map[TruncationReason][]int
+
+	cgoRefs          cgoRefPool
 	containerMaxSize int
 	stringMaxSize    int
 	objectMaxDepth   int
-	cgoRefs          cgoRefPool
 }
+
+// TruncationReason is a flag representing reasons why some input was not encoded in full.
+type TruncationReason uint8
+
+const (
+	StringTooLong TruncationReason = 1 << iota
+	ContainerTooLarge
+	ObjectTooDeep
+)
+
+const (
+	AppsecFieldTag            = "ddwaf"
+	AppsecFieldTagValueIgnore = "ignore"
+)
 
 type native interface {
 	int64 | uint64 | uintptr
@@ -50,15 +69,24 @@ func newMaxEncoder() encoder {
 // The returned wafObject is the root of the tree of nested wafObjects representing the Go value.
 // The only error case is if the top-level object is "Unusable" which means that the data is nil or a non-data type
 // like a function or a channel.
-func (encoder *encoder) Encode(data any) (*wafObject, error) {
+func (encoder *encoder) Encode(data any) (wo *wafObject, err error) {
 	value := reflect.ValueOf(data)
-	wo := &wafObject{}
+	wo = &wafObject{}
 
-	if err := encoder.encode(value, wo, encoder.objectMaxDepth); err != nil {
-		return nil, err
+	err = encoder.encode(value, wo, encoder.objectMaxDepth)
+	if len(encoder.truncations[ObjectTooDeep]) != 0 {
+		encoder.measureObjectDepth(value)
 	}
 
-	return wo, nil
+	return
+}
+
+// Truncations returns all truncations that happened since the last call to `Truncations()`, and clears the internal
+// list. This is a map from truncation reason to the list of un-truncated value sizes.
+func (encoder *encoder) Truncations() map[TruncationReason][]int {
+	result := encoder.truncations
+	encoder.truncations = nil
+	return result
 }
 
 // EncodeAddresses takes a map of Go values and returns a wafObject pointer and an error.
@@ -99,9 +127,21 @@ func isValueNil(value reflect.Value) bool {
 }
 
 func (encoder *encoder) encode(value reflect.Value, obj *wafObject, depth int) error {
-	switch kind := value.Kind(); {
-	// Terminal cases (leafs of the tree)
+	value, kind := resolvePointer(value)
+	if (kind == reflect.Interface || kind == reflect.Pointer) && !value.IsNil() {
+		// resolvePointer failed to resolve to something that's not a pointer, it
+		// has indirected too many times...
+		return errTooManyIndirections
+	}
 
+	// Measure-only runs for leaves
+	if obj == nil && kind != reflect.Array && kind != reflect.Slice && kind != reflect.Map && kind != reflect.Struct {
+		// Nothing to do, we were only here to measure object depth!
+		return nil
+	}
+
+	switch {
+	// Terminal cases (leaves of the tree)
 	//		Is invalid type: nil interfaces for example, cannot be used to run any reflect method or it's susceptible to panic
 	case !value.IsValid() || kind == reflect.Invalid:
 		return errUnsupportedValue
@@ -124,17 +164,18 @@ func (encoder *encoder) encode(value reflect.Value, obj *wafObject, depth int) e
 	//		Strings
 	case kind == reflect.String: // string type
 		encoder.encodeString(value.String(), obj)
-	case value.Type() == reflect.TypeOf([]byte(nil)): // byte array -> string
-		encoder.encodeString(string(value.Bytes()), obj)
 
-	// 		Pointer and interfaces are not taken into account, we only recurse on them
-	case kind == reflect.Interface || kind == reflect.Pointer:
-		return encoder.encode(value.Elem(), obj, depth)
+	case (kind == reflect.Array || kind == reflect.Slice) && value.Type().Elem().Kind() == reflect.Uint8:
+		// Byte Arrays are skipped voluntarily because they are often used
+		// to do partial parsing which leads to false positives
+		return nil
 
 	// Containers (internal nodes of the tree)
 
-	// 		All recursive cases can only execute if the depth is superior to 0
+	// 		All recursive cases can only execute if the depth is superior to 0.
 	case depth <= 0:
+		// Record that there was a truncation; we will try to measure the actual depth of the object afterwards.
+		encoder.addTruncation(ObjectTooDeep, -1)
 		return errMaxDepthExceeded
 
 	// 		Either an array or a slice of an array
@@ -153,10 +194,11 @@ func (encoder *encoder) encode(value reflect.Value, obj *wafObject, depth int) e
 }
 
 func (encoder *encoder) encodeString(str string, obj *wafObject) {
-	if len(str) > encoder.stringMaxSize {
+	size := len(str)
+	if size > encoder.stringMaxSize {
 		str = str[:encoder.stringMaxSize]
+		encoder.addTruncation(StringTooLong, size)
 	}
-
 	encoder.cgoRefs.AllocWafString(obj, str)
 }
 
@@ -190,6 +232,7 @@ func getFieldNameFromType(field reflect.StructField) (string, bool) {
 func (encoder *encoder) encodeStruct(value reflect.Value, obj *wafObject, depth int) {
 	typ := value.Type()
 	nbFields := typ.NumField()
+
 	capacity := nbFields
 	length := 0
 	if capacity > encoder.containerMaxSize {
@@ -197,18 +240,23 @@ func (encoder *encoder) encodeStruct(value reflect.Value, obj *wafObject, depth 
 	}
 
 	objArray := encoder.cgoRefs.AllocWafArray(obj, wafMapType, uint64(capacity))
-	for i := 0; length < capacity && i < nbFields; i++ {
+	for i := 0; i < nbFields; i++ {
+		if length == capacity {
+			encoder.addTruncation(ContainerTooLarge, nbFields)
+			break
+		}
+
 		fieldType := typ.Field(i)
 		fieldName, usable := getFieldNameFromType(fieldType)
-		if !usable {
+		if tag, ok := fieldType.Tag.Lookup(AppsecFieldTag); !usable || ok && tag == AppsecFieldTagValueIgnore {
+			// Either the struct field is ignored by json marshaling so can we,
+			// 		or the field was explicitly set with `ddwaf:ignore`
 			continue
 		}
 
 		objElem := &objArray[length]
 		// If the Map key is of unsupported type, skip it
-		if encoder.encodeMapKey(reflect.ValueOf(fieldName), objElem, depth) != nil {
-			continue
-		}
+		encoder.encodeMapKeyFromString(fieldName, objElem)
 
 		if err := encoder.encode(value.Field(i), objElem, depth); err != nil {
 			// We still need to keep the map key, so we can't discard the full object, instead, we make the value a noop
@@ -228,19 +276,21 @@ func (encoder *encoder) encodeStruct(value reflect.Value, obj *wafObject, depth 
 // - Even if the element values are invalid or null we still keep them to report the map key
 func (encoder *encoder) encodeMap(value reflect.Value, obj *wafObject, depth int) {
 	capacity := value.Len()
-	length := 0
 	if capacity > encoder.containerMaxSize {
 		capacity = encoder.containerMaxSize
 	}
 
 	objArray := encoder.cgoRefs.AllocWafArray(obj, wafMapType, uint64(capacity))
+
+	length := 0
 	for iter := value.MapRange(); iter.Next(); {
 		if length == capacity {
+			encoder.addTruncation(ContainerTooLarge, value.Len())
 			break
 		}
 
 		objElem := &objArray[length]
-		if encoder.encodeMapKey(iter.Key(), objElem, depth) != nil {
+		if err := encoder.encodeMapKey(iter.Key(), objElem); err != nil {
 			continue
 		}
 
@@ -248,6 +298,7 @@ func (encoder *encoder) encodeMap(value reflect.Value, obj *wafObject, depth int
 			// We still need to keep the map key, so we can't discard the full object, instead, we make the value a noop
 			encodeNative[uintptr](0, wafInvalidType, objElem)
 		}
+
 		length++
 	}
 
@@ -255,18 +306,11 @@ func (encoder *encoder) encodeMap(value reflect.Value, obj *wafObject, depth int
 	obj.nbEntries = uint64(length)
 }
 
-// encodeMapKey takes a reflect.Value and a wafObject and returns a wafObject ready to be considered a map key
-// We use the function cgoRefPool.AllocWafMapKey to store the key in the wafObject. But first we need
-// to grab the real underlying value by recursing through the pointer and interface values.
-func (encoder *encoder) encodeMapKey(value reflect.Value, obj *wafObject, depth int) error {
-	kind := value.Kind()
-	for ; depth > 0 && (kind == reflect.Pointer || kind == reflect.Interface); value, kind = value.Elem(), value.Elem().Kind() {
-		if value.IsNil() {
-			return errInvalidMapKey
-		}
-
-		depth--
-	}
+// encodeMapKey takes a reflect.Value and a wafObject and returns a wafObject ready to be considered a map entry. We use
+// the function cgoRefPool.AllocWafMapKey to store the key in the wafObject. But first we need to grab the real
+// underlying value by recursing through the pointer and interface values.
+func (encoder *encoder) encodeMapKey(value reflect.Value, obj *wafObject) error {
+	value, kind := resolvePointer(value)
 
 	var keyStr string
 	switch {
@@ -280,12 +324,20 @@ func (encoder *encoder) encodeMapKey(value reflect.Value, obj *wafObject, depth 
 		return errInvalidMapKey
 	}
 
-	if len(keyStr) > encoder.stringMaxSize {
+	encoder.encodeMapKeyFromString(keyStr, obj)
+	return nil
+}
+
+// encodeMapKeyFromString takes a string and a wafObject and sets the map key attribute on the wafObject to the supplied
+// string. The key may be truncated if it exceeds the maximum string size allowed by the encoder.
+func (encoder *encoder) encodeMapKeyFromString(keyStr string, obj *wafObject) {
+	size := len(keyStr)
+	if size > encoder.stringMaxSize {
 		keyStr = keyStr[:encoder.stringMaxSize]
+		encoder.addTruncation(StringTooLong, size)
 	}
 
 	encoder.cgoRefs.AllocWafMapKey(obj, keyStr)
-	return nil
 }
 
 // encodeArray takes a reflect.Value and a wafObject pointer and iterates on the elements and returns
@@ -294,23 +346,30 @@ func (encoder *encoder) encodeMapKey(value reflect.Value, obj *wafObject, depth 
 // - Elements producing an error at encoding or null values will be skipped
 func (encoder *encoder) encodeArray(value reflect.Value, obj *wafObject, depth int) {
 	length := value.Len()
+
 	capacity := length
 	if capacity > encoder.containerMaxSize {
 		capacity = encoder.containerMaxSize
 	}
 
 	currIndex := 0
-	objArray := encoder.cgoRefs.AllocWafArray(obj, wafArrayType, uint64(capacity))
-	for i := 0; currIndex < capacity && i < length; i++ {
-		objElem := &objArray[currIndex]
 
+	objArray := encoder.cgoRefs.AllocWafArray(obj, wafArrayType, uint64(capacity))
+
+	for i := 0; i < length; i++ {
+		if currIndex == capacity {
+			encoder.addTruncation(ContainerTooLarge, length)
+			break
+		}
+
+		objElem := &objArray[currIndex]
 		if err := encoder.encode(value.Index(i), objElem, depth); err != nil {
 			continue
 		}
 
 		// If the element is null or invalid it has no impact on the waf execution, therefore we can skip its
 		// encoding. In this specific case we just overwrite it at the next loop iteration.
-		if objElem.IsUnusable() {
+		if objElem == nil || objElem.IsUnusable() {
 			continue
 		}
 
@@ -319,4 +378,100 @@ func (encoder *encoder) encodeArray(value reflect.Value, obj *wafObject, depth i
 
 	// Fix the size because we skipped map entries
 	obj.nbEntries = uint64(currIndex)
+}
+
+func (encoder *encoder) addTruncation(reason TruncationReason, size int) {
+	if encoder.truncations == nil {
+		encoder.truncations = make(map[TruncationReason][]int, 3)
+	}
+	encoder.truncations[reason] = append(encoder.truncations[reason], size)
+}
+
+// mesureObjectDepth traverses the provided object recursively to try and obtain
+// the real object depth, but limits itself to about 1ms of time budget, past
+// which it'll stop and return whatever it has go to so far.
+func (encoder *encoder) measureObjectDepth(obj reflect.Value) {
+	ctx, cancelCtx := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancelCtx()
+
+	depth, _ := depthOf(ctx, obj)
+	encoder.truncations[ObjectTooDeep] = []int{depth}
+}
+
+// depthOf returns the depth of the provided object. This is 0 for scalar values,
+// such as strings.
+func depthOf(ctx context.Context, obj reflect.Value) (depth int, err error) {
+	if err = ctx.Err(); err != nil {
+		// Timed out, won't go any deeper
+		return 0, err
+	}
+
+	obj, kind := resolvePointer(obj)
+
+	//TODO: Remove this once Go 1.21 is the minimum supported version (it adds `builtin.max`)
+	max := func(x, y int) int {
+		if x > y {
+			return x
+		}
+		return y
+	}
+
+	var itemDepth int
+	switch kind {
+	case reflect.Array, reflect.Slice:
+		if obj.Type() == reflect.TypeOf([]byte(nil)) {
+			// We treat byte slices as strings
+			return 0, nil
+		}
+		for i := 0; i < obj.Len(); i++ {
+			itemDepth, err = depthOf(ctx, obj.Index(i))
+			depth = max(depth, itemDepth)
+			if err != nil {
+				break
+			}
+		}
+		return depth + 1, err
+	case reflect.Map:
+		for iter := obj.MapRange(); iter.Next(); {
+			itemDepth, err = depthOf(ctx, iter.Value())
+			depth = max(depth, itemDepth)
+			if err != nil {
+				break
+			}
+		}
+		return depth + 1, err
+	case reflect.Struct:
+		typ := obj.Type()
+		for i := 0; i < obj.NumField(); i++ {
+			fieldType := typ.Field(i)
+			_, usable := getFieldNameFromType(fieldType)
+			if !usable {
+				continue
+			}
+
+			itemDepth, err = depthOf(ctx, obj.Field(i))
+			depth = max(depth, itemDepth)
+			if err != nil {
+				break
+			}
+		}
+		return depth + 1, err
+	default:
+		return 0, nil
+	}
+}
+
+// resovlePointer attempts to resolve a pointer while limiting the pointer depth
+// to be traversed, so that this is not susceptible to an infinite loop when
+// provided a self-referencing pointer.
+func resolvePointer(obj reflect.Value) (reflect.Value, reflect.Kind) {
+	kind := obj.Kind()
+	for limit := 8; limit > 0 && kind == reflect.Pointer || kind == reflect.Interface; limit-- {
+		if obj.IsNil() {
+			return obj, kind
+		}
+		obj = obj.Elem()
+		kind = obj.Kind()
+	}
+	return obj, kind
 }

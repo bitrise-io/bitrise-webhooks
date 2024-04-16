@@ -20,27 +20,27 @@ const (
 type wafReturnCode int32
 
 const (
-	wafErrInternal        wafReturnCode = -3
-	wafErrInvalidObject                 = -2
-	wafErrInvalidArgument               = -1
-	wafOK                               = 0
-	wafMatch                            = 1
+	wafErrInternal wafReturnCode = iota - 3
+	wafErrInvalidObject
+	wafErrInvalidArgument
+	wafOK
+	wafMatch
 )
 
 // wafObjectType is an enum in C which has the size of DWORD.
 // But DWORD is 4 bytes in amd64 and arm64 so uint32 it is.
 type wafObjectType uint32
 
+const wafInvalidType wafObjectType = 0
 const (
-	wafInvalidType wafObjectType = 0
-	wafIntType                   = 1 << 0
-	wafUintType                  = 1 << 1
-	wafStringType                = 1 << 2
-	wafArrayType                 = 1 << 3
-	wafMapType                   = 1 << 4
-	wafBoolType                  = 1 << 5
-	wafFloatType                 = 1 << 6
-	wafNilType                   = 1 << 7
+	wafIntType wafObjectType = 1 << iota
+	wafUintType
+	wafStringType
+	wafArrayType
+	wafMapType
+	wafBoolType
+	wafFloatType
+	wafNilType
 )
 
 type wafObject struct {
@@ -56,6 +56,11 @@ type wafObject struct {
 	// we just add it explicitly to not take any chance.
 	// And we cannot pack a struct in go so it will get tricky if the struct is
 	// packed (apart from breaking all tracers of course)
+}
+
+// isInvalid determines whether this WAF Object has the invalid type (which is the 0-value).
+func (w *wafObject) isInvalid() bool {
+	return w._type == wafInvalidType
 }
 
 // isNil determines whether this WAF Object is nil or not.
@@ -102,13 +107,6 @@ type wafResult struct {
 	actions       wafObject
 	derivatives   wafObject
 	total_runtime uint64
-}
-
-type wafRulesetInfo struct {
-	loaded  uint16
-	failed  uint16
-	errors  wafObject
-	version uintptr // char *
 }
 
 // wafHandle is a forward declaration in ddwaf.h header
@@ -186,10 +184,6 @@ func ptrToUintptr[T any](arg *T) uintptr {
 
 func sliceToUintptr[T any](arg []T) uintptr {
 	return (*reflect.SliceHeader)(unsafe.Pointer(&arg)).Data
-}
-
-func stringToUintptr(arg string) uintptr {
-	return (*reflect.StringHeader)(unsafe.Pointer(&arg)).Data
 }
 
 // keepAlive() globals

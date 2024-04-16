@@ -19,10 +19,10 @@ import (
 // error is unreliable and the caller must rather stop using the library.
 // Examples include safety checks errors.
 type PanicError struct {
-	// The function symbol name that was given to `tryCall()`.
-	in string
 	// The recovered panic error while executing the function `in`.
 	Err error
+	// The function symbol name that was given to `tryCall()`.
+	in string
 }
 
 func newPanicError(in func() error, err error) *PanicError {
