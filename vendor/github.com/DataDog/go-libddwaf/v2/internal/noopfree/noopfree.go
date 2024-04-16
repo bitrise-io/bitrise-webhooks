@@ -10,6 +10,6 @@ package noopfree
 
 import "unsafe"
 
-//go:linkname _noop_free _noop_free
-var _noop_free byte
-var NoopFreeFn uintptr = uintptr(unsafe.Pointer(&_noop_free))
+//go:linkname _noop_free_v2 _noop_free_v2
+var _noop_free_v2 byte
+var NoopFreeFn uintptr = uintptr(unsafe.Pointer(&_noop_free_v2))

@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016-present Datadog, Inc.
 
-//go:build (linux || darwin) && (amd64 || arm64) && !go1.22
+//go:build (linux || darwin) && (amd64 || arm64) && !go1.23 && !datadog.no_waf && (cgo || appsec)
 
 package waf
 
@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"github.com/DataDog/go-libddwaf/v2/internal/lib"
+	"github.com/DataDog/go-libddwaf/v2/internal/log"
 	"github.com/ebitengine/purego"
 )
 
@@ -87,6 +88,15 @@ func newWafDl() (dl *wafDl, err error) {
 		return
 	}
 
+	if val := os.Getenv(log.EnvVarLogLevel); val != "" {
+		setLogSym, symErr := purego.Dlsym(handle, "ddwaf_set_log_cb")
+		if symErr != nil {
+			return
+		}
+		logLevel := log.LevelNamed(val)
+		dl.syscall(setLogSym, log.CallbackFunctionPointer(), uintptr(logLevel))
+	}
+
 	return
 }
 
@@ -99,11 +109,15 @@ func (waf *wafDl) wafGetVersion() string {
 	return gostring(cast[byte](waf.syscall(waf.getVersion)))
 }
 
-func (waf *wafDl) wafInit(ruleset *wafObject, config *wafConfig, info *wafObject) wafHandle {
+// wafInit initializes a new WAF with the provided ruleset, configuration and info objects. A
+// cgoRefPool ensures that the provided input values are not moved or garbage collected by the Go
+// runtime during the WAF call.
+func (waf *wafDl) wafInit(ruleset *wafObject, config *wafConfig, info *wafObject, refs cgoRefPool) wafHandle {
 	handle := wafHandle(waf.syscall(waf.init, ptrToUintptr(ruleset), ptrToUintptr(config), ptrToUintptr(info)))
 	keepAlive(ruleset)
 	keepAlive(config)
 	keepAlive(info)
+	keepAlive(refs)
 	return handle
 }
 
@@ -217,9 +231,4 @@ func resolveWafSymbols(handle uintptr) (symbols wafSymbols, err error) {
 	}
 
 	return
-}
-
-// Implement SupportsTarget()
-func supportsTarget() (bool, error) {
-	return true, nil
 }

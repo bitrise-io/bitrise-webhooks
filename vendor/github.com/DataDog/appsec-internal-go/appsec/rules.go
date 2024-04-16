@@ -6,8 +6,17 @@ package appsec
 
 import "encoding/json"
 
-// DefaultRuleset returns the default recommended security rules for AppSec
+// DefaultRuleset returns the marshaled default recommended security rules for AppSec
 func DefaultRuleset() ([]byte, error) {
+	rules, err := DefaultRulesetMap()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(rules)
+}
+
+// DefaultRulesetMap returns the unmarshaled default recommended security rules for AppSec
+func DefaultRulesetMap() (map[string]any, error) {
 	var rules map[string]any
 	var processors map[string]any
 	if err := json.Unmarshal([]byte(StaticRecommendedRules), &rules); err != nil {
@@ -20,5 +29,5 @@ func DefaultRuleset() ([]byte, error) {
 		rules[k] = v
 	}
 
-	return json.Marshal(rules)
+	return rules, nil
 }

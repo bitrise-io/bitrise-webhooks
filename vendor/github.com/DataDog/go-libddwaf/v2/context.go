@@ -16,22 +16,18 @@ import (
 // when calling it multiple times to run its rules every time new addresses
 // become available. Each request must have its own Context.
 type Context struct {
-	// Instance of the WAF
-	handle   *Handle
-	cContext wafContext
-	// cgoRefs is used to retain go references to WafObjects until the context is destroyed.
-	// As per libddwaf documentation, WAF Objects must be alive during all the context lifetime
-	cgoRefs cgoRefPool
-	// Mutex protecting the use of cContext which is not thread-safe and cgoRefs.
-	mutex sync.Mutex
+	handle *Handle // Instance of the WAF
+
+	cgoRefs  cgoRefPool // Used to retain go data referenced by WAF Objects the context holds
+	cContext wafContext // The C ddwaf_context pointer
 
 	// Stats
-	// Cumulated internal WAF run time - in nanoseconds - for this context.
-	totalRuntimeNs atomic.Uint64
-	// Cumulated overall run time - in nanoseconds - for this context.
-	totalOverallRuntimeNs atomic.Uint64
-	// Cumulated timeout count for this context.
-	timeoutCount atomic.Uint64
+	totalRuntimeNs        atomic.Uint64 // Cumulative internal WAF run time - in nanoseconds - for this context.
+	totalOverallRuntimeNs atomic.Uint64 // Cumulative overall run time - in nanoseconds - for this context.
+	timeoutCount          atomic.Uint64 // Cumulative timeout count for this context.
+
+	// Mutex protecting the use of cContext which is not thread-safe and cgoRefs.
+	mutex sync.Mutex
 }
 
 // NewContext returns a new WAF context of to the given WAF handle.
@@ -41,13 +37,13 @@ type Context struct {
 // or the WAF context couldn't be created.
 func NewContext(handle *Handle) *Context {
 	// Handle has been released
-	if handle.addRefCounter(1) == 0 {
+	if !handle.retain() {
 		return nil
 	}
 
 	cContext := wafLib.wafContextInit(handle.cHandle)
 	if cContext == 0 {
-		handle.addRefCounter(-1)
+		handle.release() // We couldn't get a context, so we no longer have an implicit reference to the Handle in it...
 		return nil
 	}
 
@@ -74,6 +70,7 @@ func (d RunAddressData) isEmpty() bool {
 // matches as a JSON string (usually opaquely used) along with the corresponding actions in any. In case of an error,
 // matches and actions can still be returned, for instance in the case of a timeout error. Errors can be tested against
 // the RunError type.
+// Struct fields having the tag `ddwaf:"ignore"` will not be encoded and sent to the WAF
 func (context *Context) Run(addressData RunAddressData, timeout time.Duration) (res Result, err error) {
 	if addressData.isEmpty() {
 		return
@@ -120,12 +117,9 @@ func (context *Context) Run(addressData RunAddressData, timeout time.Duration) (
 	return
 }
 
+// run executes the ddwaf_run call with the provided data on this context. The caller is responsible for locking the
+// context appropriately around this call.
 func (context *Context) run(persistentData, ephemeralData *wafObject, timeout time.Duration, cgoRefs *cgoRefPool) (Result, error) {
-	// RLock the handle to safely get read access to the WAF handle and prevent concurrent changes of it
-	// such as a rules-data update.
-	context.handle.mutex.RLock()
-	defer context.handle.mutex.RUnlock()
-
 	result := new(wafResult)
 	defer wafLib.wafResultFree(result)
 
@@ -143,6 +137,10 @@ func (context *Context) run(persistentData, ephemeralData *wafObject, timeout ti
 func unwrapWafResult(ret wafReturnCode, result *wafResult) (res Result, err error) {
 	if result.timeout > 0 {
 		err = ErrTimeout
+	} else {
+		// Derivatives can be generated even if no security event gets detected, so we decode them as long as the WAF
+		// didn't timeout
+		res.Derivatives, err = decodeMap(&result.derivatives)
 	}
 
 	if ret == wafOK {
@@ -166,17 +164,23 @@ func unwrapWafResult(ret wafReturnCode, result *wafResult) (res Result, err erro
 		}
 	}
 
-	res.Derivatives, err = decodeMap(&result.derivatives)
 	return res, err
 }
 
-// Close calls handle.closeContext which calls ddwaf_context_destroy and maybe also close the handle if it in termination state.
+// Close the underlying `ddwaf_context` and releases the associated internal
+// data. Also decreases the reference count of the `ddwaf_hadnle` which created
+// this context, possibly releasing it completely (if this was the last context
+// created from this handle & it was released by its creator).
 func (context *Context) Close() {
-	defer context.handle.closeContext(context)
-	// Keep the Go pointer references until the end of the context
-	keepAlive(context.cgoRefs)
-	// The context is no longer used so we can try releasing the Go pointer references asap by nulling them
-	context.cgoRefs = cgoRefPool{}
+	context.mutex.Lock()
+	defer context.mutex.Unlock()
+
+	wafLib.wafContextDestroy(context.cContext)
+	keepAlive(context.cgoRefs)     // Keep the Go pointer references until the end of the context
+	defer context.handle.release() // Reduce the reference counter of the Handle.
+
+	context.cgoRefs = cgoRefPool{} // The data in context.cgoRefs is no longer needed, explicitly release
+	context.cContext = 0           // Makes it easy to spot use-after-free/double-free issues
 }
 
 // TotalRuntime returns the cumulated WAF runtime across various run calls within the same WAF context.
