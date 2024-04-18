@@ -417,7 +417,7 @@ func transformIssueCommentEvent(eventModel IssueCommentEventModel) hookCommon.Tr
 		}
 	}
 
-	// NOTE: we cannot do the other PR checks because the payload doesn't have enough data
+	// NOTE: we cannot do the other PR checks (see transformPullRequestEvent mergeability conditions) because the payload doesn't have enough data
 
 	headRefBuildParam := fmt.Sprintf("pull/%d/head", issue.PullRequestID)
 	unverifiedMergeRefBuildParam := fmt.Sprintf("pull/%d/merge", issue.PullRequestID)
