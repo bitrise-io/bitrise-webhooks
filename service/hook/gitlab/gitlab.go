@@ -57,6 +57,7 @@ const (
 	tagPushEventID              = "Tag Push Hook"
 	codePushEventID             = "Push Hook"
 	mergeRequestEventID         = "Merge Request Hook"
+	commentEventID              = "Note Hook"
 	gitlabPublicVisibilityLevel = 20
 
 	// ProviderID ...
@@ -121,8 +122,8 @@ type LabelInfoModel struct {
 	Title string `json:"title"`
 }
 
-// ObjectAttributesInfoModel ...
-type ObjectAttributesInfoModel struct {
+// MergeRequestInfoModel ...
+type MergeRequestInfoModel struct {
 	ID             int                 `json:"iid"`
 	Title          string              `json:"title"`
 	Description    string              `json:"description"`
@@ -167,11 +168,26 @@ type LabelChanges struct {
 
 // MergeRequestEventModel ...
 type MergeRequestEventModel struct {
-	ObjectKind       string                    `json:"object_kind"`
-	ObjectAttributes ObjectAttributesInfoModel `json:"object_attributes"`
-	Labels           []LabelInfoModel          `json:"labels"`
-	User             UserModel                 `json:"user"`
-	Changes          Changes                   `json:"changes"`
+	ObjectKind       string                `json:"object_kind"`
+	ObjectAttributes MergeRequestInfoModel `json:"object_attributes"`
+	Labels           []LabelInfoModel      `json:"labels"`
+	User             UserModel             `json:"user"`
+	Changes          Changes               `json:"changes"`
+}
+
+// CommentInfoModel ...
+type CommentInfoModel struct {
+	ID           int    `json:"id"`
+	Note         string `json:"note"`
+	NoteableType string `json:"noteable_type"`
+}
+
+// MergeRequestCommentEventModel ...
+type MergeRequestCommentEventModel struct {
+	ObjectKind       string                `json:"object_kind"`
+	ObjectAttributes CommentInfoModel      `json:"object_attributes"`
+	MergeRequest     MergeRequestInfoModel `json:"merge_request"`
+	User             UserModel             `json:"user"`
 }
 
 // ---------------------------------------
@@ -211,7 +227,7 @@ func detectContentTypeAndEventID(header http.Header) (string, string, error) {
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return slices.Contains([]string{tagPushEventID, codePushEventID, mergeRequestEventID}, eventKey)
+	return slices.Contains([]string{tagPushEventID, codePushEventID, mergeRequestEventID, commentEventID}, eventKey)
 }
 
 func isAcceptMergeRequestState(prState string) bool {
@@ -454,8 +470,8 @@ func transformTagPushEvent(tagPushEvent TagPushEventModel) hookCommon.TransformR
 	}
 }
 
-func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.TransformResultModel {
-	if mergeRequest.ObjectKind != "merge_request" {
+func transformMergeRequestEvent(event MergeRequestEventModel) hookCommon.TransformResultModel {
+	if event.ObjectKind != "merge_request" {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
 			Error:                      errors.New("Not a Merge Request object"),
@@ -463,7 +479,62 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 		}
 	}
 
-	if mergeRequest.ObjectAttributes.State == "" {
+	mergeRequest := event.ObjectAttributes
+	if !isAcceptMergeRequestAction(mergeRequest.Action, mergeRequest.Oldrev, event.Changes) {
+		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
+			Error:                      fmt.Errorf("Merge Request action doesn't require a build: %s", mergeRequest.Action),
+			ShouldSkip:                 true,
+		}
+	}
+
+	newLabels := event.Changes.getNewLabels()
+	readyState := mergeRequestReadyState(event)
+	user := event.User
+
+	return transformMergeRequest(mergeRequest, user, readyState, newLabels, "")
+}
+
+func transformMergeRequestCommentEvent(event MergeRequestCommentEventModel) hookCommon.TransformResultModel {
+	if event.ObjectKind != "note" {
+		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
+			Error:                      errors.New("Not a Note object"),
+			ShouldSkip:                 true,
+		}
+	}
+
+	if event.ObjectAttributes.NoteableType != "MergeRequest" {
+		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
+			Error:                      errors.New("Not a Merge Request note"),
+			ShouldSkip:                 true,
+		}
+	}
+
+	comment := event.ObjectAttributes
+	mergeRequest := event.MergeRequest
+	user := event.User
+	var newLabels []string
+
+	var readyState bitriseapi.PullRequestReadyState
+	if mergeRequest.Draft {
+		readyState = bitriseapi.PullRequestReadyStateDraft
+	} else {
+		readyState = bitriseapi.PullRequestReadyStateReadyForReview
+	}
+
+	return transformMergeRequest(mergeRequest, user, readyState, newLabels, comment.Note)
+}
+
+func transformMergeRequest(
+	mergeRequest MergeRequestInfoModel,
+	user UserModel,
+	readyState bitriseapi.PullRequestReadyState,
+	newLabels []string,
+	comment string,
+) hookCommon.TransformResultModel {
+	if mergeRequest.State == "" {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
 			Error:                      errors.New("No Merge Request state specified"),
@@ -471,7 +542,7 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 		}
 	}
 
-	if mergeRequest.ObjectAttributes.MergeCommitSHA != "" {
+	if mergeRequest.MergeCommitSHA != "" {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
 			Error:                      errors.New("Merge Request already merged"),
@@ -479,23 +550,15 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 		}
 	}
 
-	if !isAcceptMergeRequestState(mergeRequest.ObjectAttributes.State) {
+	if !isAcceptMergeRequestState(mergeRequest.State) {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error:                      fmt.Errorf("Merge Request state doesn't require a build: %s", mergeRequest.ObjectAttributes.State),
+			Error:                      fmt.Errorf("Merge Request state doesn't require a build: %s", mergeRequest.State),
 			ShouldSkip:                 true,
 		}
 	}
 
-	if !isAcceptMergeRequestAction(mergeRequest.ObjectAttributes.Action, mergeRequest.ObjectAttributes.Oldrev, mergeRequest.Changes) {
-		return hookCommon.TransformResultModel{
-			DontWaitForTriggerResponse: true,
-			Error:                      fmt.Errorf("Merge Request action doesn't require a build: %s", mergeRequest.ObjectAttributes.Action),
-			ShouldSkip:                 true,
-		}
-	}
-
-	if mergeRequest.ObjectAttributes.MergeStatus == "cannot_be_merged" || mergeRequest.ObjectAttributes.MergeError != "" {
+	if mergeRequest.MergeStatus == "cannot_be_merged" || mergeRequest.MergeError != "" {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
 			Error:                      errors.New("Merge Request is not mergeable"),
@@ -503,15 +566,15 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 		}
 	}
 
-	commitMsg := mergeRequest.ObjectAttributes.Title
-	if mergeRequest.ObjectAttributes.Description != "" {
-		commitMsg = fmt.Sprintf("%s\n\n%s", commitMsg, mergeRequest.ObjectAttributes.Description)
+	commitMsg := mergeRequest.Title
+	if mergeRequest.Description != "" {
+		commitMsg = fmt.Sprintf("%s\n\n%s", commitMsg, mergeRequest.Description)
 	}
 
 	var mergeRef string
-	mergeStatus := mergeRequest.ObjectAttributes.MergeStatus
+	mergeStatus := mergeRequest.MergeStatus
 	if mergeStatus != "preparing" && mergeStatus != "unchecked" {
-		mergeRef = fmt.Sprintf("merge-requests/%d/merge", mergeRequest.ObjectAttributes.ID)
+		mergeRef = fmt.Sprintf("merge-requests/%d/merge", mergeRequest.ID)
 	}
 
 	var labels []string
@@ -525,27 +588,28 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitMessage:            commitMsg,
-					CommitHash:               mergeRequest.ObjectAttributes.LastCommit.SHA,
-					Branch:                   mergeRequest.ObjectAttributes.SourceBranch,
-					BranchRepoOwner:          mergeRequest.ObjectAttributes.Source.Namespace,
-					BranchDest:               mergeRequest.ObjectAttributes.TargetBranch,
-					BranchDestRepoOwner:      mergeRequest.ObjectAttributes.Target.Namespace,
-					PullRequestID:            &mergeRequest.ObjectAttributes.ID,
-					BaseRepositoryURL:        mergeRequest.ObjectAttributes.Target.getRepositoryURL(),
-					HeadRepositoryURL:        mergeRequest.ObjectAttributes.Source.getRepositoryURL(),
-					PullRequestRepositoryURL: mergeRequest.ObjectAttributes.Source.getRepositoryURL(),
-					PullRequestAuthor:        mergeRequest.User.Name,
+					CommitHash:               mergeRequest.LastCommit.SHA,
+					Branch:                   mergeRequest.SourceBranch,
+					BranchRepoOwner:          mergeRequest.Source.Namespace,
+					BranchDest:               mergeRequest.TargetBranch,
+					BranchDestRepoOwner:      mergeRequest.Target.Namespace,
+					PullRequestID:            &mergeRequest.ID,
+					BaseRepositoryURL:        mergeRequest.Target.getRepositoryURL(),
+					HeadRepositoryURL:        mergeRequest.Source.getRepositoryURL(),
+					PullRequestRepositoryURL: mergeRequest.Source.getRepositoryURL(),
+					PullRequestAuthor:        user.Name,
 					PullRequestMergeBranch:   mergeRef,
-					PullRequestHeadBranch:    fmt.Sprintf("merge-requests/%d/head", mergeRequest.ObjectAttributes.ID),
-					PullRequestReadyState:    mergeRequestReadyState(mergeRequest),
-					PullRequestLabelsAdded:   mergeRequest.Changes.getNewLabels(),
+					PullRequestHeadBranch:    fmt.Sprintf("merge-requests/%d/head", mergeRequest.ID),
+					PullRequestReadyState:    readyState,
+					PullRequestLabelsAdded:   newLabels,
 					PullRequestLabels:        labels,
+					PullRequestComment:       comment,
 				},
-				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, mergeRequest.User.Username),
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, user.Username),
 			},
 		},
-		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(mergeRequest.ObjectAttributes.Title) &&
-			hookCommon.IsSkipBuildByCommitMessage(mergeRequest.ObjectAttributes.Description),
+		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(mergeRequest.Title) &&
+			hookCommon.IsSkipBuildByCommitMessage(mergeRequest.Description),
 	}
 }
 
@@ -628,6 +692,16 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 
 		return transformMergeRequestEvent(mergeRequestEvent)
+	} else if eventID == commentEventID {
+		var commentEvent MergeRequestCommentEventModel
+		if err := json.NewDecoder(r.Body).Decode(&commentEvent); err != nil {
+			return hookCommon.TransformResultModel{
+				DontWaitForTriggerResponse: true,
+				Error:                      fmt.Errorf("Failed to parse request body as JSON: %s", err),
+			}
+		}
+
+		return transformMergeRequestCommentEvent(commentEvent)
 	}
 
 	return hookCommon.TransformResultModel{

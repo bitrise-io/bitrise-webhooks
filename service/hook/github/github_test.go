@@ -20,10 +20,10 @@ const (
       "name": "webhook-test",
       "full_name": "test_user/webhook-test",
       "private": true,
-      "html_url": "https://github.com/molnarm/webhook-test",
+      "html_url": "https://github.com/test_user/webhook-test",
       "description": "test repo for webhooks",
       "fork": false,
-      "url": "https://github.com/molnarm/webhook-test",
+      "url": "https://github.com/test_user/webhook-test",
       "ssh_url": "git@github.com:test_user/webhook-test.git",
       "clone_url": "https://github.com/test_user/webhook-test.git"
     },
@@ -230,7 +230,7 @@ const (
 		    {
 		      "id": 6664654053,
 		      "node_id": "LA_kwDOLdfcTc8AAAABjT6M5Q",
-		      "url": "https://api.github.com/repos/molnarm/webhook-test/labels/good%20first%20issue",
+		      "url": "https://api.github.com/repos/test_user/webhook-test/labels/good%20first%20issue",
 		      "name": "good first issue",
 		      "color": "7057ff",
 		      "default": true,
@@ -283,7 +283,7 @@ const (
 		{
 		  "id": 6664654053,
 		  "node_id": "LA_kwDOLdfcTc8AAAABjT6M5Q",
-		  "url": "https://api.github.com/repos/molnarm/webhook-test/labels/good%20first%20issue",
+		  "url": "https://api.github.com/repos/test_user/webhook-test/labels/good%20first%20issue",
 		  "name": "good first issue",
 		  "color": "7057ff",
 		  "default": true,
@@ -359,7 +359,7 @@ const (
 				{
 				  "id": 6664654053,
 				  "node_id": "LA_kwDOLdfcTc8AAAABjT6M5Q",
-				  "url": "https://api.github.com/repos/molnarm/webhook-test/labels/good%20first%20issue",
+				  "url": "https://api.github.com/repos/test_user/webhook-test/labels/good%20first%20issue",
 				  "name": "good first issue",
 				  "color": "7057ff",
 				  "default": true,
@@ -408,7 +408,7 @@ const (
 		    {
 		      "id": 6664654053,
 		      "node_id": "LA_kwDOLdfcTc8AAAABjT6M5Q",
-		      "url": "https://api.github.com/repos/molnarm/webhook-test/labels/good%20first%20issue",
+		      "url": "https://api.github.com/repos/test_user/webhook-test/labels/good%20first%20issue",
 		      "name": "good first issue",
 		      "color": "7057ff",
 		      "default": true,
@@ -426,8 +426,8 @@ const (
 				"name": "webhook-test",
 				"full_name": "test_user/webhook-test",
 				"private": true,
-				"ssh_url": "git@github.com:molnarm/webhook-test.git",
-				"clone_url": "https://github.com/molnarm/webhook-test.git"
+				"ssh_url": "git@github.com:test_user/webhook-test.git",
+				"clone_url": "https://github.com/test_user/webhook-test.git"
 			}
         },
         "base": {
@@ -439,8 +439,8 @@ const (
 				"name": "webhook-test",
 				"full_name": "test_user/webhook-test",
 				"private": true,
-				"ssh_url": "git@github.com:molnarm/webhook-test.git",
-				"clone_url": "https://github.com/molnarm/webhook-test.git"
+				"ssh_url": "git@github.com:test_user/webhook-test.git",
+				"clone_url": "https://github.com/test_user/webhook-test.git"
 			}
         },
 		"merged": false,
@@ -465,18 +465,214 @@ const (
         "name": "webhook-test",
         "full_name": "test_user/webhook-test",
         "private": true,
-        "ssh_url": "git@github.com:molnarm/webhook-test.git",
-        "clone_url": "https://github.com/molnarm/webhook-test.git"
+        "ssh_url": "git@github.com:test_user/webhook-test.git",
+        "clone_url": "https://github.com/test_user/webhook-test.git"
     },
     "sender": {
         "login": "test_user"
     }
+}`
+
+	sampleIssueCommentCreatedData = `{
+  "action": "created",
+  "issue": {
+    "url": "https://api.github.com/repos/test_user/webhook-test/issues/4",
+    "repository_url": "https://api.github.com/repos/test_user/webhook-test",
+    "labels_url": "https://api.github.com/repos/test_user/webhook-test/issues/4/labels{/name}",
+    "comments_url": "https://api.github.com/repos/test_user/webhook-test/issues/4/comments",
+    "events_url": "https://api.github.com/repos/test_user/webhook-test/issues/4/events",
+    "html_url": "https://github.com/test_user/webhook-test/pull/4",
+    "id": 2200602723,
+    "node_id": "PR_kwDOLdfcTc5qYww6",
+    "number": 4,
+    "title": "new PR",
+    "user": {
+      "login": "test_user",
+      "id": 517812
+    },
+    "labels": [
+      {
+        "id": 6723067658,
+        "node_id": "LA_kwDOLdfcTc8AAAABkLnfCg",
+        "url": "https://api.github.com/repos/test_user/webhook-test/labels/trigger-other",
+        "name": "trigger-other",
+        "color": "56826B",
+        "default": false,
+        "description": ""
+      }
+    ],
+    "state": "open",
+    "locked": false,
+    "assignee": null,
+    "assignees": [
+    ],
+    "milestone": null,
+    "comments": 1,
+    "created_at": "2024-03-21T16:12:48Z",
+    "updated_at": "2024-04-04T07:51:10Z",
+    "closed_at": null,
+    "author_association": "OWNER",
+    "active_lock_reason": null,
+    "draft": false,
+    "pull_request": {
+      "url": "https://api.github.com/repos/test_user/webhook-test/pulls/4",
+      "html_url": "https://github.com/test_user/webhook-test/pull/4",
+      "diff_url": "https://github.com/test_user/webhook-test/pull/4.diff",
+      "patch_url": "https://github.com/test_user/webhook-test/pull/4.patch",
+      "merged_at": null
+    },
+    "body": "Very detailed description of a pull request.",
+    "reactions": {
+    },
+    "timeline_url": "https://api.github.com/repos/test_user/webhook-test/issues/4/timeline",
+    "performed_via_github_app": null,
+    "state_reason": null
+  },
+  "comment": {
+    "url": "https://api.github.com/repos/test_user/webhook-test/issues/comments/2036438149",
+    "html_url": "https://github.com/test_user/webhook-test/pull/4#issuecomment-2036438149",
+    "issue_url": "https://api.github.com/repos/test_user/webhook-test/issues/4",
+    "id": 2036438149,
+    "node_id": "IC_kwDOLdfcTc55YZSF",
+    "user": {
+      "login": "test_user",
+      "id": 517812
+    },
+    "created_at": "2024-04-04T07:51:09Z",
+    "updated_at": "2024-04-04T07:51:09Z",
+    "author_association": "OWNER",
+    "body": "first comment",
+    "reactions": {
+    },
+    "performed_via_github_app": null
+  },
+  "repository": {
+    "id": 769121357,
+    "node_id": "R_kgDOLdfcTQ",
+    "name": "webhook-test",
+    "full_name": "test_user/webhook-test",
+    "private": true,
+    "owner": {
+      "login": "test_user",
+      "id": 517812
+    },
+    "html_url": "https://github.com/test_user/webhook-test",
+    "description": "test repo for webhooks",
+    "ssh_url": "git@github.com:test_user/webhook-test.git",
+    "clone_url": "https://github.com/test_user/webhook-test.git",
+    "visibility": "private"
+  },
+  "sender": {
+    "login": "test_user",
+    "id": 517812
+  }
+}`
+
+	sampleIssueCommentEditedData = `{
+  "action": "edited",
+  "changes": {
+    "body": {
+      "from": "first comment"
+    }
+  },
+  "issue": {
+    "url": "https://api.github.com/repos/test_user/webhook-test/issues/4",
+    "repository_url": "https://api.github.com/repos/test_user/webhook-test",
+    "labels_url": "https://api.github.com/repos/test_user/webhook-test/issues/4/labels{/name}",
+    "comments_url": "https://api.github.com/repos/test_user/webhook-test/issues/4/comments",
+    "events_url": "https://api.github.com/repos/test_user/webhook-test/issues/4/events",
+    "html_url": "https://github.com/test_user/webhook-test/pull/4",
+    "id": 2200602723,
+    "node_id": "PR_kwDOLdfcTc5qYww6",
+    "number": 4,
+    "title": "new PR",
+    "user": {
+      "login": "test_user",
+      "id": 517812
+    },
+    "labels": [
+      {
+        "id": 6723067658,
+        "node_id": "LA_kwDOLdfcTc8AAAABkLnfCg",
+        "url": "https://api.github.com/repos/test_user/webhook-test/labels/trigger-other",
+        "name": "trigger-other",
+        "color": "56826B",
+        "default": false,
+        "description": ""
+      }
+    ],
+    "state": "open",
+    "locked": false,
+    "assignee": null,
+    "assignees": [
+    ],
+    "milestone": null,
+    "comments": 1,
+    "created_at": "2024-03-21T16:12:48Z",
+    "updated_at": "2024-04-04T11:48:35Z",
+    "closed_at": null,
+    "author_association": "OWNER",
+    "active_lock_reason": null,
+    "draft": false,
+    "pull_request": {
+      "url": "https://api.github.com/repos/test_user/webhook-test/pulls/4",
+      "html_url": "https://github.com/test_user/webhook-test/pull/4",
+      "diff_url": "https://github.com/test_user/webhook-test/pull/4.diff",
+      "patch_url": "https://github.com/test_user/webhook-test/pull/4.patch",
+      "merged_at": null
+    },
+    "body": "Very detailed description of a pull request.",
+    "reactions": {
+    },
+    "timeline_url": "https://api.github.com/repos/test_user/webhook-test/issues/4/timeline",
+    "performed_via_github_app": null,
+    "state_reason": null
+  },
+  "comment": {
+    "url": "https://api.github.com/repos/test_user/webhook-test/issues/comments/2036438149",
+    "html_url": "https://github.com/test_user/webhook-test/pull/4#issuecomment-2036438149",
+    "issue_url": "https://api.github.com/repos/test_user/webhook-test/issues/4",
+    "id": 2036438149,
+    "node_id": "IC_kwDOLdfcTc55YZSF",
+    "user": {
+      "login": "test_user",
+      "id": 517812
+    },
+    "created_at": "2024-04-04T07:51:09Z",
+    "updated_at": "2024-04-04T11:48:35Z",
+    "author_association": "OWNER",
+    "body": "I have a much better idea for a comment now.",
+    "reactions": {
+    },
+    "performed_via_github_app": null
+  },
+  "repository": {
+    "id": 769121357,
+    "node_id": "R_kgDOLdfcTQ",
+    "name": "webhook-test",
+    "full_name": "test_user/webhook-test",
+    "private": true,
+    "owner": {
+      "login": "test_user",
+      "id": 517812
+    },
+    "html_url": "https://github.com/test_user/webhook-test",
+    "description": "test repo for webhooks",
+    "ssh_url": "git@github.com:test_user/webhook-test.git",
+    "clone_url": "https://github.com/test_user/webhook-test.git",
+    "visibility": "private"
+  },
+  "sender": {
+    "login": "test_user",
+    "id": 517812
+  }
 }`
 )
 
 var boolFalse = false
 var boolTrue = true
 var intOne = 1
+var intFour = 4
 var intTwelve = 12
 
 func Test_detectContentTypeAndEventID(t *testing.T) {
@@ -1444,6 +1640,80 @@ func Test_transformPullRequestEvent(t *testing.T) {
 	}
 }
 
+func Test_transformIssueCommentEvent(t *testing.T) {
+	t.Log("Empty issue comment action")
+	{
+		event := IssueCommentEventModel{}
+		hookTransformResult := transformIssueCommentEvent(event)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "no issue comment action specified")
+	}
+
+	t.Log("Unsupported issue comment action")
+	{
+		event := IssueCommentEventModel{
+			Action: "deleted",
+		}
+		hookTransformResult := transformIssueCommentEvent(event)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "issue comment action doesn't require a build: deleted")
+	}
+
+	t.Log("Unsupported issue comment type")
+	{
+		event := IssueCommentEventModel{
+			Action: "created",
+			Issue:  IssueInfoModel{},
+		}
+		hookTransformResult := transformIssueCommentEvent(event)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "issue comment is not for a pull request")
+	}
+
+	t.Log("Empty PR state")
+	{
+		event := IssueCommentEventModel{
+			Action: "created",
+			Issue: IssueInfoModel{
+				PullRequest: &IssuePullRequestInfoModel{},
+			},
+		}
+		hookTransformResult := transformIssueCommentEvent(event)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "issue comment is for a pull request that has an unknown state")
+	}
+
+	t.Log("PR not open")
+	{
+		event := IssueCommentEventModel{
+			Action: "created",
+			Issue: IssueInfoModel{
+				PullRequest: &IssuePullRequestInfoModel{},
+				State:       "closed",
+			},
+		}
+		hookTransformResult := transformIssueCommentEvent(event)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "issue comment is for a pull request that is not open: closed")
+	}
+
+	t.Log("PR already merged")
+	{
+		event := IssueCommentEventModel{
+			Action: "created",
+			Issue: IssueInfoModel{
+				PullRequest: &IssuePullRequestInfoModel{
+					MergedAt: "2024-04-01T01:23:45Z",
+				},
+				State: "open",
+			},
+		}
+		hookTransformResult := transformIssueCommentEvent(event)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "issue comment is for a pull request that is already merged")
+	}
+}
+
 func Test_isAcceptPullRequestAction(t *testing.T) {
 	t.Log("Accept")
 	{
@@ -1525,6 +1795,19 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 			Header: http.Header{
 				"Content-Type":   {"application/json"},
 				"X-Github-Event": {"pull_request"},
+			},
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "failed to read content of request body: no or empty request body")
+	}
+
+	t.Log("Pull Request Comment Event - should not be skipped")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type":   {"application/json"},
+				"X-Github-Event": {"issue_comment"},
 			},
 		}
 		hookTransformResult := provider.TransformRequest(&request)
@@ -1766,9 +2049,9 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					Branch:                           "brencs",
 					BranchDest:                       "main",
 					PullRequestID:                    &intOne,
-					PullRequestRepositoryURL:         "git@github.com:molnarm/webhook-test.git",
-					BaseRepositoryURL:                "git@github.com:molnarm/webhook-test.git",
-					HeadRepositoryURL:                "git@github.com:molnarm/webhook-test.git",
+					PullRequestRepositoryURL:         "git@github.com:test_user/webhook-test.git",
+					BaseRepositoryURL:                "git@github.com:test_user/webhook-test.git",
+					HeadRepositoryURL:                "git@github.com:test_user/webhook-test.git",
 					PullRequestMergeBranch:           "pull/1/merge",
 					PullRequestUnverifiedMergeBranch: "pull/1/merge",
 					PullRequestHeadBranch:            "pull/1/head",
@@ -1776,6 +2059,76 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestReadyState:            bitriseapi.PullRequestReadyStateReadyForReview,
 					PullRequestLabels:                []string{"enhancement", "good first issue"},
 					PullRequestLabelsAdded:           []string{"enhancement"},
+				},
+				TriggeredBy: "webhook-github/test_user",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Pull Request :: comment created - should be handled")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Github-Event": {"issue_comment"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleIssueCommentCreatedData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitMessage:                    "new PR\n\nVery detailed description of a pull request.",
+					BranchDestRepoOwner:              "test_user",
+					PullRequestID:                    &intFour,
+					PullRequestRepositoryURL:         "git@github.com:test_user/webhook-test.git",
+					HeadRepositoryURL:                "git@github.com:test_user/webhook-test.git",
+					PullRequestAuthor:                "test_user",
+					PullRequestUnverifiedMergeBranch: "pull/4/merge",
+					PullRequestHeadBranch:            "pull/4/head",
+					DiffURL:                          "https://github.com/test_user/webhook-test/pull/4.diff",
+					Environments:                     make([]bitriseapi.EnvironmentItem, 0),
+					PullRequestReadyState:            bitriseapi.PullRequestReadyStateReadyForReview,
+					PullRequestLabels:                []string{"trigger-other"},
+					PullRequestComment:               "first comment",
+				},
+				TriggeredBy: "webhook-github/test_user",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Pull Request :: comment updated - should be handled")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Github-Event": {"issue_comment"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleIssueCommentEditedData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitMessage:                    "new PR\n\nVery detailed description of a pull request.",
+					BranchDestRepoOwner:              "test_user",
+					PullRequestID:                    &intFour,
+					PullRequestRepositoryURL:         "git@github.com:test_user/webhook-test.git",
+					HeadRepositoryURL:                "git@github.com:test_user/webhook-test.git",
+					PullRequestAuthor:                "test_user",
+					PullRequestUnverifiedMergeBranch: "pull/4/merge",
+					PullRequestHeadBranch:            "pull/4/head",
+					DiffURL:                          "https://github.com/test_user/webhook-test/pull/4.diff",
+					Environments:                     make([]bitriseapi.EnvironmentItem, 0),
+					PullRequestReadyState:            bitriseapi.PullRequestReadyStateReadyForReview,
+					PullRequestLabels:                []string{"trigger-other"},
+					PullRequestComment:               "I have a much better idea for a comment now.",
 				},
 				TriggeredBy: "webhook-github/test_user",
 			},

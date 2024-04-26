@@ -93,6 +93,8 @@ type BuildParamsModel struct {
 	PullRequestLabelsAdded []string `json:"pull_request_labels_added,omitempty"`
 	// pull request labels
 	PullRequestLabels []string `json:"pull_request_labels,omitempty"`
+	// newly added pull request comment
+	PullRequestComment string `json:"pull_request_comment,omitempty"`
 }
 
 // TriggerAPIParamsModel ...
@@ -115,8 +117,9 @@ type TriggerAPIResponseModel struct {
 
 // Validate ...
 func (triggerParams TriggerAPIParamsModel) Validate() error {
-	if triggerParams.BuildParams.Branch == "" && triggerParams.BuildParams.WorkflowID == "" && triggerParams.BuildParams.Tag == "" {
-		return errors.New("Missing Branch, Tag and WorkflowID parameters - at least one of these is required")
+	// This check validates the outgoing build params, catching cases that are clearly invalid. TODO it's incomplete, doesn't check for missing repo etc.
+	if triggerParams.BuildParams.Branch == "" && triggerParams.BuildParams.WorkflowID == "" && triggerParams.BuildParams.Tag == "" && triggerParams.BuildParams.PullRequestComment == "" {
+		return errors.New("Missing Branch, Tag, WorkflowID and PullRequestComment parameters - at least one of these is required")
 	}
 	if triggerParams.TriggeredBy == "" {
 		return errors.New("Missing TriggeredBy parameter")

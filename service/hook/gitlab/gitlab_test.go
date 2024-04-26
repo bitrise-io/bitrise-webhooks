@@ -111,7 +111,7 @@ const sampleMergeRequestLabelAddedData = `{
   "user": {
     "id": 20498345,
     "name": "Test User",
-    "username": "test-user",
+    "username": "test.user",
     "avatar_url": "https://secure.gravatar.com/avatar/1c779cb21fd42b608b40f7c2757aa640e3e9e05e166dce9c98c3c7ae368d8d27?s=80&d=identicon",
     "email": "[REDACTED]"
   },
@@ -141,7 +141,7 @@ const sampleMergeRequestLabelAddedData = `{
     "draft": false,
     "head_pipeline_id": null,
     "id": 288638999,
-    "iid": 1,
+    "iid": 12,
     "last_edited_at": "2024-03-14 15:34:41 UTC",
     "last_edited_by_id": 20498345,
     "merge_commit_sha": null,
@@ -392,6 +392,328 @@ const sampleMergeRequestLabelAddedData = `{
   }
 }`
 
+const sampleMergeRequestCommentCreatedData = `{
+  "object_kind": "note",
+  "event_type": "note",
+  "user": {
+    "id": 20498345,
+    "name": "Test User",
+    "username": "test.user",
+    "avatar_url": "https://secure.gravatar.com/avatar/1c779cb21fd42b608b40f7c2757aa640e3e9e05e166dce9c98c3c7ae368d8d27?s=80&d=identicon",
+    "email": "[REDACTED]"
+  },
+  "project_id": 55857800,
+  "project": {
+    "id": 55857800,
+    "name": "webhook-test",
+    "description": null,
+    "web_url": "https://gitlab.com/test.user/webhook-test",
+    "avatar_url": null,
+    "git_ssh_url": "git@gitlab.com:test.user/webhook-test.git",
+    "git_http_url": "https://gitlab.com/test.user/webhook-test.git",
+    "namespace": "test.user",
+    "visibility_level": 0,
+    "path_with_namespace": "test.user/webhook-test",
+    "default_branch": "main",
+    "ci_config_path": "",
+    "homepage": "https://gitlab.com/test.user/webhook-test",
+    "url": "git@gitlab.com:test.user/webhook-test.git",
+    "ssh_url": "git@gitlab.com:test.user/webhook-test.git",
+    "http_url": "https://gitlab.com/test.user/webhook-test.git"
+  },
+  "object_attributes": {
+    "attachment": null,
+    "author_id": 20498345,
+    "change_position": null,
+    "commit_id": null,
+    "created_at": "2024-04-02 12:01:26 UTC",
+    "discussion_id": "cf1ee921eada4a38ac817d7d0d37b705a81c8bd3",
+    "id": 1841576181,
+    "line_code": null,
+    "note": "This is a new general comment.",
+    "noteable_id": 288638999,
+    "noteable_type": "MergeRequest",
+    "original_position": null,
+    "position": null,
+    "project_id": 55857800,
+    "resolved_at": null,
+    "resolved_by_id": null,
+    "resolved_by_push": null,
+    "st_diff": null,
+    "system": false,
+    "type": null,
+    "updated_at": "2024-04-02 12:01:26 UTC",
+    "updated_by_id": null,
+    "description": "This is a new general comment.",
+    "url": "https://gitlab.com/test.user/webhook-test/-/merge_requests/1#note_1841576181"
+  },
+  "repository": {
+    "name": "webhook-test",
+    "url": "git@gitlab.com:test.user/webhook-test.git",
+    "description": null,
+    "homepage": "https://gitlab.com/test.user/webhook-test"
+  },
+  "merge_request": {
+    "assignee_id": null,
+    "author_id": 20498345,
+    "created_at": "2024-03-14 15:33:21 UTC",
+    "description": "Edited description of pull request",
+    "draft": false,
+    "head_pipeline_id": null,
+    "id": 288638999,
+    "iid": 12,
+    "last_edited_at": "2024-03-14 15:34:41 UTC",
+    "last_edited_by_id": 20498345,
+    "merge_commit_sha": null,
+    "merge_error": null,
+    "merge_params": {
+      "force_remove_source_branch": "1"
+    },
+    "merge_status": "can_be_merged",
+    "merge_user_id": null,
+    "merge_when_pipeline_succeeds": false,
+    "milestone_id": null,
+    "source_branch": "brencs",
+    "source_project_id": 55857800,
+    "state_id": 1,
+    "target_branch": "main",
+    "target_project_id": 55857800,
+    "time_estimate": 0,
+    "title": "Test PR",
+    "updated_at": "2024-04-02 12:01:26 UTC",
+    "updated_by_id": 20498345,
+    "prepared_at": "2024-03-14 15:33:23 UTC",
+    "url": "https://gitlab.com/test.user/webhook-test/-/merge_requests/1",
+    "source": {
+      "id": 55857800,
+      "name": "webhook-test",
+      "description": null,
+      "web_url": "https://gitlab.com/test.user/webhook-test",
+      "avatar_url": null,
+      "git_ssh_url": "git@gitlab.com:test.user/webhook-test.git",
+      "git_http_url": "https://gitlab.com/test.user/webhook-test.git",
+      "namespace": "test.user",
+      "visibility_level": 0,
+      "path_with_namespace": "test.user/webhook-test",
+      "default_branch": "main",
+      "ci_config_path": "",
+      "homepage": "https://gitlab.com/test.user/webhook-test",
+      "url": "git@gitlab.com:test.user/webhook-test.git",
+      "ssh_url": "git@gitlab.com:test.user/webhook-test.git",
+      "http_url": "https://gitlab.com/test.user/webhook-test.git"
+    },
+    "target": {
+      "id": 55857800,
+      "name": "webhook-test",
+      "description": null,
+      "web_url": "https://gitlab.com/test.user/webhook-test",
+      "avatar_url": null,
+      "git_ssh_url": "git@gitlab.com:test.user/webhook-test.git",
+      "git_http_url": "https://gitlab.com/test.user/webhook-test.git",
+      "namespace": "test.user",
+      "visibility_level": 0,
+      "path_with_namespace": "test.user/webhook-test",
+      "default_branch": "main",
+      "ci_config_path": "",
+      "homepage": "https://gitlab.com/test.user/webhook-test",
+      "url": "git@gitlab.com:test.user/webhook-test.git",
+      "ssh_url": "git@gitlab.com:test.user/webhook-test.git",
+      "http_url": "https://gitlab.com/test.user/webhook-test.git"
+    },
+    "last_commit": {
+      "id": "fcdba0de1e8c1721e6d1c8c2959a37226ba3542b",
+      "message": "dont trigger\n",
+      "title": "dont trigger",
+      "timestamp": "2024-03-22T14:17:18+01:00",
+      "url": "https://gitlab.com/test.user/webhook-test/-/commit/fcdba0de1e8c1721e6d1c8c2959a37226ba3542b",
+      "author": {
+        "name": "Test User",
+        "email": "[REDACTED]"
+      }
+    },
+    "work_in_progress": false,
+    "total_time_spent": 0,
+    "time_change": 0,
+    "human_total_time_spent": null,
+    "human_time_change": null,
+    "human_time_estimate": null,
+    "assignee_ids": [
+
+    ],
+    "reviewer_ids": [
+
+    ],
+    "labels": [
+      
+    ],
+    "state": "opened",
+    "blocking_discussions_resolved": true,
+    "first_contribution": true,
+    "detailed_merge_status": "mergeable"
+  }
+}`
+
+const sampleMergeRequestCommentUpdatedData = `{
+  "object_kind": "note",
+  "event_type": "note",
+  "user": {
+    "id": 20498345,
+    "name": "Test User",
+    "username": "test.user",
+    "avatar_url": "https://secure.gravatar.com/avatar/1c779cb21fd42b608b40f7c2757aa640e3e9e05e166dce9c98c3c7ae368d8d27?s=80&d=identicon",
+    "email": "[REDACTED]"
+  },
+  "project_id": 55857800,
+  "project": {
+    "id": 55857800,
+    "name": "webhook-test",
+    "description": null,
+    "web_url": "https://gitlab.com/test.user/webhook-test",
+    "avatar_url": null,
+    "git_ssh_url": "git@gitlab.com:test.user/webhook-test.git",
+    "git_http_url": "https://gitlab.com/test.user/webhook-test.git",
+    "namespace": "test.user",
+    "visibility_level": 0,
+    "path_with_namespace": "test.user/webhook-test",
+    "default_branch": "main",
+    "ci_config_path": "",
+    "homepage": "https://gitlab.com/test.user/webhook-test",
+    "url": "git@gitlab.com:test.user/webhook-test.git",
+    "ssh_url": "git@gitlab.com:test.user/webhook-test.git",
+    "http_url": "https://gitlab.com/test.user/webhook-test.git"
+  },
+  "object_attributes": {
+    "attachment": null,
+    "author_id": 20498345,
+    "change_position": null,
+    "commit_id": null,
+    "created_at": "2024-04-02 12:01:26 UTC",
+    "discussion_id": "cf1ee921eada4a38ac817d7d0d37b705a81c8bd3",
+    "id": 1841576181,
+    "line_code": null,
+    "note": "This is an updated comment.",
+    "noteable_id": 288638999,
+    "noteable_type": "MergeRequest",
+    "original_position": null,
+    "position": null,
+    "project_id": 55857800,
+    "resolved_at": null,
+    "resolved_by_id": null,
+    "resolved_by_push": null,
+    "st_diff": null,
+    "system": false,
+    "type": "DiscussionNote",
+    "updated_at": "2024-04-02 12:14:52 UTC",
+    "updated_by_id": 20498345,
+    "description": "This is an updated comment.",
+    "url": "https://gitlab.com/test.user/webhook-test/-/merge_requests/1#note_1841576181"
+  },
+  "repository": {
+    "name": "webhook-test",
+    "url": "git@gitlab.com:test.user/webhook-test.git",
+    "description": null,
+    "homepage": "https://gitlab.com/test.user/webhook-test"
+  },
+  "merge_request": {
+    "assignee_id": null,
+    "author_id": 20498345,
+    "created_at": "2024-03-14 15:33:21 UTC",
+    "description": "Edited description of pull request",
+    "draft": false,
+    "head_pipeline_id": null,
+    "id": 288638999,
+    "iid": 12,
+    "last_edited_at": "2024-03-14 15:34:41 UTC",
+    "last_edited_by_id": 20498345,
+    "merge_commit_sha": null,
+    "merge_error": null,
+    "merge_params": {
+      "force_remove_source_branch": "1"
+    },
+    "merge_status": "can_be_merged",
+    "merge_user_id": null,
+    "merge_when_pipeline_succeeds": false,
+    "milestone_id": null,
+    "source_branch": "brencs",
+    "source_project_id": 55857800,
+    "state_id": 1,
+    "target_branch": "main",
+    "target_project_id": 55857800,
+    "time_estimate": 0,
+    "title": "Test PR",
+    "updated_at": "2024-04-02 12:14:52 UTC",
+    "updated_by_id": 20498345,
+    "prepared_at": "2024-03-14 15:33:23 UTC",
+    "url": "https://gitlab.com/test.user/webhook-test/-/merge_requests/1",
+    "source": {
+      "id": 55857800,
+      "name": "webhook-test",
+      "description": null,
+      "web_url": "https://gitlab.com/test.user/webhook-test",
+      "avatar_url": null,
+      "git_ssh_url": "git@gitlab.com:test.user/webhook-test.git",
+      "git_http_url": "https://gitlab.com/test.user/webhook-test.git",
+      "namespace": "test.user",
+      "visibility_level": 0,
+      "path_with_namespace": "test.user/webhook-test",
+      "default_branch": "main",
+      "ci_config_path": "",
+      "homepage": "https://gitlab.com/test.user/webhook-test",
+      "url": "git@gitlab.com:test.user/webhook-test.git",
+      "ssh_url": "git@gitlab.com:test.user/webhook-test.git",
+      "http_url": "https://gitlab.com/test.user/webhook-test.git"
+    },
+    "target": {
+      "id": 55857800,
+      "name": "webhook-test",
+      "description": null,
+      "web_url": "https://gitlab.com/test.user/webhook-test",
+      "avatar_url": null,
+      "git_ssh_url": "git@gitlab.com:test.user/webhook-test.git",
+      "git_http_url": "https://gitlab.com/test.user/webhook-test.git",
+      "namespace": "test.user",
+      "visibility_level": 0,
+      "path_with_namespace": "test.user/webhook-test",
+      "default_branch": "main",
+      "ci_config_path": "",
+      "homepage": "https://gitlab.com/test.user/webhook-test",
+      "url": "git@gitlab.com:test.user/webhook-test.git",
+      "ssh_url": "git@gitlab.com:test.user/webhook-test.git",
+      "http_url": "https://gitlab.com/test.user/webhook-test.git"
+    },
+    "last_commit": {
+      "id": "fcdba0de1e8c1721e6d1c8c2959a37226ba3542b",
+      "message": "dont trigger\n",
+      "title": "dont trigger",
+      "timestamp": "2024-03-22T14:17:18+01:00",
+      "url": "https://gitlab.com/test.user/webhook-test/-/commit/fcdba0de1e8c1721e6d1c8c2959a37226ba3542b",
+      "author": {
+        "name": "Test User",
+        "email": "[REDACTED]"
+      }
+    },
+    "work_in_progress": false,
+    "total_time_spent": 0,
+    "time_change": 0,
+    "human_total_time_spent": null,
+    "human_time_change": null,
+    "human_time_estimate": null,
+    "assignee_ids": [
+
+    ],
+    "reviewer_ids": [
+
+    ],
+    "labels": [
+      
+    ],
+    "state": "opened",
+    "blocking_discussions_resolved": true,
+    "first_contribution": true,
+    "detailed_merge_status": "mergeable"
+  }
+}`
+
 var intTwelve = 12
 
 func Test_detectContentTypeAndEventID(t *testing.T) {
@@ -429,6 +751,18 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "application/json", contentType)
 		require.Equal(t, "Merge Request Hook", glEvent)
+	}
+
+	t.Log("Comment event - should handle")
+	{
+		header := http.Header{
+			"X-Gitlab-Event": {"Note Hook"},
+			"Content-Type":   {"application/json"},
+		}
+		contentType, glEvent, err := detectContentTypeAndEventID(header)
+		require.NoError(t, err)
+		require.Equal(t, "application/json", contentType)
+		require.Equal(t, "Note Hook", glEvent)
 	}
 
 	t.Log("Unsupported event - will be handled (rejected) in Transform")
@@ -717,8 +1051,11 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 	t.Log("Empty Merge Request state")
 	{
 		mergeRequest := MergeRequestEventModel{
-			ObjectKind:       "merge_request",
-			ObjectAttributes: ObjectAttributesInfoModel{},
+			ObjectKind: "merge_request",
+			ObjectAttributes: MergeRequestInfoModel{
+				Action: "update",
+				Oldrev: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+			},
 		}
 		hookTransformResult := transformMergeRequestEvent(mergeRequest)
 		require.True(t, hookTransformResult.ShouldSkip)
@@ -731,8 +1068,10 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 	{
 		mergeRequest := MergeRequestEventModel{
 			ObjectKind: "merge_request",
-			ObjectAttributes: ObjectAttributesInfoModel{
+			ObjectAttributes: MergeRequestInfoModel{
 				State:          "opened",
+				Action:         "update",
+				Oldrev:         "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 				MergeCommitSHA: "asd123",
 			},
 		}
@@ -747,7 +1086,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 	{
 		mergeRequest := MergeRequestEventModel{
 			ObjectKind: "merge_request",
-			ObjectAttributes: ObjectAttributesInfoModel{
+			ObjectAttributes: MergeRequestInfoModel{
 				State:      "opened",
 				Action:     "update",
 				Oldrev:     "83b86e5f286f546dc5a4a58db66ceef44460c85e",
@@ -765,7 +1104,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 	{
 		mergeRequest := MergeRequestEventModel{
 			ObjectKind: "merge_request",
-			ObjectAttributes: ObjectAttributesInfoModel{
+			ObjectAttributes: MergeRequestInfoModel{
 				State:       "opened",
 				Action:      "update",
 				Oldrev:      "83b86e5f286f546dc5a4a58db66ceef44460c85e",
@@ -783,7 +1122,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 	{
 		mergeRequest := MergeRequestEventModel{
 			ObjectKind: "merge_request",
-			ObjectAttributes: ObjectAttributesInfoModel{
+			ObjectAttributes: MergeRequestInfoModel{
 				State:  "opened",
 				Action: "approved",
 			},
@@ -799,7 +1138,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 	{
 		mergeRequest := MergeRequestEventModel{
 			ObjectKind: "merge_request",
-			ObjectAttributes: ObjectAttributesInfoModel{
+			ObjectAttributes: MergeRequestInfoModel{
 				State:  "opened",
 				Action: "update",
 			},
@@ -819,7 +1158,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 				Username: "test_user",
 			},
 			ObjectKind: "merge_request",
-			ObjectAttributes: ObjectAttributesInfoModel{
+			ObjectAttributes: MergeRequestInfoModel{
 				ID:     12,
 				Title:  "PR test",
 				State:  "opened",
@@ -881,7 +1220,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 				Username: "test_user",
 			},
 			ObjectKind: "merge_request",
-			ObjectAttributes: ObjectAttributesInfoModel{
+			ObjectAttributes: MergeRequestInfoModel{
 				ID:     12,
 				Title:  "PR test",
 				State:  "opened",
@@ -902,11 +1241,11 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 					SHA: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
 				},
 				MergeStatus: "unchecked",
-			},
-			Labels: []LabelInfoModel{
-				{ID: 1, Title: "existing1"},
-				{ID: 3, Title: "new1"},
-				{ID: 4, Title: "new2"},
+				Labels: []LabelInfoModel{
+					{ID: 1, Title: "existing1"},
+					{ID: 3, Title: "new1"},
+					{ID: 4, Title: "new2"},
+				},
 			},
 			Changes: Changes{
 				Labels: LabelChanges{
@@ -956,7 +1295,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 				Username: "test_user",
 			},
 			ObjectKind: "merge_request",
-			ObjectAttributes: ObjectAttributesInfoModel{
+			ObjectAttributes: MergeRequestInfoModel{
 				ID:     12,
 				Title:  "PR test",
 				State:  "opened",
@@ -1011,7 +1350,7 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 				Username: "test_user",
 			},
 			ObjectKind: "merge_request",
-			ObjectAttributes: ObjectAttributesInfoModel{
+			ObjectAttributes: MergeRequestInfoModel{
 				ID:          12,
 				Title:       "PR test",
 				Description: "PR test body",
@@ -1060,11 +1399,179 @@ func Test_transformMergeRequestEvent(t *testing.T) {
 	}
 }
 
+func Test_transformMergeRequestCommentEvent(t *testing.T) {
+	t.Log("Unsupported object kind")
+	{
+		mergeRequest := MergeRequestCommentEventModel{
+			ObjectKind: "not-a-note",
+		}
+		hookTransformResult := transformMergeRequestCommentEvent(mergeRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Not a Note object")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Unsupported note target")
+	{
+		mergeRequest := MergeRequestCommentEventModel{
+			ObjectKind: "note",
+			ObjectAttributes: CommentInfoModel{
+				NoteableType: "issue",
+			},
+		}
+		hookTransformResult := transformMergeRequestCommentEvent(mergeRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Not a Merge Request note")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Empty Merge Request state")
+	{
+		mergeRequest := MergeRequestCommentEventModel{
+			ObjectKind: "note",
+			ObjectAttributes: CommentInfoModel{
+				NoteableType: "MergeRequest",
+			},
+			MergeRequest: MergeRequestInfoModel{
+				Action: "update",
+				Oldrev: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+			},
+		}
+		hookTransformResult := transformMergeRequestCommentEvent(mergeRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "No Merge Request state specified")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Already Merged")
+	{
+		mergeRequest := MergeRequestCommentEventModel{
+			ObjectKind: "note",
+			ObjectAttributes: CommentInfoModel{
+				NoteableType: "MergeRequest",
+			},
+			MergeRequest: MergeRequestInfoModel{
+				State:          "opened",
+				Action:         "update",
+				Oldrev:         "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				MergeCommitSHA: "asd123",
+			},
+		}
+		hookTransformResult := transformMergeRequestCommentEvent(mergeRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Merge Request already merged")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Merge error")
+	{
+		mergeRequest := MergeRequestCommentEventModel{
+			ObjectKind: "note",
+			ObjectAttributes: CommentInfoModel{
+				NoteableType: "MergeRequest",
+			},
+			MergeRequest: MergeRequestInfoModel{
+				State:      "opened",
+				Action:     "update",
+				Oldrev:     "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				MergeError: "Some merge error",
+			},
+		}
+		hookTransformResult := transformMergeRequestCommentEvent(mergeRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Merge Request is not mergeable")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Not mergeable")
+	{
+		mergeRequest := MergeRequestCommentEventModel{
+			ObjectKind: "note",
+			ObjectAttributes: CommentInfoModel{
+				NoteableType: "MergeRequest",
+			},
+			MergeRequest: MergeRequestInfoModel{
+				State:       "opened",
+				Action:      "update",
+				Oldrev:      "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				MergeStatus: "cannot_be_merged",
+			},
+		}
+		hookTransformResult := transformMergeRequestCommentEvent(mergeRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "Merge Request is not mergeable")
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Not yet merged")
+	{
+		request := MergeRequestCommentEventModel{
+			User: UserModel{
+				Username: "test_user",
+			},
+			ObjectKind: "note",
+			ObjectAttributes: CommentInfoModel{
+				NoteableType: "MergeRequest",
+			},
+			MergeRequest: MergeRequestInfoModel{
+				ID:     12,
+				Title:  "PR test",
+				State:  "opened",
+				Action: "open",
+				Source: BranchInfoModel{
+					VisibilityLevel: 20,
+					GitSSHURL:       "git@gitlab.com:bitrise-io/bitrise-webhooks.git",
+					GitHTTPURL:      "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+				},
+				SourceBranch: "feature/gitlab-pr",
+				Target: BranchInfoModel{
+					VisibilityLevel: 20,
+					GitSSHURL:       "git@gitlab.com:bitrise-io/bitrise-webhooks.git",
+					GitHTTPURL:      "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+				},
+				TargetBranch: "master",
+				LastCommit: LastCommitInfoModel{
+					SHA: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				},
+				MergeStatus: "unchecked",
+			},
+		}
+		hookTransformResult := transformMergeRequestCommentEvent(request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+					CommitMessage:            "PR test",
+					Branch:                   "feature/gitlab-pr",
+					BranchDest:               "master",
+					PullRequestID:            &intTwelve,
+					BaseRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+					HeadRepositoryURL:        "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+					PullRequestRepositoryURL: "https://gitlab.com/bitrise-io/bitrise-webhooks.git",
+					PullRequestMergeBranch:   "",
+					PullRequestHeadBranch:    "merge-requests/12/head",
+					PullRequestReadyState:    bitriseapi.PullRequestReadyStateReadyForReview,
+				},
+				TriggeredBy: "webhook-gitlab/test_user",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+}
+
 func Test_isAcceptEventType(t *testing.T) {
 	t.Log("Accept")
 	{
 		for _, anEvent := range []string{
-			"Push Hook", "Merge Request Hook", "Tag Push Hook",
+			"Push Hook", "Merge Request Hook", "Tag Push Hook", "Note Hook",
 		} {
 			t.Log(" * " + anEvent)
 			require.Equal(t, true, isAcceptEventType(anEvent))
@@ -1075,7 +1582,7 @@ func Test_isAcceptEventType(t *testing.T) {
 	{
 		for _, anEvent := range []string{"",
 			"a", "not-an-action",
-			"Issue Hook", "Note Hook", "Wiki Page Hook"} {
+			"Issue Hook", "Wiki Page Hook"} {
 			t.Log(" * " + anEvent)
 			require.Equal(t, false, isAcceptEventType(anEvent))
 		}
@@ -1284,7 +1791,119 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
-	t.Log("Unsuported Content-Type")
+	t.Log("Merge Request Label added - should be handled")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Gitlab-Event": {"Merge Request Hook"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleMergeRequestLabelAddedData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "5240ea6a9194b7f5cf53d25926984f0b6c1b5ac4",
+					CommitMessage:            "Test PR\n\nEdited description of pull request",
+					Branch:                   "brencs",
+					BranchRepoOwner:          "test.user",
+					BranchDest:               "main",
+					BranchDestRepoOwner:      "test.user",
+					PullRequestID:            &intTwelve,
+					BaseRepositoryURL:        "git@gitlab.com:test.user/webhook-test.git",
+					HeadRepositoryURL:        "git@gitlab.com:test.user/webhook-test.git",
+					PullRequestRepositoryURL: "git@gitlab.com:test.user/webhook-test.git",
+					PullRequestAuthor:        "Test User",
+					PullRequestMergeBranch:   "merge-requests/12/merge",
+					PullRequestHeadBranch:    "merge-requests/12/head",
+					PullRequestReadyState:    bitriseapi.PullRequestReadyStateReadyForReview,
+					PullRequestLabels:        []string{"blue", "green", "red"},
+					PullRequestLabelsAdded:   []string{"blue"},
+				},
+				TriggeredBy: "webhook-gitlab/test.user",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Merge Request Comment created - should be handled")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Gitlab-Event": {"Note Hook"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleMergeRequestCommentCreatedData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "fcdba0de1e8c1721e6d1c8c2959a37226ba3542b",
+					CommitMessage:            "Test PR\n\nEdited description of pull request",
+					Branch:                   "brencs",
+					BranchRepoOwner:          "test.user",
+					BranchDest:               "main",
+					BranchDestRepoOwner:      "test.user",
+					PullRequestID:            &intTwelve,
+					BaseRepositoryURL:        "git@gitlab.com:test.user/webhook-test.git",
+					HeadRepositoryURL:        "git@gitlab.com:test.user/webhook-test.git",
+					PullRequestRepositoryURL: "git@gitlab.com:test.user/webhook-test.git",
+					PullRequestAuthor:        "Test User",
+					PullRequestMergeBranch:   "merge-requests/12/merge",
+					PullRequestHeadBranch:    "merge-requests/12/head",
+					PullRequestReadyState:    bitriseapi.PullRequestReadyStateReadyForReview,
+					PullRequestComment:       "This is a new general comment.",
+				},
+				TriggeredBy: "webhook-gitlab/test.user",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Merge Request Comment updated - should be handled")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Gitlab-Event": {"Note Hook"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(sampleMergeRequestCommentUpdatedData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "fcdba0de1e8c1721e6d1c8c2959a37226ba3542b",
+					CommitMessage:            "Test PR\n\nEdited description of pull request",
+					Branch:                   "brencs",
+					BranchRepoOwner:          "test.user",
+					BranchDest:               "main",
+					BranchDestRepoOwner:      "test.user",
+					PullRequestID:            &intTwelve,
+					BaseRepositoryURL:        "git@gitlab.com:test.user/webhook-test.git",
+					HeadRepositoryURL:        "git@gitlab.com:test.user/webhook-test.git",
+					PullRequestRepositoryURL: "git@gitlab.com:test.user/webhook-test.git",
+					PullRequestAuthor:        "Test User",
+					PullRequestMergeBranch:   "merge-requests/12/merge",
+					PullRequestHeadBranch:    "merge-requests/12/head",
+					PullRequestReadyState:    bitriseapi.PullRequestReadyStateReadyForReview,
+					PullRequestComment:       "This is an updated comment.",
+				},
+				TriggeredBy: "webhook-gitlab/test.user",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Unsupported Content-Type")
 	{
 		request := http.Request{
 			Header: http.Header{
@@ -1361,7 +1980,7 @@ func Test_transformPullRequestEvent_readyState(t *testing.T) {
 			name: "Draft PR opened",
 			pullRequest: MergeRequestEventModel{
 				ObjectKind: "merge_request",
-				ObjectAttributes: ObjectAttributesInfoModel{
+				ObjectAttributes: MergeRequestInfoModel{
 					State:  "opened",
 					Action: "open",
 					Draft:  true,
@@ -1379,7 +1998,7 @@ func Test_transformPullRequestEvent_readyState(t *testing.T) {
 			name: "Draft PR updated with code push",
 			pullRequest: MergeRequestEventModel{
 				ObjectKind: "merge_request",
-				ObjectAttributes: ObjectAttributesInfoModel{
+				ObjectAttributes: MergeRequestInfoModel{
 					State:  "opened",
 					Action: "update",
 					Oldrev: "asdf",
@@ -1398,7 +2017,7 @@ func Test_transformPullRequestEvent_readyState(t *testing.T) {
 			name: "Draft PR converted to ready to review PR",
 			pullRequest: MergeRequestEventModel{
 				ObjectKind: "merge_request",
-				ObjectAttributes: ObjectAttributesInfoModel{
+				ObjectAttributes: MergeRequestInfoModel{
 					State:  "opened",
 					Action: "update",
 					Draft:  false,
@@ -1416,7 +2035,7 @@ func Test_transformPullRequestEvent_readyState(t *testing.T) {
 			name: "Ready to review PR updated with code push",
 			pullRequest: MergeRequestEventModel{
 				ObjectKind: "merge_request",
-				ObjectAttributes: ObjectAttributesInfoModel{
+				ObjectAttributes: MergeRequestInfoModel{
 					State:  "opened",
 					Action: "update",
 					Oldrev: "asdf",
