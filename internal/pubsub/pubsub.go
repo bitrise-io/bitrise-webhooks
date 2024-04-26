@@ -29,6 +29,9 @@ func (c *Client) PublishMetrics(ctx context.Context, metrics common.Metrics) (er
 	if c == nil {
 		return nil
 	}
+	if metrics == nil {
+		return nil
+	}
 
 	b, err := metrics.Serialise()
 	if err != nil {
