@@ -64,7 +64,9 @@ func RespondWithErrorJSON(w http.ResponseWriter, httpErrCode int, respModel inte
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpErrCode)
-	if err := json.NewEncoder(w).Encode(&respModel); err != nil {
+	encoder := json.NewEncoder(w)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(&respModel); err != nil {
 		logger.Error(" [!] Exception: RespondWithErrorJSON", zap.Error(err))
 	}
 }
