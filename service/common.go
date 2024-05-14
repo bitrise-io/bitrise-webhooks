@@ -22,7 +22,9 @@ func RespondWith(w http.ResponseWriter, httpStatusCode int, respModel interface{
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpStatusCode)
-	if err := json.NewEncoder(w).Encode(&respModel); err != nil {
+	encoder := json.NewEncoder(w)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(&respModel); err != nil {
 		logger.Error(" [!] Exception: RespondWith", zap.Error(err))
 	}
 }
