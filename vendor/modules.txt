@@ -87,7 +87,7 @@ github.com/Microsoft/go-winio/pkg/guid
 # github.com/bitrise-io/api-utils v0.0.0-20211025122143-6499571b8433
 ## explicit; go 1.13
 github.com/bitrise-io/api-utils/logging
-# github.com/bitrise-io/envman v0.0.0-20240410092641-54d928c910ed
+# github.com/bitrise-io/envman v0.0.0-20240516104659-4a3e6bd8252a
 ## explicit; go 1.21
 github.com/bitrise-io/envman/envman
 # github.com/bitrise-io/go-utils v1.0.13
