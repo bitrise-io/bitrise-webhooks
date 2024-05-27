@@ -1,0 +1,22 @@
+{
+    "input": "CREATE TASK /* my comment */ my_task WAREHOUSE = my_warehouse SCHEDULE = '15 MINUTE' AS INSERT INTO summary_table SELECT * FROM new_data_view;",
+    "outputs": [
+      {
+        "expected": "CREATE TASK my_task WAREHOUSE = my_warehouse SCHEDULE = ? AS INSERT INTO summary_table SELECT * FROM new_data_view",
+        "statement_metadata": {
+          "size": 60,
+          "tables": [
+            "summary_table",
+            "new_data_view"
+          ],
+          "commands": [
+            "CREATE",
+            "INSERT",
+            "SELECT"
+          ],
+          "comments": ["/* my comment */"],
+          "procedures": []
+        }
+      }
+    ]
+  }

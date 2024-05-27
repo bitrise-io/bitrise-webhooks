@@ -1,0 +1,20 @@
+{
+    "input": "CREATE MATERIALIZED VIEW mv_product_sales AS SELECT product_id, SUM(sales_amount) AS total_sales FROM sales GROUP BY product_id;",
+    "outputs": [
+      {
+        "expected": "CREATE MATERIALIZED VIEW mv_product_sales AS SELECT product_id, SUM ( sales_amount ) FROM sales GROUP BY product_id",
+        "statement_metadata": {
+          "size": 17,
+          "tables": [
+            "sales"
+          ],
+          "commands": [
+            "CREATE",
+            "SELECT"
+          ],
+          "comments": [],
+          "procedures": []
+        }
+      }
+    ]
+  }

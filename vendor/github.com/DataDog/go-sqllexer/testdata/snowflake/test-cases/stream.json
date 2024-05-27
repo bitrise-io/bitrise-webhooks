@@ -1,0 +1,19 @@
+{
+    "input": "CREATE STREAM my_stream ON TABLE my_table;",
+    "outputs": [
+      {
+        "expected": "CREATE STREAM my_stream ON TABLE my_table",
+        "statement_metadata": {
+          "size": 14,
+          "tables": [
+            "my_table"
+          ],
+          "commands": [
+            "CREATE"
+          ],
+          "comments": [],
+          "procedures": []
+        }
+      }
+    ]
+  }

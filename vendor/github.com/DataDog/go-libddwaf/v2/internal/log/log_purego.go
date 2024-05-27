@@ -8,6 +8,7 @@
 package log
 
 import (
+	"github.com/DataDog/go-libddwaf/v2/internal/unsafe"
 	"sync"
 
 	"github.com/ebitengine/purego"
@@ -28,9 +29,9 @@ func CallbackFunctionPointer() uintptr {
 }
 
 func ddwafLogCallbackFn(level Level, fnPtr, filePtr *byte, line uint, msgPtr *byte, _ uint64) {
-	function := gostring(fnPtr)
-	file := gostring(filePtr)
-	message := gostring(msgPtr)
+	function := unsafe.Gostring(fnPtr)
+	file := unsafe.Gostring(filePtr)
+	message := unsafe.Gostring(msgPtr)
 
 	logMessage(level, function, file, line, message)
 }

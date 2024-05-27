@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v62/github"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/common"

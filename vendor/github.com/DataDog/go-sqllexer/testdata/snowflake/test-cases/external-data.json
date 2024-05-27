@@ -1,0 +1,19 @@
+{
+    "input": "CREATE EXTERNAL TABLE ext_sales_data (sale_date DATE, product_id STRING, quantity_sold NUMBER) WITH LOCATION = @my_external_stage/sales_data/ FILE_FORMAT = (TYPE = 'CSV' FIELD_OPTIONALLY_ENCLOSED_BY = '\"');",
+    "outputs": [
+      {
+        "expected": "CREATE EXTERNAL TABLE ext_sales_data ( sale_date DATE, product_id STRING, quantity_sold NUMBER ) WITH LOCATION = @my_external_stage/sales_data/ FILE_FORMAT = ( TYPE = ? FIELD_OPTIONALLY_ENCLOSED_BY = ? )",
+        "statement_metadata": {
+          "size": 20,
+          "tables": [
+            "ext_sales_data"
+          ],
+          "commands": [
+            "CREATE"
+          ],
+          "comments": [],
+          "procedures": []
+        }
+      }
+    ]
+  }
