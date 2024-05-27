@@ -1,0 +1,19 @@
+{
+    "input": "SELECT LISTAGG(product_name, ', ') WITHIN GROUP (ORDER BY product_name) AS product_list FROM products WHERE category_id = 1;",
+    "outputs": [
+      {
+        "expected": "SELECT LISTAGG ( product_name, ? ) WITHIN GROUP ( ORDER BY product_name ) FROM products WHERE category_id = ?",
+        "statement_metadata": {
+          "size": 14,
+          "tables": [
+            "products"
+          ],
+          "commands": [
+            "SELECT"
+          ],
+          "comments": [],
+          "procedures": []
+        }
+      }
+    ]
+  }
