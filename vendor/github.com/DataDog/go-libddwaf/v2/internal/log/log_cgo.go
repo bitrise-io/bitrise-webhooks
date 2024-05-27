@@ -17,7 +17,7 @@ package log
 //   uint64_t message_len
 // );
 import "C"
-import "unsafe"
+import "github.com/DataDog/go-libddwaf/v2/internal/unsafe"
 
 // CallbackFunctionPointer returns a pointer to the log callback function which
 // can be used with libddwaf.
@@ -27,9 +27,9 @@ func CallbackFunctionPointer() uintptr {
 
 //export ddwafLogCallbackFn
 func ddwafLogCallbackFn(level C.DDWAF_LOG_LEVEL, fnPtr, filePtr *C.char, line C.unsigned, msgPtr *C.char, _ C.uint64_t) {
-	function := gostring((*byte)(unsafe.Pointer(fnPtr)))
-	file := gostring((*byte)(unsafe.Pointer(filePtr)))
-	message := gostring((*byte)(unsafe.Pointer(msgPtr)))
+	function := unsafe.Gostring(unsafe.CastNative[C.char, byte](fnPtr))
+	file := unsafe.Gostring(unsafe.CastNative[C.char, byte](filePtr))
+	message := unsafe.Gostring(unsafe.CastNative[C.char, byte](msgPtr))
 
 	logMessage(Level(level), function, file, uint(line), message)
 }
