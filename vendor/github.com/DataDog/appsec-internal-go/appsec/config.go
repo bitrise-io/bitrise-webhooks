@@ -32,6 +32,8 @@ const (
 	EnvTraceRateLimit = "DD_APPSEC_TRACE_RATE_LIMIT"
 	// EnvRules is the env var used to provide a path to a local security rule file
 	EnvRules = "DD_APPSEC_RULES"
+	// EnvRASPEnabled is the env var used to enable/disable RASP functionalities for ASM
+	EnvRASPEnabled = "DD_APPSEC_RASP_ENABLED"
 )
 
 // Configuration constants and default values
@@ -65,24 +67,10 @@ type ObfuscatorConfig struct {
 // NewAPISecConfig creates and returns a new API Security configuration by reading the env
 func NewAPISecConfig() APISecConfig {
 	return APISecConfig{
-		Enabled:    apiSecurityEnabled(),
+		Enabled:    boolEnv(EnvAPISecEnabled, true),
 		SampleRate: readAPISecuritySampleRate(),
 	}
 }
-
-func apiSecurityEnabled() bool {
-	enabled := true
-	str, set := os.LookupEnv(EnvAPISecEnabled)
-	if set {
-		var err error
-		enabled, err = strconv.ParseBool(str)
-		if err != nil {
-			logEnvVarParsingError(EnvAPISecEnabled, str, err, enabled)
-		}
-	}
-	return enabled
-}
-
 func readAPISecuritySampleRate() float64 {
 	value := os.Getenv(EnvAPISecSampleRate)
 	rate, err := strconv.ParseFloat(value, 64)
@@ -97,6 +85,12 @@ func readAPISecuritySampleRate() float64 {
 		rate = 1.
 	}
 	return rate
+}
+
+// RASPEnabled returns true if RASP functionalities are enabled through the env, or if DD_APPSEC_RASP_ENABLED
+// is not set
+func RASPEnabled() bool {
+	return boolEnv(EnvRASPEnabled, true)
 }
 
 // NewObfuscatorConfig creates and returns a new WAF obfuscator configuration by reading the env
@@ -193,4 +187,17 @@ func logEnvVarParsingError(name, value string, err error, defaultValue any) {
 
 func logUnexpectedEnvVarValue(name string, value any, reason string, defaultValue any) {
 	log.Debug("appsec: unexpected configuration value of %s=%v: %s. Using default value %v.", name, value, reason, defaultValue)
+}
+
+func boolEnv(key string, def bool) bool {
+	strVal, ok := os.LookupEnv(key)
+	if !ok {
+		return def
+	}
+	v, err := strconv.ParseBool(strVal)
+	if err != nil {
+		logEnvVarParsingError(key, strVal, err, def)
+		return def
+	}
+	return v
 }
