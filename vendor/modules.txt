@@ -1,9 +1,9 @@
-# cloud.google.com/go v0.114.0
+# cloud.google.com/go v0.115.0
 ## explicit; go 1.20
 cloud.google.com/go/internal/detect
 cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/pubsub
-# cloud.google.com/go/auth v0.4.2
+# cloud.google.com/go/auth v0.5.1
 ## explicit; go 1.20
 cloud.google.com/go/auth
 cloud.google.com/go/auth/credentials
@@ -29,15 +29,15 @@ cloud.google.com/go/compute/metadata
 ## explicit; go 1.19
 cloud.google.com/go/iam
 cloud.google.com/go/iam/apiv1/iampb
-# cloud.google.com/go/pubsub v1.38.0
-## explicit; go 1.19
+# cloud.google.com/go/pubsub v1.39.0
+## explicit; go 1.20
 cloud.google.com/go/pubsub
 cloud.google.com/go/pubsub/apiv1
 cloud.google.com/go/pubsub/apiv1/pubsubpb
 cloud.google.com/go/pubsub/internal
 cloud.google.com/go/pubsub/internal/distribution
 cloud.google.com/go/pubsub/internal/scheduler
-# github.com/DataDog/appsec-internal-go v1.5.0
+# github.com/DataDog/appsec-internal-go v1.6.0
 ## explicit; go 1.19
 github.com/DataDog/appsec-internal-go/appsec
 github.com/DataDog/appsec-internal-go/httpsec
@@ -53,16 +53,16 @@ github.com/DataDog/datadog-agent/pkg/remoteconfig/state
 # github.com/DataDog/datadog-go/v5 v5.5.0
 ## explicit; go 1.13
 github.com/DataDog/datadog-go/v5/statsd
-# github.com/DataDog/go-libddwaf/v2 v2.4.2
+# github.com/DataDog/go-libddwaf/v3 v3.2.1
 ## explicit; go 1.20
-github.com/DataDog/go-libddwaf/v2
-github.com/DataDog/go-libddwaf/v2/errors
-github.com/DataDog/go-libddwaf/v2/internal/bindings
-github.com/DataDog/go-libddwaf/v2/internal/lib
-github.com/DataDog/go-libddwaf/v2/internal/log
-github.com/DataDog/go-libddwaf/v2/internal/support
-github.com/DataDog/go-libddwaf/v2/internal/unsafe
-github.com/DataDog/go-libddwaf/v2/timer
+github.com/DataDog/go-libddwaf/v3
+github.com/DataDog/go-libddwaf/v3/errors
+github.com/DataDog/go-libddwaf/v3/internal/bindings
+github.com/DataDog/go-libddwaf/v3/internal/lib
+github.com/DataDog/go-libddwaf/v3/internal/log
+github.com/DataDog/go-libddwaf/v3/internal/support
+github.com/DataDog/go-libddwaf/v3/internal/unsafe
+github.com/DataDog/go-libddwaf/v3/timer
 # github.com/DataDog/go-sqllexer v0.0.11
 ## explicit; go 1.21
 github.com/DataDog/go-sqllexer
@@ -113,6 +113,9 @@ github.com/davecgh/go-spew/spew
 # github.com/dustin/go-humanize v1.0.1
 ## explicit; go 1.16
 github.com/dustin/go-humanize
+# github.com/eapache/queue/v2 v2.0.0-20230407133247-75960ed334e4
+## explicit; go 1.20
+github.com/eapache/queue/v2
 # github.com/ebitengine/purego v0.7.1
 ## explicit; go 1.18
 github.com/ebitengine/purego
@@ -184,18 +187,24 @@ github.com/googleapis/gax-go/v2/internal
 # github.com/gorilla/mux v1.8.1
 ## explicit; go 1.20
 github.com/gorilla/mux
-# github.com/hashicorp/errwrap v1.1.0
-## explicit
-github.com/hashicorp/errwrap
 # github.com/hashicorp/go-cleanhttp v0.5.2
 ## explicit; go 1.13
 github.com/hashicorp/go-cleanhttp
-# github.com/hashicorp/go-multierror v1.1.1
-## explicit; go 1.13
-github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-retryablehttp v0.7.6
 ## explicit; go 1.19
 github.com/hashicorp/go-retryablehttp
+# github.com/hashicorp/go-secure-stdlib/parseutil v0.1.7
+## explicit; go 1.16
+github.com/hashicorp/go-secure-stdlib/parseutil
+# github.com/hashicorp/go-secure-stdlib/strutil v0.1.2
+## explicit; go 1.16
+github.com/hashicorp/go-secure-stdlib/strutil
+# github.com/hashicorp/go-sockaddr v1.0.2
+## explicit
+github.com/hashicorp/go-sockaddr
+# github.com/mitchellh/mapstructure v1.5.0
+## explicit; go 1.14
+github.com/mitchellh/mapstructure
 # github.com/outcaste-io/ristretto v0.2.3
 ## explicit; go 1.12
 github.com/outcaste-io/ristretto
@@ -210,6 +219,9 @@ github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 ## explicit
 github.com/pmezard/go-difflib/difflib
+# github.com/ryanuber/go-glob v1.0.0
+## explicit
+github.com/ryanuber/go-glob
 # github.com/secure-systems-lab/go-securesystemslib v0.8.0
 ## explicit; go 1.20
 github.com/secure-systems-lab/go-securesystemslib/cjson
@@ -290,7 +302,7 @@ go.uber.org/zap/internal/exit
 go.uber.org/zap/internal/pool
 go.uber.org/zap/internal/stacktrace
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.23.0
+# golang.org/x/crypto v0.24.0
 ## explicit; go 1.18
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/chacha20poly1305
@@ -299,7 +311,7 @@ golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/hkdf
 golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
-# golang.org/x/net v0.25.0
+# golang.org/x/net v0.26.0
 ## explicit; go 1.18
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
@@ -307,7 +319,7 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.20.0
+# golang.org/x/oauth2 v0.21.0
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/authhandler
@@ -323,13 +335,13 @@ golang.org/x/oauth2/jwt
 ## explicit; go 1.18
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.20.0
+# golang.org/x/sys v0.21.0
 ## explicit; go 1.18
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/text v0.15.0
+# golang.org/x/text v0.16.0
 ## explicit; go 1.18
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
@@ -342,7 +354,7 @@ golang.org/x/time/rate
 ## explicit; go 1.18
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.182.0
+# google.golang.org/api v0.185.0
 ## explicit; go 1.20
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport
@@ -358,14 +370,14 @@ google.golang.org/api/transport
 google.golang.org/api/transport/grpc
 google.golang.org/api/transport/http
 google.golang.org/api/transport/http/internal/propagation
-# google.golang.org/genproto v0.0.0-20240521202816-d264139d666e
+# google.golang.org/genproto v0.0.0-20240617180043-68d350f18fd4
 ## explicit; go 1.20
 google.golang.org/genproto/googleapis/type/expr
-# google.golang.org/genproto/googleapis/api v0.0.0-20240521202816-d264139d666e
+# google.golang.org/genproto/googleapis/api v0.0.0-20240610135401-a8a62080eff3
 ## explicit; go 1.20
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20240521202816-d264139d666e
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4
 ## explicit; go 1.20
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
@@ -438,8 +450,8 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.34.1
-## explicit; go 1.17
+# google.golang.org/protobuf v1.34.2
+## explicit; go 1.20
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
@@ -478,8 +490,9 @@ google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/emptypb
 google.golang.org/protobuf/types/known/fieldmaskpb
 google.golang.org/protobuf/types/known/timestamppb
-# gopkg.in/DataDog/dd-trace-go.v1 v1.64.0
+# gopkg.in/DataDog/dd-trace-go.v1 v1.65.0
 ## explicit; go 1.20
+gopkg.in/DataDog/dd-trace-go.v1/appsec/events
 gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux
 gopkg.in/DataDog/dd-trace-go.v1/contrib/internal/httptrace
 gopkg.in/DataDog/dd-trace-go.v1/contrib/internal/options
@@ -517,6 +530,7 @@ gopkg.in/DataDog/dd-trace-go.v1/internal/normalizer
 gopkg.in/DataDog/dd-trace-go.v1/internal/osinfo
 gopkg.in/DataDog/dd-trace-go.v1/internal/remoteconfig
 gopkg.in/DataDog/dd-trace-go.v1/internal/samplernames
+gopkg.in/DataDog/dd-trace-go.v1/internal/stacktrace
 gopkg.in/DataDog/dd-trace-go.v1/internal/telemetry
 gopkg.in/DataDog/dd-trace-go.v1/internal/traceprof
 gopkg.in/DataDog/dd-trace-go.v1/internal/version
