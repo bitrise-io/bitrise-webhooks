@@ -14,7 +14,7 @@ require (
 	github.com/xanzy/go-gitlab v0.105.0
 	go.uber.org/zap v1.27.0
 	google.golang.org/api v0.185.0
-	gopkg.in/DataDog/dd-trace-go.v1 v1.65.0
+	gopkg.in/DataDog/dd-trace-go.v1 v1.65.1
 )
 
 require (
