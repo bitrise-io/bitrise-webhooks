@@ -42,8 +42,8 @@ github.com/aws/aws-sdk-go v1.29.1/go.mod h1:1KvfttTE3SPKMpo8g2c6jL3ZKfXtFvKscTga
 github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kBD4zp0CCIs=
 github.com/bitrise-io/api-utils v0.0.0-20211025122143-6499571b8433 h1:TKFE2oT7SZjXBAJFBdUDAeoGsBvPHRUzxguYzqZw+p4=
 github.com/bitrise-io/api-utils v0.0.0-20211025122143-6499571b8433/go.mod h1:ikUVPSWA9inuIXM+XzR1aMYiV8HR1oy70UMwcdaDeK4=
-github.com/bitrise-io/envman v0.0.0-20240516104659-4a3e6bd8252a h1:SUVdeo9zsWGXqWZHxuGwfXSp3aENcNkllPYZbY3+uas=
-github.com/bitrise-io/envman v0.0.0-20240516104659-4a3e6bd8252a/go.mod h1:7yJQdVdq8BxJYq2xjG0yViQf/aspJLJ/xqk/OnP6lGE=
+github.com/bitrise-io/envman v0.0.0-20240624065735-ca81d0a80500 h1:U6ZSNtNnjeFBW2rS9ay7e4Hp1Ln9U/wfykrVfDNR8QY=
+github.com/bitrise-io/envman v0.0.0-20240624065735-ca81d0a80500/go.mod h1:7yJQdVdq8BxJYq2xjG0yViQf/aspJLJ/xqk/OnP6lGE=
 github.com/bitrise-io/go-utils v1.0.13 h1:1QENhTS/JlKH9F7+/nB+TtbTcor6jGrE6cQ4CJWfp5U=
 github.com/bitrise-io/go-utils v1.0.13/go.mod h1:ZY1DI+fEpZuFpO9szgDeICM4QbqoWVt0RSY3tRI1heY=
 github.com/blendle/zapdriver v1.3.1 h1:C3dydBOWYRiOk+B8X9IVZ5IOe+7cl+tGOexN4QqHfpE=
