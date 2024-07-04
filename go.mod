@@ -5,7 +5,7 @@ go 1.21
 require (
 	cloud.google.com/go/pubsub v1.40.0
 	github.com/bitrise-io/api-utils v0.0.0-20211025122143-6499571b8433
-	github.com/bitrise-io/envman v0.0.0-20240516104659-4a3e6bd8252a
+	github.com/bitrise-io/envman v0.0.0-20240624065735-ca81d0a80500
 	github.com/go-playground/webhooks/v6 v6.3.0
 	github.com/google/go-github/v62 v62.0.0
 	github.com/gorilla/mux v1.8.1
