@@ -39,11 +39,23 @@ func (hp HookProvider) gatherMetrics(event interface{}, webhookType, appSlug str
 	var metrics common.Metrics
 	switch event := event.(type) {
 	case *github.PushEvent, *github.DeleteEvent, *github.CreateEvent:
-		metrics = newPushMetrics(event, webhookType, appSlug, currentTime)
+		pushMetrics := newPushMetrics(event, webhookType, appSlug, currentTime)
+		if pushMetrics == nil {
+			return nil
+		}
+		metrics = pushMetrics
 	case *github.PullRequestEvent, *github.PullRequestReviewEvent:
-		metrics = newPullRequestMetrics(event, webhookType, appSlug, currentTime)
+		prMetrics := newPullRequestMetrics(event, webhookType, appSlug, currentTime)
+		if prMetrics == nil {
+			return nil
+		}
+		metrics = prMetrics
 	case *github.PullRequestReviewCommentEvent, *github.PullRequestReviewThreadEvent, *github.IssueCommentEvent:
-		metrics = newPullRequestCommentMetrics(event, webhookType, appSlug, currentTime)
+		commentMetrics := newPullRequestCommentMetrics(event, webhookType, appSlug, currentTime)
+		if commentMetrics == nil {
+			return nil
+		}
+		metrics = commentMetrics
 	}
 
 	if metrics == nil {
