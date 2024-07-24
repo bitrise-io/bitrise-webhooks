@@ -123,6 +123,36 @@ func TestHookProvider_gatherMetrics(t *testing.T) {
 			},
 		},
 		{
+			name: "Pull Request Issue Comment event transformed to Pull Request Comment metrics",
+			event: &github.IssueCommentEvent{
+				Issue: &github.Issue{
+					PullRequestLinks: &github.PullRequestLinks{},
+				},
+			},
+			webhookType: "issue_comment",
+			appSlug:     "slug",
+			want: &common.PullRequestCommentMetrics{
+				Event:  "pull_request",
+				Action: "comment",
+				GeneralMetrics: common.GeneralMetrics{
+					ProviderType:    ProviderID,
+					TimeStamp:       currentTime,
+					AppSlug:         "slug",
+					OriginalTrigger: "issue_comment:",
+				},
+				PullRequestID: "0",
+			},
+		},
+		{
+			name: "Other Issue Comment event not supported",
+			event: &github.IssueCommentEvent{
+				Issue: &github.Issue{},
+			},
+			webhookType: "issue_comment",
+			appSlug:     "slug",
+			want:        nil,
+		},
+		{
 			name:        "Fork event is not supported",
 			event:       &github.ForkEvent{},
 			webhookType: "fork",
