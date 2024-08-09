@@ -258,7 +258,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return slices.Contains([]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged", "diagnostics:ping", "pr:from_ref_updated"}, eventKey)
+	return slices.Contains([]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged", "diagnostics:ping", "pr:from_ref_updated", "pr:reviewer:approved"}, eventKey)
 }
 
 // TransformRequest ...
@@ -301,7 +301,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		return transformPushEvent(pushEvent)
 	}
 
-	if eventKey == "pr:opened" || eventKey == "pr:modified" || eventKey == "pr:merged" || eventKey == "pr:from_ref_updated" {
+	if eventKey == "pr:opened" || eventKey == "pr:modified" || eventKey == "pr:merged" || eventKey == "pr:from_ref_updated" || eventKey == "pr:reviewer:approved" {
 		var pullRequestEvent PullRequestEventModel
 		if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
 			return hookCommon.TransformResultModel{

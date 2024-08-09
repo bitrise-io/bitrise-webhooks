@@ -519,6 +519,163 @@ const (
 	}
 }`
 
+	samplePullRequestApprovedData = `{
+    "date": "2024-08-08T14:58:09+0200",
+    "actor": {
+        "emailAddress": "user1@example.com",
+        "displayName": "User One",
+        "name": "user1",
+        "active": true,
+        "links": {"self": [{"href": "https://stash-ui.example.com/users/user1"}]},
+        "id": 1,
+        "type": "NORMAL",
+        "slug": "user1"
+    },
+    "eventKey": "pr:reviewer:approved",
+    "pullRequest": {
+        "author": {
+            "approved": false,
+            "role": "AUTHOR",
+            "user": {
+                "emailAddress": "user2@example.com",
+                "displayName": "User Two",
+                "name": "user2",
+                "active": true,
+                "links": {"self": [{"href": "https://stash-ui.example.com/users/user2"}]},
+                "id": 2,
+                "type": "NORMAL",
+                "slug": "user2"
+            },
+            "status": "UNAPPROVED"
+        },
+        "description": "Approved!",
+        "updatedDate": 1723045050014,
+        "title": "fix error",
+        "version": 4,
+        "reviewers": [{
+            "approved": true,
+            "role": "REVIEWER",
+            "user": {
+                "emailAddress": "user1@example.com",
+                "displayName": "User One",
+                "name": "user1",
+                "active": true,
+                "links": {"self": [{"href": "https://stash-ui.example.com/users/user1"}]},
+                "id": 1,
+                "type": "NORMAL",
+                "slug": "user1"
+            },
+            "lastReviewedCommit": "836204e0cbf06ce4ebfb878be21fb383d8c12e62",
+            "status": "APPROVED"
+        }],
+        "toRef": {
+            "latestCommit": "4755079fa762299a4d99512ca18703db80d42a35",
+            "id": "refs/heads/main-branch",
+            "displayId": "main-branch",
+            "type": "BRANCH",
+            "repository": {
+                "archived": false,
+                "public": false,
+                "hierarchyId": "7087f8beac6eb0d81cd8",
+                "name": "app-repo",
+                "forkable": true,
+                "project": {
+                    "public": false,
+                    "name": "Project - Mobile",
+                    "description": "Internal mobile repository",
+                    "links": {"self": [{"href": "https://stash-ui.example.com/projects/PROJ"}]},
+                    "id": 1,
+                    "type": "NORMAL",
+                    "key": "PROJ"
+                },
+                "links": {
+                    "clone": [
+                        {
+                            "name": "http",
+                            "href": "https://stash-ui.example.com/scm/proj/app-repo.git"
+                        },
+                        {
+                            "name": "ssh",
+                            "href": "ssh://git@stash.example.com:7999/proj/app-repo.git"
+                        }
+                    ],
+                    "self": [{"href": "https://stash-ui.example.com/projects/PROJ/repos/app-repo/browse"}]
+                },
+                "id": 84,
+                "scmId": "git",
+                "state": "AVAILABLE",
+                "slug": "app-repo",
+                "statusMessage": "Available"
+            }
+        },
+        "createdDate": 1723023559286,
+        "closed": false,
+        "fromRef": {
+            "latestCommit": "836204e0cbf06ce4ebfb878be21fb383d8c12e62",
+            "id": "refs/heads/test-fix-error",
+            "displayId": "test-fix-error",
+            "type": "BRANCH",
+            "repository": {
+                "archived": false,
+                "public": false,
+                "hierarchyId": "7087f8beac6eb0d81cd8",
+                "name": "app-repo",
+                "forkable": true,
+                "project": {
+                    "public": false,
+                    "name": "Project - Mobile",
+                    "description": "Internal mobile repository",
+                    "links": {"self": [{"href": "https://stash-ui.example.com/projects/PROJ"}]},
+                    "id": 1,
+                    "type": "NORMAL",
+                    "key": "PROJ"
+                },
+                "links": {
+                    "clone": [
+                        {
+                            "name": "http",
+                            "href": "https://stash-ui.example.com/scm/proj/app-repo.git"
+                        },
+                        {
+                            "name": "ssh",
+                            "href": "ssh://git@stash.example.com:7999/proj/app-repo.git"
+                        }
+                    ],
+                    "self": [{"href": "https://stash-ui.example.com/projects/PROJ/repos/app-repo/browse"}]
+                },
+                "id": 84,
+                "scmId": "git",
+                "state": "AVAILABLE",
+                "slug": "app-repo",
+                "statusMessage": "Available"
+            }
+        },
+        "links": {"self": [{"href": "https://stash-ui.example.com/projects/PROJ/repos/app-repo/pull-requests/1"}]},
+        "id": 1,
+        "state": "OPEN",
+        "locked": false,
+        "open": true,
+        "participants": []
+    },
+    "participant": {
+        "approved": true,
+        "role": "REVIEWER",
+        "user": {
+            "emailAddress": "user1@example.com",
+            "displayName": "User One",
+            "name": "user1",
+            "active": true,
+            "links": {"self": [{"href": "https://stash-ui.example.com/users/user1"}]},
+            "id": 1,
+            "type": "NORMAL",
+            "slug": "user1"
+        },
+        "lastReviewedCommit": "836204e0cbf06ce4ebfb878be21fb383d8c12e62",
+        "status": "APPROVED"
+    },
+    "previousStatus": "NEEDS_WORK"
+}`
+
 	samplePingData = `{
 	"test": true
 }`
@@ -1193,7 +1350,7 @@ func Test_isAcceptEventType(t *testing.T) {
 	{
 		for _, anAction := range []string{"",
 			"a", "not-an-action",
-			"repo:forked", "repo:modified", "repo:comment:added", "repo:comment:edited", "repo:comment:deleted", "pr:reviewer:approved",
+			"repo:forked", "repo:modified", "repo:comment:added", "repo:comment:edited", "repo:comment:deleted",
 			"pr:reviewer:unapproved", "pr:reviewer:needs_work", "pr:declined", "pr:deleted",
 			"pr:comment:added", "pr:comment:updated", "pr:comment:deleted",
 		} {
@@ -1396,6 +1553,33 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestID: &intOne,
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Test with Sample Pull Request approved Data")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":  {"pr:reviewer:approved"},
+				"Content-Type": {"application/json; charset=utf-8"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestApprovedData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:    "836204e0cbf06ce4ebfb878be21fb383d8c12e62",
+					CommitMessage: "fix error",
+					Branch:        "test-fix-error",
+					BranchDest:    "main-branch",
+					PullRequestID: &intOne,
+				},
+				TriggeredBy: "webhook-bitbucket-server/user1",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
