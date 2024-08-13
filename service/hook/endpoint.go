@@ -229,7 +229,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	// Let's Trigger a build / some builds!
 	triggerURL := config.SendRequestToURL
 	if triggerURL == nil {
-		u, err := bitriseapi.BuildTriggerURL("https://app.bitrise.io", appSlug)
+		u, err := bitriseapi.BuildTriggerURL("http://web-monolith.web-monolith:3000", appSlug)
 		if err != nil {
 			logger.Error(" [!] Exception: hookHandler: failed to create Build Trigger URL", zap.Error(err))
 			respondWithErrorString(w, &hookProvider, fmt.Sprintf("Failed to create Build Trigger URL: %s", err))
