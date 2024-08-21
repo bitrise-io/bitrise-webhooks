@@ -257,7 +257,8 @@ func transformPullRequestEvent(pullRequestEvent PullRequestEventModel) hookCommo
 
 	if pullRequest.MergeStatus != "succeeded" {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Pull request is not mergeable"),
+			Error:      fmt.Errorf("Pull request is not mergeable"),
+			ShouldSkip: true,
 		}
 	}
 
