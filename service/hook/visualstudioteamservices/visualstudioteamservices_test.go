@@ -655,7 +655,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 }`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.False(t, hookTransformResult.ShouldSkip)
+		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Pull request is not mergeable")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
