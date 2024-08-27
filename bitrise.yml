@@ -172,7 +172,13 @@ workflows:
       - script:
           title: Err check
           inputs:
-            - content: errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
+            - content: |-
+                #!/bin/bash
+                set -ex
+                if [ -x "$(command -v asdf)" ]; then
+                    asdf reshim golang
+                fi
+                errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
       - script:
           title: Go Lint
           inputs:
