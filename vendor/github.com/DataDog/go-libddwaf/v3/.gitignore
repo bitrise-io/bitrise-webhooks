@@ -18,6 +18,6 @@
 *.swp
 
 ## Ensure WAF static libraries are not excluded from vendor folders
-!internal/lib/*.so
-!internal/lib/*.dylib
+!internal/lib/*.so.gz
+!internal/lib/*.dylib.gz
 
