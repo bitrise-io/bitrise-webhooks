@@ -3,12 +3,16 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016-present Datadog, Inc.
 
-//go:build ((darwin && (amd64 || arm64)) || (linux && (amd64 || arm64))) && !go1.23 && !datadog.no_waf && (cgo || appsec)
+//go:build ((darwin && (amd64 || arm64)) || (linux && (amd64 || arm64))) && !go1.24 && !datadog.no_waf && (cgo || appsec)
 
 package lib
 
 import (
+	"bytes"
+	"compress/gzip"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	_ "embed"
@@ -26,22 +30,30 @@ func DumpEmbeddedWAF() (path string, err error) {
 
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
-			if err != nil {
-				// TODO: rely on errors.Join() once go1.20 is our min supported Go version
-				err = fmt.Errorf("%w; along with an error while releasingclosing the temporary file: %v", err, closeErr)
-			} else {
-				err = fmt.Errorf("error closing file: %w", closeErr)
-			}
+			err = errors.Join(err, fmt.Errorf("error closing file: %w", closeErr))
 		}
 		if path != "" && err != nil {
 			if rmErr := os.Remove(path); rmErr != nil {
-				// TODO: rely on errors.Join() once go1.20 is our min supported Go version
-				err = fmt.Errorf("%w; along with an error while releasingclosing the temporary file: %v", err, rmErr)
+				err = errors.Join(err, fmt.Errorf("error removing file: %w", rmErr))
 			}
 		}
 	}()
 
-	if err := os.WriteFile(file.Name(), libddwaf, 0400); err != nil {
+	gr, err := gzip.NewReader(bytes.NewReader(libddwaf))
+	if err != nil {
+		return path, fmt.Errorf("error creating gzip reader: %w", err)
+	}
+
+	uncompressedLibddwaf, err := io.ReadAll(gr)
+	if err != nil {
+		return path, fmt.Errorf("error reading gzip content: %w", err)
+	}
+
+	if err := gr.Close(); err != nil {
+		return path, fmt.Errorf("error closing gzip reader: %w", err)
+	}
+
+	if err := os.WriteFile(file.Name(), uncompressedLibddwaf, 0400); err != nil {
 		return path, fmt.Errorf("error writing file: %w", err)
 	}
 

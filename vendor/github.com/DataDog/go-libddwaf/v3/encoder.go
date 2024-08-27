@@ -446,14 +446,6 @@ func depthOf(ctx context.Context, obj reflect.Value) (depth int, err error) {
 
 	obj, kind := resolvePointer(obj)
 
-	//TODO: Remove this once Go 1.21 is the minimum supported version (it adds `builtin.max`)
-	max := func(x, y int) int {
-		if x > y {
-			return x
-		}
-		return y
-	}
-
 	var itemDepth int
 	switch kind {
 	case reflect.Array, reflect.Slice:

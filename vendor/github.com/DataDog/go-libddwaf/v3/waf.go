@@ -33,7 +33,7 @@ type Diagnostics struct {
 	Version        string
 }
 
-// TopLevelErrors returns the list of top-level errors reported by the WAF on any of the Diagnostics
+// TopLevelError returns the list of top-level errors reported by the WAF on any of the Diagnostics
 // entries, rolled up into a single error value. Returns nil if no top-level errors were reported.
 // Individual, item-level errors might still exist.
 func (d *Diagnostics) TopLevelError() error {
