@@ -228,7 +228,7 @@ ddwaf_handle ddwaf_update(ddwaf_handle handle, const ddwaf_object *ruleset,
  *
  * Destroy a WAF instance.
  *
- * @param Handle to the WAF instance.
+ * @param handle Handle to the WAF instance.
  */
 void ddwaf_destroy(ddwaf_handle handle);
 
@@ -242,16 +242,34 @@ void ddwaf_destroy(ddwaf_handle handle);
  *
  * The memory is owned by the WAF and should not be freed.
  *
- * @param Handle to the WAF instance.
+ * @param handle Handle to the WAF instance.
  * @param size Output parameter in which the size will be returned. The value of
  *             size will be 0 if the return value is NULL.
  * @return NULL if empty, otherwise a pointer to an array with size elements.
  *
- * @Note The returned array should be considered invalid after calling ddwaf_destroy
+ * @note This function is not thread-safe
+ * @note The returned array should be considered invalid after calling ddwaf_destroy
  *       on the handle used to obtain it.
  **/
 const char* const* ddwaf_known_addresses(const ddwaf_handle handle, uint32_t *size);
-
+/**
+ * ddwaf_known_actions
+ *
+ * Get an array of all the action types which could be triggered as a result of
+ * the current set of rules and exclusion filters.
+ *
+ * The memory is owned by the WAF and should not be freed.
+ *
+ * @param handle Handle to the WAF instance.
+ * @param size Output parameter in which the size will be returned. The value of
+ *             size will be 0 if the return value is NULL.
+ * @return NULL if empty, otherwise a pointer to an array with size elements.
+ *
+ * @note This function is not thread-safe
+ * @note The returned array should be considered invalid after calling ddwaf_destroy
+ *       on the handle used to obtain it.
+ **/
+const char *const *ddwaf_known_actions(const ddwaf_handle handle, uint32_t *size);
 /**
  * ddwaf_context_init
  *
