@@ -8,14 +8,13 @@ package waf
 import (
 	"errors"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	wafErrors "github.com/DataDog/go-libddwaf/v3/errors"
 	"github.com/DataDog/go-libddwaf/v3/internal/bindings"
 	"github.com/DataDog/go-libddwaf/v3/internal/unsafe"
 	"github.com/DataDog/go-libddwaf/v3/timer"
-
-	"sync/atomic"
 )
 
 // Handle represents an instance of the WAF for a given ruleset.
@@ -70,7 +69,7 @@ func NewHandle(rules any, keyObfuscatorRegex string, valueObfuscatorRegex string
 	cHandle := wafLib.WafInit(obj, config, diagnosticsWafObj)
 	// Upon failure, the WAF may have produced some diagnostics to help signal what went wrong...
 	var (
-		diags    *Diagnostics
+		diags    = new(Diagnostics)
 		diagsErr error
 	)
 	if !diagnosticsWafObj.IsInvalid() {
@@ -133,7 +132,17 @@ func (handle *Handle) NewContextWithBudget(budget time.Duration) (*Context, erro
 		return nil, err
 	}
 
-	return &Context{handle: handle, cContext: cContext, timer: timer, metrics: metricsStore{data: make(map[string]time.Duration, 5)}}, nil
+	return &Context{
+		handle:      handle,
+		cContext:    cContext,
+		timer:       timer,
+		metrics:     metricsStore{data: make(map[metricKey]time.Duration, 5)},
+		truncations: make(map[Scope]map[TruncationReason][]int, 2),
+		timeoutCount: map[Scope]*atomic.Uint64{
+			DefaultScope: new(atomic.Uint64),
+			RASPScope:    new(atomic.Uint64),
+		},
+	}, nil
 }
 
 // Diagnostics returns the rules initialization metrics for the current WAF handle
@@ -141,9 +150,14 @@ func (handle *Handle) Diagnostics() Diagnostics {
 	return handle.diagnostics
 }
 
-// Addresses returns the list of addresses the WAF rule is expecting.
+// Addresses returns the list of addresses the WAF has been configured to monitor based on the input ruleset
 func (handle *Handle) Addresses() []string {
 	return wafLib.WafKnownAddresses(handle.cHandle)
+}
+
+// Actions returns the list of actions the WAF has been configured to monitor based on the input ruleset
+func (handle *Handle) Actions() []string {
+	return wafLib.WafKnownActions(handle.cHandle)
 }
 
 // Update the ruleset of a WAF instance into a new handle on its own
