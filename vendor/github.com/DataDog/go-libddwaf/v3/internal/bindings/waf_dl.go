@@ -32,6 +32,7 @@ type wafSymbols struct {
 	update         uintptr
 	destroy        uintptr
 	knownAddresses uintptr
+	knownActions   uintptr
 	getVersion     uintptr
 	contextInit    uintptr
 	contextDestroy uintptr
@@ -40,23 +41,23 @@ type wafSymbols struct {
 	run            uintptr
 }
 
-// newWafDl loads the libddwaf shared library and resolves all tge relevant symbols.
+// NewWafDl loads the libddwaf shared library and resolves all tge relevant symbols.
 // The caller is responsible for calling wafDl.Close on the returned object once they
 // are done with it so that associated resources can be released.
 func NewWafDl() (dl *WafDl, err error) {
-	file, err := lib.DumpEmbeddedWAF()
+	path, closer, err := lib.DumpEmbeddedWAF()
 	if err != nil {
-		return
+		return nil, fmt.Errorf("dump embedded WAF: %w", err)
 	}
 	defer func() {
-		if rmErr := os.Remove(file); rmErr != nil {
-			err = errors.Join(err, fmt.Errorf("error removing %s: %w", file, rmErr))
+		if rmErr := closer(); rmErr != nil {
+			err = errors.Join(err, fmt.Errorf("error removing %s: %w", path, rmErr))
 		}
 	}()
 
 	var handle uintptr
-	if handle, err = purego.Dlopen(file, purego.RTLD_GLOBAL|purego.RTLD_NOW); err != nil {
-		return
+	if handle, err = purego.Dlopen(path, purego.RTLD_GLOBAL|purego.RTLD_NOW); err != nil {
+		return nil, fmt.Errorf("load a dynamic library file: %w", err)
 	}
 
 	var symbols wafSymbols
@@ -84,7 +85,7 @@ func NewWafDl() (dl *WafDl, err error) {
 	if val := os.Getenv(log.EnvVarLogLevel); val != "" {
 		setLogSym, symErr := purego.Dlsym(handle, "ddwaf_set_log_cb")
 		if symErr != nil {
-			return
+			return nil, fmt.Errorf("get symbol: %w", symErr)
 		}
 		logLevel := log.LevelNamed(val)
 		dl.syscall(setLogSym, log.CallbackFunctionPointer(), uintptr(logLevel))
@@ -97,12 +98,12 @@ func (waf *WafDl) Close() error {
 	return purego.Dlclose(waf.handle)
 }
 
-// wafGetVersion returned string is a static string so we do not need to free it
+// WafGetVersion returned string is a static string so we do not need to free it
 func (waf *WafDl) WafGetVersion() string {
 	return unsafe.Gostring(unsafe.Cast[byte](waf.syscall(waf.getVersion)))
 }
 
-// wafInit initializes a new WAF with the provided ruleset, configuration and info objects. A
+// WafInit initializes a new WAF with the provided ruleset, configuration and info objects. A
 // cgoRefPool ensures that the provided input values are not moved or garbage collected by the Go
 // runtime during the WAF call.
 func (waf *WafDl) WafInit(ruleset *WafObject, config *WafConfig, info *WafObject) WafHandle {
@@ -125,15 +126,15 @@ func (waf *WafDl) WafDestroy(handle WafHandle) {
 	unsafe.KeepAlive(handle)
 }
 
-// wafKnownAddresses returns static strings so we do not need to free them
-func (waf *WafDl) WafKnownAddresses(handle WafHandle) []string {
+func (waf *WafDl) wafKnownX(handle WafHandle, symbol uintptr) []string {
 	var nbAddresses uint32
 
-	arrayVoidC := waf.syscall(waf.knownAddresses, uintptr(handle), unsafe.PtrToUintptr(&nbAddresses))
+	arrayVoidC := waf.syscall(symbol, uintptr(handle), unsafe.PtrToUintptr(&nbAddresses))
 	if arrayVoidC == 0 {
 		return nil
 	}
 
+	// These C strings are static strings so we do not need to free them
 	addresses := make([]string, int(nbAddresses))
 	for i := 0; i < int(nbAddresses); i++ {
 		addresses[i] = unsafe.Gostring(*unsafe.CastWithOffset[*byte](arrayVoidC, uint64(i)))
@@ -143,6 +144,14 @@ func (waf *WafDl) WafKnownAddresses(handle WafHandle) []string {
 	unsafe.KeepAlive(handle)
 
 	return addresses
+}
+
+func (waf *WafDl) WafKnownAddresses(handle WafHandle) []string {
+	return waf.wafKnownX(handle, waf.knownAddresses)
+}
+
+func (waf *WafDl) WafKnownActions(handle WafHandle) []string {
+	return waf.wafKnownX(handle, waf.knownActions)
 }
 
 func (waf *WafDl) WafContextInit(handle WafHandle) WafContext {
@@ -205,6 +214,9 @@ func resolveWafSymbols(handle uintptr) (symbols wafSymbols, err error) {
 		return
 	}
 	if symbols.knownAddresses, err = purego.Dlsym(handle, "ddwaf_known_addresses"); err != nil {
+		return
+	}
+	if symbols.knownActions, err = purego.Dlsym(handle, "ddwaf_known_actions"); err != nil {
 		return
 	}
 	if symbols.getVersion, err = purego.Dlsym(handle, "ddwaf_get_version"); err != nil {

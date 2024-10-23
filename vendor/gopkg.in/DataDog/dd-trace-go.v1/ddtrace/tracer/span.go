@@ -111,6 +111,9 @@ func (s *span) BaggageItem(key string) string {
 
 // SetTag adds a set of key/value metadata to the span.
 func (s *span) SetTag(key string, value interface{}) {
+	// To avoid dumping the memory address in case value is a pointer, we dereference it.
+	// Any pointer value that is a pointer to a pointer will be dumped as a string.
+	value = dereference(value)
 	s.Lock()
 	defer s.Unlock()
 	// We don't lock spans when flushing, so we could have a data race when
@@ -497,9 +500,11 @@ func (s *span) Finish(opts ...ddtrace.FinishOption) {
 		s.SetTag("go_execution_traced", "partial")
 	}
 
-	if tr, ok := internal.GetGlobalTracer().(*tracer); ok && tr.rulesSampling.traces.enabled() {
-		if !s.context.trace.isLocked() && s.context.trace.propagatingTag(keyDecisionMaker) != "-4" {
-			tr.rulesSampling.SampleTrace(s)
+	if s.root() == s {
+		if tr, ok := internal.GetGlobalTracer().(*tracer); ok && tr.rulesSampling.traces.enabled() {
+			if !s.context.trace.isLocked() && s.context.trace.propagatingTag(keyDecisionMaker) != "-4" {
+				tr.rulesSampling.SampleTrace(s)
+			}
 		}
 	}
 
@@ -597,13 +602,21 @@ func newAggregableSpan(s *span, obfuscator *obfuscate.Obfuscator) *aggregableSpa
 			statusCode = uint32(c)
 		}
 	}
+	var isTraceRoot trilean
+	if s.ParentID == 0 {
+		isTraceRoot = trileanTrue
+	} else {
+		isTraceRoot = trileanFalse
+	}
+
 	key := aggregation{
-		Name:       s.Name,
-		Resource:   obfuscatedResource(obfuscator, s.Type, s.Resource),
-		Service:    s.Service,
-		Type:       s.Type,
-		Synthetics: strings.HasPrefix(s.Meta[keyOrigin], "synthetics"),
-		StatusCode: statusCode,
+		Name:        s.Name,
+		Resource:    obfuscatedResource(obfuscator, s.Type, s.Resource),
+		Service:     s.Service,
+		Type:        s.Type,
+		Synthetics:  strings.HasPrefix(s.Meta[keyOrigin], "synthetics"),
+		StatusCode:  statusCode,
+		IsTraceRoot: isTraceRoot,
 	}
 	return &aggregableSpan{
 		key:      key,
