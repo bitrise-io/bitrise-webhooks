@@ -201,35 +201,35 @@ func messageForBuildTrigger(apiResponse bitriseapi.TriggerAPIResponseModel) stri
 			apiResponse.BuildSlug,
 			apiResponse.TriggeredWorkflow,
 			apiResponse.BuildURL)
-	} else {
-		// Multiple builds, maybe failing
-		msg := fmt.Sprintf("Triggered %d builds:", len(apiResponse.Results))
-		for _, result := range apiResponse.Results {
-			var targetType, targetName string
-			if result.TriggeredPipeline == "" {
-				targetType = "workflow"
-				targetName = result.TriggeredWorkflow
-			} else {
-				targetType = "pipeline"
-				targetName = result.TriggeredPipeline
-			}
-
-			if result.Status == "ok" {
-				msg += fmt.Sprintf("\nbuild #%d (%s), with %s: %s - url: %s",
-					result.BuildNumber,
-					result.BuildSlug,
-					targetType,
-					targetName,
-					result.BuildURL)
-			} else {
-				msg += fmt.Sprintf("\nbuild with %s: %s - failed: %s",
-					targetType,
-					targetName,
-					result.Message)
-			}
-		}
-		return msg
 	}
+
+	// Multiple builds, maybe failing
+	msg := fmt.Sprintf("Triggered %d builds:", len(apiResponse.Results))
+	for _, result := range apiResponse.Results {
+		var targetType, targetName string
+		if result.TriggeredPipeline == "" {
+			targetType = "workflow"
+			targetName = result.TriggeredWorkflow
+		} else {
+			targetType = "pipeline"
+			targetName = result.TriggeredPipeline
+		}
+
+		if result.Status == "ok" {
+			msg += fmt.Sprintf("\nbuild #%d (%s), with %s: %s - url: %s",
+				result.BuildNumber,
+				result.BuildSlug,
+				targetType,
+				targetName,
+				result.BuildURL)
+		} else {
+			msg += fmt.Sprintf("\nbuild with %s: %s - failed: %s",
+				targetType,
+				targetName,
+				result.Message)
+		}
+	}
+	return msg
 }
 
 // TransformResponse ...
