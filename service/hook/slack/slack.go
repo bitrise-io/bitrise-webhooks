@@ -193,12 +193,43 @@ type RespModel struct {
 	Attachments  []AttachmentItemModel `json:"attachments,omitempty"`
 }
 
-func messageForSuccessfulBuildTrigger(apiResponse bitriseapi.TriggerAPIResponseModel) string {
-	return fmt.Sprintf("Triggered build #%d (%s), with workflow: %s - url: %s",
-		apiResponse.BuildNumber,
-		apiResponse.BuildSlug,
-		apiResponse.TriggeredWorkflow,
-		apiResponse.BuildURL)
+func messageForBuildTrigger(apiResponse bitriseapi.TriggerAPIResponseModel) string {
+	if len(apiResponse.Results) < 2 {
+		// Single successful build
+		return fmt.Sprintf("Triggered build #%d (%s), with workflow: %s - url: %s",
+			apiResponse.BuildNumber,
+			apiResponse.BuildSlug,
+			apiResponse.TriggeredWorkflow,
+			apiResponse.BuildURL)
+	} else {
+		// Multiple builds, maybe failing
+		msg := fmt.Sprintf("Triggered %d builds:", len(apiResponse.Results))
+		for _, result := range apiResponse.Results {
+			var targetType, targetName string
+			if result.TriggeredPipeline == "" {
+				targetType = "workflow"
+				targetName = result.TriggeredWorkflow
+			} else {
+				targetType = "pipeline"
+				targetName = result.TriggeredPipeline
+			}
+
+			if result.Status == "ok" {
+				msg += fmt.Sprintf("\nbuild #%d (%s), with %s: %s - url: %s",
+					result.BuildNumber,
+					result.BuildSlug,
+					targetType,
+					targetName,
+					result.BuildURL)
+			} else {
+				msg += fmt.Sprintf("\nbuild with %s: %s - failed: %s",
+					targetType,
+					targetName,
+					result.Message)
+			}
+		}
+		return msg
+	}
 }
 
 // TransformResponse ...
@@ -212,11 +243,17 @@ func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInput
 	}
 	if len(input.FailedTriggerResponses) > 0 {
 		for _, aFailedTrigResp := range input.FailedTriggerResponses {
-			errMsg := aFailedTrigResp.Message
-			if errMsg == "" {
-				errMsg = fmt.Sprintf("%+v", aFailedTrigResp)
+			if len(aFailedTrigResp.Results) > 1 {
+				// New behaviour: multiple builds, some have failed
+				slackAttachments = append(slackAttachments, createAttachmentItemModel(messageForBuildTrigger(aFailedTrigResp), slackColorDanger))
+			} else {
+				// Compatibility behaviour: for a project-level error or a single build, report errors as before
+				errMsg := aFailedTrigResp.Message
+				if errMsg == "" {
+					errMsg = fmt.Sprintf("%+v", aFailedTrigResp)
+				}
+				slackAttachments = append(slackAttachments, createAttachmentItemModel(errMsg, slackColorDanger))
 			}
-			slackAttachments = append(slackAttachments, createAttachmentItemModel(errMsg, slackColorDanger))
 		}
 	}
 	if len(input.SkippedTriggerResponses) > 0 {
@@ -230,7 +267,7 @@ func (hp HookProvider) TransformResponse(input hookCommon.TransformResponseInput
 	}
 	if len(input.SuccessTriggerResponses) > 0 {
 		for _, aSuccessTrigResp := range input.SuccessTriggerResponses {
-			slackAttachments = append(slackAttachments, createAttachmentItemModel(messageForSuccessfulBuildTrigger(aSuccessTrigResp), slackColorGood))
+			slackAttachments = append(slackAttachments, createAttachmentItemModel(messageForBuildTrigger(aSuccessTrigResp), slackColorGood))
 		}
 	}
 
