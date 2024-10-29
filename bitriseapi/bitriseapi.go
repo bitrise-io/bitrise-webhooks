@@ -105,14 +105,30 @@ type TriggerAPIParamsModel struct {
 
 // TriggerAPIResponseModel ...
 type TriggerAPIResponseModel struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	Service string `json:"service"`
+	AppSlug string `json:"slug"`
+	// Deprecated
+	BuildSlug string `json:"build_slug"`
+	// Deprecated
+	BuildNumber int `json:"build_number"`
+	// Deprecated
+	BuildURL string `json:"build_url"`
+	// Deprecated
+	TriggeredWorkflow string                      `json:"triggered_workflow"`
+	Results           []BuildTriggerRespItemModel `json:"results"`
+}
+
+// BuildTriggerRespItemModel ...
+type BuildTriggerRespItemModel struct {
 	Status            string `json:"status"`
 	Message           string `json:"message"`
-	Service           string `json:"service"`
-	AppSlug           string `json:"slug"`
 	BuildSlug         string `json:"build_slug"`
 	BuildNumber       int    `json:"build_number"`
 	BuildURL          string `json:"build_url"`
 	TriggeredWorkflow string `json:"triggered_workflow"`
+	TriggeredPipeline string `json:"triggered_pipeline"`
 }
 
 // Validate ...
