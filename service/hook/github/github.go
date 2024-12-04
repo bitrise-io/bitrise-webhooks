@@ -463,6 +463,7 @@ func transformIssueCommentEvent(eventModel IssueCommentEventModel) hookCommon.Tr
 			PullRequestReadyState:            readyState,
 			PullRequestLabels:                labels,
 			PullRequestComment:               eventModel.Comment.Body,
+			PullRequestCommentID:             eventModel.Comment.ID,
 		},
 		TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, eventModel.Sender.Login),
 	}
