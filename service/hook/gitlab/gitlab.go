@@ -492,7 +492,7 @@ func transformMergeRequestEvent(event MergeRequestEventModel) hookCommon.Transfo
 	readyState := mergeRequestReadyState(event)
 	user := event.User
 
-	return transformMergeRequest(mergeRequest, user, readyState, newLabels, "")
+	return transformMergeRequest(mergeRequest, user, readyState, newLabels, "", 0)
 }
 
 func transformMergeRequestCommentEvent(event MergeRequestCommentEventModel) hookCommon.TransformResultModel {
@@ -524,7 +524,7 @@ func transformMergeRequestCommentEvent(event MergeRequestCommentEventModel) hook
 		readyState = bitriseapi.PullRequestReadyStateReadyForReview
 	}
 
-	return transformMergeRequest(mergeRequest, user, readyState, newLabels, comment.Note)
+	return transformMergeRequest(mergeRequest, user, readyState, newLabels, comment.Note, int64(comment.ID))
 }
 
 func transformMergeRequest(
@@ -533,6 +533,7 @@ func transformMergeRequest(
 	readyState bitriseapi.PullRequestReadyState,
 	newLabels []string,
 	comment string,
+	commentID int64,
 ) hookCommon.TransformResultModel {
 	if mergeRequest.State == "" {
 		return hookCommon.TransformResultModel{
@@ -604,6 +605,7 @@ func transformMergeRequest(
 					PullRequestLabelsAdded:   newLabels,
 					PullRequestLabels:        labels,
 					PullRequestComment:       comment,
+					PullRequestCommentID:     commentID,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, user.Username),
 			},

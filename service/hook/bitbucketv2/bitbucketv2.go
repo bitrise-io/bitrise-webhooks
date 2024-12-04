@@ -281,8 +281,10 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	}
 
 	var comment string
+	var commentID int64
 	if pullRequest.CommentInfo != nil {
 		comment = pullRequest.CommentInfo.Content.Raw
+		commentID = int64(pullRequest.CommentInfo.ID)
 	}
 
 	return hookCommon.TransformResultModel{
@@ -301,6 +303,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					PullRequestRepositoryURL: pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.getRepositoryURL(),
 					PullRequestAuthor:        pullRequest.PullRequestInfo.Author.Nickname,
 					PullRequestComment:       comment,
+					PullRequestCommentID:     commentID,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.PullRequestInfo.Author.Nickname),
 			},
