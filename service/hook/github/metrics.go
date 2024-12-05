@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/go-github/v62/github"
+	"github.com/google/go-github/v67/github"
 
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 )
