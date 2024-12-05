@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -194,7 +195,23 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		})
 
 		if err != nil {
-			logger.Error("Failed to gather metrics from the webhook", zap.Error(err))
+			knownErrors := []string{
+				"unknown X-Github-Event in message",
+				"payload signature check failed",
+			}
+			isKnownError := false
+
+			for _, knownError := range knownErrors {
+				if strings.Contains(err.Error(), knownError) {
+					logger.Warn("Failed to gather metrics from the webhook", zap.Error(err))
+					isKnownError = true
+					break
+				}
+			}
+
+			if !isKnownError {
+				logger.Error("Failed to gather metrics from the webhook", zap.Error(err))
+			}
 		}
 
 		if len(webhookMetricsList) > 0 {
