@@ -11,7 +11,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"math"
 	"os"
 	"reflect"
 	"runtime"
@@ -33,9 +32,10 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/internal/samplernames"
 	"gopkg.in/DataDog/dd-trace-go.v1/internal/traceprof"
 
-	"github.com/DataDog/datadog-agent/pkg/obfuscate"
 	"github.com/tinylib/msgp/msgp"
 	"golang.org/x/xerrors"
+
+	"github.com/DataDog/datadog-agent/pkg/obfuscate"
 )
 
 type (
@@ -111,6 +111,9 @@ func (s *span) BaggageItem(key string) string {
 
 // SetTag adds a set of key/value metadata to the span.
 func (s *span) SetTag(key string, value interface{}) {
+	// To avoid dumping the memory address in case value is a pointer, we dereference it.
+	// Any pointer value that is a pointer to a pointer will be dumped as a string.
+	value = dereference(value)
 	s.Lock()
 	defer s.Unlock()
 	// We don't lock spans when flushing, so we could have a data race when
@@ -497,9 +500,11 @@ func (s *span) Finish(opts ...ddtrace.FinishOption) {
 		s.SetTag("go_execution_traced", "partial")
 	}
 
-	if tr, ok := internal.GetGlobalTracer().(*tracer); ok && tr.rulesSampling.traces.enabled() {
-		if !s.context.trace.isLocked() && s.context.trace.propagatingTag(keyDecisionMaker) != "-4" {
-			tr.rulesSampling.SampleTrace(s)
+	if s.root() == s {
+		if tr, ok := internal.GetGlobalTracer().(*tracer); ok && tr.rulesSampling.traces.enabled() {
+			if !s.context.trace.isLocked() && s.context.trace.propagatingTag(keyDecisionMaker) != "-4" {
+				tr.rulesSampling.SampleTrace(s)
+			}
 		}
 	}
 
@@ -547,13 +552,16 @@ func (s *span) finish(finishTime int64) {
 			return
 		}
 		// we have an active tracer
-		if t.config.canComputeStats() && shouldComputeStats(s) {
-			// the agent supports computed stats
-			select {
-			case t.stats.In <- newAggregableSpan(s, t.obfuscator):
-				// ok
-			default:
-				log.Error("Stats channel full, disregarding span.")
+		if t.config.canComputeStats() {
+			statSpan, shouldCalc := t.stats.newTracerStatSpan(s, t.obfuscator)
+			if shouldCalc {
+				// the agent supports computed stats
+				select {
+				case t.stats.In <- statSpan:
+					// ok
+				default:
+					log.Error("Stats channel full, disregarding span.")
+				}
 			}
 		}
 		if t.config.canDropP0s() {
@@ -585,32 +593,6 @@ func (s *span) finish(finishTime int64) {
 		// Restore the labels of the parent span so any CPU samples after this
 		// point are attributed correctly.
 		pprof.SetGoroutineLabels(s.pprofCtxRestore)
-	}
-}
-
-// newAggregableSpan creates a new summary for the span s, within an application
-// version version.
-func newAggregableSpan(s *span, obfuscator *obfuscate.Obfuscator) *aggregableSpan {
-	var statusCode uint32
-	if sc, ok := s.Meta["http.status_code"]; ok && sc != "" {
-		if c, err := strconv.Atoi(sc); err == nil && c > 0 && c <= math.MaxInt32 {
-			statusCode = uint32(c)
-		}
-	}
-	key := aggregation{
-		Name:       s.Name,
-		Resource:   obfuscatedResource(obfuscator, s.Type, s.Resource),
-		Service:    s.Service,
-		Type:       s.Type,
-		Synthetics: strings.HasPrefix(s.Meta[keyOrigin], "synthetics"),
-		StatusCode: statusCode,
-	}
-	return &aggregableSpan{
-		key:      key,
-		Start:    s.Start,
-		Duration: s.Duration,
-		TopLevel: s.Metrics[keyTopLevel] == 1,
-		Error:    s.Error,
 	}
 }
 
