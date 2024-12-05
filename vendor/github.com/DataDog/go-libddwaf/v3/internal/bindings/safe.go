@@ -15,7 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func newPanicError(in func() error, err error) *wafErrors.PanicError {
+func newPanicError(in any, err error) *wafErrors.PanicError {
 	return &wafErrors.PanicError{
 		In:  runtime.FuncForPC(reflect.ValueOf(in).Pointer()).Name(),
 		Err: err,
@@ -24,7 +24,7 @@ func newPanicError(in func() error, err error) *wafErrors.PanicError {
 
 // tryCall calls function `f` and recovers from any panic occurring while it
 // executes, returning it in a `PanicError` object type.
-func tryCall(f func() error) (err error) {
+func tryCall[T any](f func() T) (res T, err error) {
 	defer func() {
 		r := recover()
 		if r == nil {
@@ -43,5 +43,6 @@ func tryCall(f func() error) (err error) {
 
 		err = newPanicError(f, err)
 	}()
-	return f()
+	res = f()
+	return
 }
