@@ -13,5 +13,3 @@ import _ "embed" // Needed for go:embed
 
 //go:embed libddwaf-darwin-amd64.dylib.gz
 var libddwaf []byte
-
-const embedNamePattern = "libddwaf-*.dylib"
