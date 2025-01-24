@@ -544,7 +544,7 @@ const sampleMergeRequestCommentCreatedData = `{
 
     ],
     "labels": [
-      
+
     ],
     "state": "opened",
     "blocking_discussions_resolved": true,
@@ -705,7 +705,7 @@ const sampleMergeRequestCommentUpdatedData = `{
 
     ],
     "labels": [
-      
+
     ],
     "state": "opened",
     "blocking_discussions_resolved": true,
@@ -1859,7 +1859,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestHeadBranch:    "merge-requests/12/head",
 					PullRequestReadyState:    bitriseapi.PullRequestReadyStateReadyForReview,
 					PullRequestComment:       "This is a new general comment.",
-					PullRequestCommentID:     1841576181,
+					PullRequestCommentID:     "1841576181",
 				},
 				TriggeredBy: "webhook-gitlab/test.user",
 			},
@@ -1897,7 +1897,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					PullRequestHeadBranch:    "merge-requests/12/head",
 					PullRequestReadyState:    bitriseapi.PullRequestReadyStateReadyForReview,
 					PullRequestComment:       "This is an updated comment.",
-					PullRequestCommentID:     1841576181,
+					PullRequestCommentID:     "1841576181",
 				},
 				TriggeredBy: "webhook-gitlab/test.user",
 			},

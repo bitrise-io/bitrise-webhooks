@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
@@ -281,10 +282,10 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	}
 
 	var comment string
-	var commentID int64
+	var commentID string
 	if pullRequest.CommentInfo != nil {
 		comment = pullRequest.CommentInfo.Content.Raw
-		commentID = int64(pullRequest.CommentInfo.ID)
+		commentID = strconv.Itoa(pullRequest.CommentInfo.ID)
 	}
 
 	return hookCommon.TransformResultModel{

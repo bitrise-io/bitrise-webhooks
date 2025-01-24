@@ -42,6 +42,7 @@ import (
 	"math"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
@@ -524,7 +525,7 @@ func transformMergeRequestCommentEvent(event MergeRequestCommentEventModel) hook
 		readyState = bitriseapi.PullRequestReadyStateReadyForReview
 	}
 
-	return transformMergeRequest(mergeRequest, user, readyState, newLabels, comment.Note, int64(comment.ID))
+	return transformMergeRequest(mergeRequest, user, readyState, newLabels, comment.Note, comment.ID)
 }
 
 func transformMergeRequest(
@@ -533,7 +534,7 @@ func transformMergeRequest(
 	readyState bitriseapi.PullRequestReadyState,
 	newLabels []string,
 	comment string,
-	commentID int64,
+	commentID int,
 ) hookCommon.TransformResultModel {
 	if mergeRequest.State == "" {
 		return hookCommon.TransformResultModel{
@@ -583,6 +584,11 @@ func transformMergeRequest(
 		labels = append(labels, label.Title)
 	}
 
+	var commentIDString string
+	if comment != "" || commentID != 0 {
+		commentIDString = strconv.Itoa(commentID)
+	}
+
 	return hookCommon.TransformResultModel{
 		DontWaitForTriggerResponse: true,
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
@@ -605,7 +611,7 @@ func transformMergeRequest(
 					PullRequestLabelsAdded:   newLabels,
 					PullRequestLabels:        labels,
 					PullRequestComment:       comment,
-					PullRequestCommentID:     commentID,
+					PullRequestCommentID:     commentIDString,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, user.Username),
 			},
