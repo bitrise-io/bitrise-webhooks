@@ -606,7 +606,7 @@ func transformMergeRequest(
 					PullRequestLabelsAdded:   newLabels,
 					PullRequestLabels:        labels,
 					PullRequestComment:       comment,
-					PullRequestCommentID:     strconv.Itoa(commentID),
+					PullRequestCommentID:     strconv.FormatInt(commentID, 10),
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, user.Username),
 			},

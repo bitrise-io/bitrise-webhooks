@@ -304,7 +304,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					PullRequestRepositoryURL: pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.getRepositoryURL(),
 					PullRequestAuthor:        pullRequest.PullRequestInfo.Author.Nickname,
 					PullRequestComment:       comment,
-					PullRequestCommentID:     strconv.Itoa(commentID),
+					PullRequestCommentID:     strconv.FormatInt(commentID, 10),
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.PullRequestInfo.Author.Nickname),
 			},
