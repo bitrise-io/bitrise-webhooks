@@ -42,6 +42,7 @@ import (
 	"math"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
@@ -605,7 +606,7 @@ func transformMergeRequest(
 					PullRequestLabelsAdded:   newLabels,
 					PullRequestLabels:        labels,
 					PullRequestComment:       comment,
-					PullRequestCommentID:     commentID,
+					PullRequestCommentID:     strconv.Itoa(commentID),
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, user.Username),
 			},
