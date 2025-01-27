@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
@@ -190,13 +191,20 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		// Commits are in descending order, by commit date-time (first one is the latest)
 		headCommit := pushEvent.Resource.Commits[0]
 
+		var commitMessages []string
+		for _, commit := range pushEvent.Resource.Commits {
+			commitMessages = append(commitMessages, commit.Comment)
+		}
+		slices.Reverse(commitMessages)
+
 		return hookCommon.TransformResultModel{
 			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 				{
 					BuildParams: bitriseapi.BuildParamsModel{
-						Branch:        branch,
-						CommitHash:    headCommit.CommitID,
-						CommitMessage: headCommit.Comment,
+						Branch:         branch,
+						CommitHash:     headCommit.CommitID,
+						CommitMessage:  headCommit.Comment,
+						CommitMessages: commitMessages,
 					},
 				},
 			},
@@ -249,7 +257,8 @@ func transformPullRequestEvent(pullRequestEvent PullRequestEventModel) hookCommo
 
 	if pullRequest.MergeStatus != "succeeded" {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Pull request is not mergeable"),
+			Error:      fmt.Errorf("Pull request is not mergeable"),
+			ShouldSkip: true,
 		}
 	}
 

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
-	"github.com/bitrise-io/go-utils/pointers"
 	"github.com/stretchr/testify/require"
+
+	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 )
 
 const (
@@ -27,7 +27,38 @@ const (
 					"message": "auto-test",
 					"hash": "966d0bfe79b80f97268c2f6bb45e65e79ef09b31"
 				}
-			}
+			},
+			"commits": [
+			  {
+				"hash": "03f4a7270240708834de475bcf21532d6134777e",
+				"type": "commit",
+				"message": "commit on master",
+				"author": {},
+				"links": {
+				  "self": {
+					"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/03f4a7270240708834de475bcf21532d6134777e"
+				  },
+				  "html": {
+					"href": "https://bitbucket.org/user/repo/commits/03f4a7270240708834de475bcf21532d6134777e"
+				  }
+				}
+			  },
+			  {
+				"hash": "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+				"type": "commit",
+				"message": "auto-test",
+				"author": {},
+				"links": {
+				  "self": {
+					"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/966d0bfe79b80f97268c2f6bb45e65e79ef09b31"
+				  },
+				  "html": {
+					"href": "https://bitbucket.org/user/repo/commits/966d0bfe79b80f97268c2f6bb45e65e79ef09b31"
+				  }
+				}
+			  }
+			],
+			"truncated": false
 		},
 		{
 			"new": {
@@ -38,7 +69,38 @@ const (
 					"message": "auto-test 2",
 					"hash": "19934139a2cf799bbd0f5061ab02e4760902e93f"
 				}
-			}
+			},
+			"commits": [
+			{
+				"hash": "abc123",
+				"type": "commit",
+				"message": "commit on branch",
+				"author": {},
+				"links": {
+				  "self": {
+					"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/abc123"
+				  },
+				  "html": {
+					"href": "https://bitbucket.org/user/repo/commits/abc123"
+				  }
+				}
+			  },
+			{
+				"hash": "19934139a2cf799bbd0f5061ab02e4760902e93f",
+				"type": "commit",
+				"message": "auto-test 2",
+				"author": {},
+				"links": {
+				  "self": {
+					"href": "https://api.bitbucket.org/2.0/repositories/user/repo/commit/19934139a2cf799bbd0f5061ab02e4760902e93f"
+				  },
+				  "html": {
+					"href": "https://bitbucket.org/user/repo/commits/19934139a2cf799bbd0f5061ab02e4760902e93f"
+				  }
+				}
+			  }
+			],
+			"truncated": false
 		}
 	]
 },
@@ -220,7 +282,237 @@ const (
 	}
 }
 }`
+
+	samplePRCommentCreatedData = `{
+  "repository": {
+  },
+  "actor": {
+  },
+  "pullrequest": {
+    "comment_count": 1,
+    "task_count": 0,
+    "type": "pullrequest",
+    "id": 1,
+    "title": "PR",
+    "description": "deszkripson",
+    "rendered": {
+    },
+    "state": "OPEN",
+    "merge_commit": null,
+    "close_source_branch": false,
+    "closed_by": null,
+    "author": {
+      "display_name": "Test User",
+      "links": {
+      },
+      "type": "user",
+      "uuid": "{bfe5f0f9-cf81-4cbb-830a-59e9f030eac2}",
+      "account_id": "712020:8440da8e-0559-401d-8ca7-1c0dd078a47f",
+      "nickname": "Test User"
+    },
+    "reason": "",
+    "created_on": "2024-03-19T15:21:27.520720+00:00",
+    "updated_on": "2024-03-28T14:36:27.931806+00:00",
+    "destination": {
+      "branch": {
+        "name": "master"
+      },
+      "commit": {
+        "hash": "521d1cf0bfe3",
+        "links": {
+        },
+        "type": "commit"
+      },
+      "repository": {
+        "type": "repository",
+        "full_name": "webhooks-test/bitbucket-webhooks-test",
+        "links": {
+        },
+        "name": "bitbucket-webhooks-test",
+        "uuid": "{d5e8d18c-f427-4ebc-a2d6-720f3d72c68a}"
+      }
+    },
+    "source": {
+      "branch": {
+        "name": "brencs"
+      },
+      "commit": {
+        "hash": "be2bc2f8a884",
+        "links": {
+        },
+        "type": "commit"
+      },
+      "repository": {
+        "type": "repository",
+        "full_name": "webhooks-test/bitbucket-webhooks-test",
+        "links": {
+        },
+        "name": "bitbucket-webhooks-test",
+        "uuid": "{d5e8d18c-f427-4ebc-a2d6-720f3d72c68a}"
+      }
+    },
+    "reviewers": [],
+    "participants": [
+    ],
+    "links": {
+    },
+    "summary": {
+      "type": "rendered",
+      "raw": "deszkripson",
+      "markup": "markdown",
+      "html": "<p>deszkripson</p>"
+    }
+  },
+  "comment": {
+    "id": 486836690,
+    "created_on": "2024-03-28T14:36:27.931720+00:00",
+    "updated_on": "2024-03-28T14:36:27.931806+00:00",
+    "content": {
+      "type": "rendered",
+      "raw": "test comment",
+      "markup": "markdown",
+      "html": "<p>test comment</p>"
+    },
+    "user": {
+      "display_name": "Test User",
+      "links": {
+      },
+      "type": "user",
+      "uuid": "{bfe5f0f9-cf81-4cbb-830a-59e9f030eac2}",
+      "account_id": "712020:8440da8e-0559-401d-8ca7-1c0dd078a47f",
+      "nickname": "Test User"
+    },
+    "deleted": false,
+    "pending": false,
+    "type": "pullrequest_comment",
+    "links": {
+    },
+    "pullrequest": {
+      "type": "pullrequest",
+      "id": 1,
+      "title": "PR",
+      "links": {
+      }
+    }
+  }
+}`
+
+	samplePRCommentUpdatedData = `{
+  "repository": {
+  },
+  "actor": {
+  },
+  "pullrequest": {
+    "comment_count": 2,
+    "task_count": 0,
+    "type": "pullrequest",
+    "id": 1,
+    "title": "PR",
+    "description": "deszkripson",
+    "rendered": {
+    },
+    "state": "OPEN",
+    "merge_commit": null,
+    "close_source_branch": false,
+    "closed_by": null,
+    "author": {
+      "display_name": "Test User",
+      "links": {
+      },
+      "type": "user",
+      "uuid": "{bfe5f0f9-cf81-4cbb-830a-59e9f030eac2}",
+      "account_id": "712020:8440da8e-0559-401d-8ca7-1c0dd078a47f",
+      "nickname": "Test User"
+    },
+    "reason": "",
+    "created_on": "2024-03-19T15:21:27.520720+00:00",
+    "updated_on": "2024-04-02T08:54:20.372341+00:00",
+    "destination": {
+      "branch": {
+        "name": "master"
+      },
+      "commit": {
+        "hash": "521d1cf0bfe3",
+        "links": {
+        },
+        "type": "commit"
+      },
+      "repository": {
+        "type": "repository",
+        "full_name": "webhooks-test/bitbucket-webhooks-test",
+        "links": {
+        },
+        "name": "bitbucket-webhooks-test",
+        "uuid": "{d5e8d18c-f427-4ebc-a2d6-720f3d72c68a}"
+      }
+    },
+    "source": {
+      "branch": {
+        "name": "brencs"
+      },
+      "commit": {
+        "hash": "be2bc2f8a884",
+        "links": {
+        },
+        "type": "commit"
+      },
+      "repository": {
+        "type": "repository",
+        "full_name": "webhooks-test/bitbucket-webhooks-test",
+        "links": {
+        },
+        "name": "bitbucket-webhooks-test",
+        "uuid": "{d5e8d18c-f427-4ebc-a2d6-720f3d72c68a}"
+      }
+    },
+    "reviewers": [],
+    "participants": [
+    ],
+    "links": {
+    },
+    "summary": {
+      "type": "rendered",
+      "raw": "deszkripson",
+      "markup": "markdown",
+      "html": "<p>deszkripson</p>"
+    }
+  },
+  "comment": {
+    "id": 486839723,
+    "created_on": "2024-03-28T14:45:21.414067+00:00",
+    "updated_on": "2024-04-02T08:54:20.372341+00:00",
+    "content": {
+      "type": "rendered",
+      "raw": "edited comment",
+      "markup": "markdown",
+      "html": "<p>edited comment</p>"
+    },
+    "user": {
+      "display_name": "Test User",
+      "links": {
+      },
+      "type": "user",
+      "uuid": "{bfe5f0f9-cf81-4cbb-830a-59e9f030eac2}",
+      "account_id": "712020:8440da8e-0559-401d-8ca7-1c0dd078a47f",
+      "nickname": "Test User"
+    },
+    "deleted": false,
+    "pending": false,
+    "type": "pullrequest_comment",
+    "links": {
+    },
+    "pullrequest": {
+      "type": "pullrequest",
+      "id": 1,
+      "title": "PR",
+      "links": {
+      }
+    }
+  }
+}`
 )
+
+var intOne = 1
 
 func Test_detectContentTypeAttemptNumberAndEventKey(t *testing.T) {
 	t.Log("Push event - should handle")
@@ -338,6 +630,16 @@ func Test_transformPushEvent(t *testing.T) {
 								CommitMessage: "auto-test",
 							},
 						},
+						Commits: []CommitModel{
+							{
+								Hash:    "abc123",
+								Message: "first commit",
+							},
+							{
+								Hash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+								Message: "auto-test",
+							},
+						},
 					},
 				},
 			},
@@ -357,6 +659,7 @@ func Test_transformPushEvent(t *testing.T) {
 					BuildParams: bitriseapi.BuildParamsModel{
 						CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 						CommitMessage:     "auto-test",
+						CommitMessages:    []string{"first commit", "auto-test"},
 						Branch:            "master",
 						BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 					},
@@ -438,6 +741,12 @@ func Test_transformPushEvent(t *testing.T) {
 								CommitMessage: "auto-test",
 							},
 						},
+						Commits: []CommitModel{
+							{
+								Hash:    "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+								Message: "auto-test",
+							},
+						},
 					},
 					{
 						ChangeNewItem: ChangeItemModel{
@@ -447,6 +756,12 @@ func Test_transformPushEvent(t *testing.T) {
 								Type:          "commit",
 								CommitHash:    "178de4f94efbfa99abede5cf0f1868924222839e",
 								CommitMessage: "auto-test 2",
+							},
+						},
+						Commits: []CommitModel{
+							{
+								Hash:    "178de4f94efbfa99abede5cf0f1868924222839e",
+								Message: "auto-test 2",
 							},
 						},
 					},
@@ -465,6 +780,7 @@ func Test_transformPushEvent(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 					CommitMessage:     "auto-test",
+					CommitMessages:    []string{"auto-test"},
 					Branch:            "master",
 					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
@@ -474,6 +790,7 @@ func Test_transformPushEvent(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "178de4f94efbfa99abede5cf0f1868924222839e",
 					CommitMessage:     "auto-test 2",
+					CommitMessages:    []string{"auto-test 2"},
 					Branch:            "test",
 					BaseRepositoryURL: "https://bitbucket.org/bitrise-io/nice-repo.git",
 				},
@@ -801,7 +1118,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage:            "Title of pull request",
 					Branch:                   "branch2",
 					BranchDest:               "master",
-					PullRequestID:            pointers.NewIntPtr(1),
+					PullRequestID:            &intOne,
 					BaseRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
 					HeadRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
 					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
@@ -861,7 +1178,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					Branch:                   "branch2",
 					BranchDest:               "master",
 					PullRequestAuthor:        "Author Name",
-					PullRequestID:            pointers.NewIntPtr(1),
+					PullRequestID:            &intOne,
 					BaseRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
 					HeadRepositoryURL:        "https://bitbucket.org/foo/myrepo.git",
 					PullRequestRepositoryURL: "https://bitbucket.org/foo/myrepo.git",
@@ -877,7 +1194,7 @@ func Test_isAcceptEventType(t *testing.T) {
 	t.Log("Accept")
 	{
 		for _, anAction := range []string{"repo:push",
-			"pullrequest:created", "pullrequest:updated",
+			"pullrequest:created", "pullrequest:updated", "pullrequest:comment_created", "pullrequest:comment_updated",
 		} {
 			t.Log(" * " + anAction)
 			require.Equal(t, true, isAcceptEventType(anAction))
@@ -888,8 +1205,7 @@ func Test_isAcceptEventType(t *testing.T) {
 	{
 		for _, anAction := range []string{"",
 			"a", "not-an-action",
-			"pullrequest:approved", "pullrequest:unapproved", "pullrequest:fulfilled", "pullrequest:rejected",
-			"pullrequest:comment_created", "pullrequest:comment_updated", "pull_request:comment_deleted",
+			"pullrequest:approved", "pullrequest:unapproved", "pullrequest:fulfilled", "pullrequest:rejected", "pull_request:comment_deleted",
 		} {
 			t.Log(" * " + anAction)
 			require.Equal(t, false, isAcceptEventType(anAction))
@@ -976,6 +1292,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 					CommitMessage:     "auto-test",
+					CommitMessages:    []string{"commit on master", "auto-test"},
 					Branch:            "master",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
@@ -986,6 +1303,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitHash:        "19934139a2cf799bbd0f5061ab02e4760902e93f",
 					CommitMessage:     "auto-test 2",
 					Branch:            "test",
+					CommitMessages:    []string{"commit on branch", "auto-test 2"},
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
 				TriggeredBy: "webhook-bitbucket-v2/test_user",
@@ -1029,6 +1347,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
+
 	t.Log("Test with Sample Tag Push data")
 	{
 		request := http.Request{
@@ -1087,13 +1406,81 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					BranchRepoOwner:          "bitrise-io",
 					BranchDest:               "master",
 					BranchDestRepoOwner:      "birmacher",
-					PullRequestID:            pointers.NewIntPtr(1),
+					PullRequestID:            &intOne,
 					BaseRepositoryURL:        "https://bitbucket.org/birmacher/prtest.git",
 					HeadRepositoryURL:        "https://bitbucket.org/birmacher/prtest.git",
 					PullRequestRepositoryURL: "https://bitbucket.org/birmacher/prtest.git",
 					PullRequestAuthor:        "Author Name",
 				},
 				TriggeredBy: "webhook-bitbucket-v2/Author Name",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Test with Sample Pull Request comment created data")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":      {"pullrequest:comment_created"},
+				"Content-Type":     {"application/json"},
+				"X-Attempt-Number": {"1"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(samplePRCommentCreatedData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "be2bc2f8a884",
+					CommitMessage:            "PR\n\ndeszkripson",
+					Branch:                   "brencs",
+					BranchDest:               "master",
+					PullRequestID:            &intOne,
+					BaseRepositoryURL:        "https://bitbucket.org/webhooks-test/bitbucket-webhooks-test.git",
+					HeadRepositoryURL:        "https://bitbucket.org/webhooks-test/bitbucket-webhooks-test.git",
+					PullRequestRepositoryURL: "https://bitbucket.org/webhooks-test/bitbucket-webhooks-test.git",
+					PullRequestAuthor:        "Test User",
+					PullRequestComment:       "test comment",
+					PullRequestCommentID:     "486836690",
+				},
+				TriggeredBy: "webhook-bitbucket-v2/Test User",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Test with Sample Pull Request comment updated data")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":      {"pullrequest:comment_updated"},
+				"Content-Type":     {"application/json"},
+				"X-Attempt-Number": {"1"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(samplePRCommentUpdatedData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:               "be2bc2f8a884",
+					CommitMessage:            "PR\n\ndeszkripson",
+					Branch:                   "brencs",
+					BranchDest:               "master",
+					PullRequestID:            &intOne,
+					BaseRepositoryURL:        "https://bitbucket.org/webhooks-test/bitbucket-webhooks-test.git",
+					HeadRepositoryURL:        "https://bitbucket.org/webhooks-test/bitbucket-webhooks-test.git",
+					PullRequestRepositoryURL: "https://bitbucket.org/webhooks-test/bitbucket-webhooks-test.git",
+					PullRequestAuthor:        "Test User",
+					PullRequestComment:       "edited comment",
+					PullRequestCommentID:     "486839723",
+				},
+				TriggeredBy: "webhook-bitbucket-v2/Test User",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1121,7 +1508,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					BranchRepoOwner:          "oss-contributor",
 					BranchDest:               "master",
 					BranchDestRepoOwner:      "birmacher",
-					PullRequestID:            pointers.NewIntPtr(1),
+					PullRequestID:            &intOne,
 					BaseRepositoryURL:        "https://bitbucket.org/birmacher/prtest.git",
 					HeadRepositoryURL:        "git@bitbucket.org:oss-contributor/nice-repo.git",
 					PullRequestRepositoryURL: "git@bitbucket.org:oss-contributor/nice-repo.git",
@@ -1151,6 +1538,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
 					CommitMessage:     "auto-test",
+					CommitMessages:    []string{"commit on master", "auto-test"},
 					Branch:            "master",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},
@@ -1160,6 +1548,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        "19934139a2cf799bbd0f5061ab02e4760902e93f",
 					CommitMessage:     "auto-test 2",
+					CommitMessages:    []string{"commit on branch", "auto-test 2"},
 					Branch:            "test",
 					BaseRepositoryURL: "git@bitbucket.org:test/testrepo.git",
 				},

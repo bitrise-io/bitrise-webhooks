@@ -9,10 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
+	"strconv"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/go-utils/sliceutil"
 )
 
 const (
@@ -43,6 +44,13 @@ type ChangeItemModel struct {
 // ChangeInfoModel ...
 type ChangeInfoModel struct {
 	ChangeNewItem ChangeItemModel `json:"new"`
+	Commits       []CommitModel   `json:"commits"`
+}
+
+// CommitModel ...
+type CommitModel struct {
+	Hash    string `json:"hash"`
+	Message string `json:"message"`
 }
 
 // PushInfoModel ...
@@ -105,13 +113,39 @@ type PullRequestInfoModel struct {
 type PullRequestEventModel struct {
 	PullRequestInfo PullRequestInfoModel `json:"pullrequest"`
 	RepositoryInfo  RepositoryInfoModel  `json:"repository"`
+	CommentInfo     *CommentModel        `json:"comment"`
+}
+
+// CommentModel ...
+type CommentModel struct {
+	ID      int                 `json:"id"`
+	Content CommentContentModel `json:"content"`
+}
+
+// CommentContentModel ...
+type CommentContentModel struct {
+	Raw string `json:"raw"`
 }
 
 // ---------------------------------------
 // --- Webhook Provider Implementation ---
 
 // HookProvider ...
-type HookProvider struct{}
+type HookProvider struct {
+	timeProvider hookCommon.TimeProvider
+}
+
+// NewHookProvider ...
+func NewHookProvider(timeProvider hookCommon.TimeProvider) hookCommon.Provider {
+	return HookProvider{
+		timeProvider: timeProvider,
+	}
+}
+
+// NewDefaultHookProvider ...
+func NewDefaultHookProvider() hookCommon.Provider {
+	return NewHookProvider(hookCommon.NewDefaultTimeProvider())
+}
 
 func detectContentTypeAttemptNumberAndEventKey(header http.Header) (string, string, string, error) {
 	contentType := header.Get("Content-Type")
@@ -151,19 +185,26 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 	triggerAPIParams := []bitriseapi.TriggerAPIParamsModel{}
 	errs := []string{}
-	for _, aChnage := range pushEvent.PushInfo.Changes {
-		aNewItm := aChnage.ChangeNewItem
+	for _, aChange := range pushEvent.PushInfo.Changes {
+		aNewItm := aChange.ChangeNewItem
 		if (pushEvent.RepositoryInfo.Scm == scmGit && aNewItm.Type == "branch") ||
 			(pushEvent.RepositoryInfo.Scm == scmMercurial && aNewItm.Type == "named_branch") {
 			if aNewItm.Target.Type != "commit" {
 				errs = append(errs, fmt.Sprintf("Target was not a type=commit change. Type was: %s", aNewItm.Target.Type))
 				continue
 			}
+
+			var commitMessages []string
+			for _, commit := range aChange.Commits {
+				commitMessages = append(commitMessages, commit.Message)
+			}
+
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
 				BuildParams: bitriseapi.BuildParamsModel{
 					Branch:            aNewItm.Name,
 					CommitHash:        aNewItm.Target.CommitHash,
 					CommitMessage:     aNewItm.Target.CommitMessage,
+					CommitMessages:    commitMessages,
 					BaseRepositoryURL: pushEvent.RepositoryInfo.getRepositoryURL(),
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.ActorInfo.Nickname),
@@ -174,11 +215,18 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 				errs = append(errs, fmt.Sprintf("Target was not a type=commit change. Type was: %s", aNewItm.Target.Type))
 				continue
 			}
+
+			var commitMessages []string
+			for _, commit := range aChange.Commits {
+				commitMessages = append(commitMessages, commit.Message)
+			}
+
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
 				BuildParams: bitriseapi.BuildParamsModel{
 					Tag:               aNewItm.Name,
 					CommitHash:        aNewItm.Target.CommitHash,
 					CommitMessage:     aNewItm.Target.CommitMessage,
+					CommitMessages:    commitMessages,
 					BaseRepositoryURL: pushEvent.RepositoryInfo.getRepositoryURL(),
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.ActorInfo.Nickname),
@@ -233,6 +281,13 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.IsPrivate = (res.StatusCode != 200)
 	}
 
+	var comment string
+	var commentID string
+	if pullRequest.CommentInfo != nil {
+		comment = pullRequest.CommentInfo.Content.Raw
+		commentID = strconv.Itoa(pullRequest.CommentInfo.ID)
+	}
+
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
@@ -248,6 +303,8 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					HeadRepositoryURL:        pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.getRepositoryURL(),
 					PullRequestRepositoryURL: pullRequest.PullRequestInfo.SourceInfo.RepositoryInfo.getRepositoryURL(),
 					PullRequestAuthor:        pullRequest.PullRequestInfo.Author.Nickname,
+					PullRequestComment:       comment,
+					PullRequestCommentID:     commentID,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.PullRequestInfo.Author.Nickname),
 			},
@@ -266,7 +323,7 @@ func (repository RepositoryInfoModel) getRepositoryURL() string {
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return sliceutil.IsStringInSlice(eventKey, []string{"repo:push", "pullrequest:created", "pullrequest:updated"})
+	return slices.Contains([]string{"repo:push", "pullrequest:created", "pullrequest:updated", "pullrequest:comment_created", "pullrequest:comment_updated"}, eventKey)
 }
 
 // TransformRequest ...
@@ -310,7 +367,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 
 		return transformPushEvent(pushEvent)
-	} else if eventKey == "pullrequest:created" || eventKey == "pullrequest:updated" {
+	} else if eventKey == "pullrequest:created" || eventKey == "pullrequest:updated" || eventKey == "pullrequest:comment_created" || eventKey == "pullrequest:comment_updated" {
 		var pullRequestEvent PullRequestEventModel
 		if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
 			return hookCommon.TransformResultModel{

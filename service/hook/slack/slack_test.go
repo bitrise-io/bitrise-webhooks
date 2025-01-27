@@ -477,7 +477,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 
 func Test_messageForSuccessfulBuildTrigger(t *testing.T) {
 	require.Equal(t, "Triggered build #23 (build-slug), with workflow: test-wf - url: bitrise.io/...",
-		messageForSuccessfulBuildTrigger(bitriseapi.TriggerAPIResponseModel{
+		messageForBuildTrigger(bitriseapi.TriggerAPIResponseModel{
 			Status:            "ok",
 			Message:           "some msg from the server",
 			Service:           "bitrise",
@@ -492,7 +492,7 @@ func Test_messageForSuccessfulBuildTrigger(t *testing.T) {
 func Test_HookProvider_TransformResponse(t *testing.T) {
 	provider := HookProvider{}
 
-	t.Log("Single success")
+	t.Log("Single response: legacy single success")
 	{
 		baseRespModel := hookCommon.TransformResponseInputModel{
 			SuccessTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
@@ -527,7 +527,7 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 		}, resp)
 	}
 
-	t.Log("Single failed trigger - with defined 'message'")
+	t.Log("Single response: legacy single failed trigger - with defined 'message'")
 	{
 		baseRespModel := hookCommon.TransformResponseInputModel{
 			FailedTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
@@ -560,7 +560,7 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 		}, resp)
 	}
 
-	t.Log("Single failed trigger - empty 'message'")
+	t.Log("Single response: legacy single failed trigger - empty 'message'")
 	{
 		baseRespModel := hookCommon.TransformResponseInputModel{
 			FailedTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
@@ -576,7 +576,242 @@ func Test_HookProvider_TransformResponse(t *testing.T) {
 		}
 
 		resp := provider.TransformResponse(baseRespModel)
-		expectedText := `{Status:error Message: Service:bitrise AppSlug:app-slug BuildSlug:build-slug BuildNumber:23 BuildURL: TriggeredWorkflow:}`
+		expectedText := `{Status:error Message: Service:bitrise AppSlug:app-slug BuildSlug:build-slug BuildNumber:23 BuildURL: TriggeredWorkflow: Results:[]}`
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: RespModel{
+				ResponseType: "in_channel",
+				Text:         "",
+				Attachments: []AttachmentItemModel{
+					{
+						Text:     expectedText,
+						Fallback: expectedText,
+						Color:    slackColorDanger,
+					},
+				},
+			},
+			HTTPStatusCode: 200,
+		}, resp)
+	}
+
+	t.Log("Single response: single success")
+	{
+		baseRespModel := hookCommon.TransformResponseInputModel{
+			SuccessTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
+				{
+					Status:            "ok",
+					Message:           "triggered build",
+					Service:           "bitrise",
+					AppSlug:           "app-slug",
+					BuildSlug:         "build-slug",
+					BuildNumber:       23,
+					BuildURL:          "bitrise.io/...",
+					TriggeredWorkflow: "wf-one",
+					Results: []bitriseapi.BuildTriggerRespItemModel{
+						{
+							Status:            "ok",
+							BuildSlug:         "build-slug",
+							BuildNumber:       23,
+							BuildURL:          "bitrise.io/...",
+							TriggeredWorkflow: "wf-one",
+							TriggeredPipeline: "",
+						},
+					},
+				},
+			},
+		}
+
+		resp := provider.TransformResponse(baseRespModel)
+		expectedText := `Triggered build #23 (build-slug), with workflow: wf-one - url: bitrise.io/...`
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: RespModel{
+				ResponseType: "in_channel",
+				Text:         "",
+				Attachments: []AttachmentItemModel{
+					{
+						Text:     expectedText,
+						Fallback: expectedText,
+						Color:    slackColorGood,
+					},
+				},
+			},
+			HTTPStatusCode: 200,
+		}, resp)
+	}
+
+	t.Log("Single response: single failed build")
+	{
+		baseRespModel := hookCommon.TransformResponseInputModel{
+			FailedTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
+				{
+					Status:  "error",
+					Message: "failed build",
+					Service: "bitrise",
+					AppSlug: "app-slug",
+					Results: []bitriseapi.BuildTriggerRespItemModel{
+						{
+							Status:            "error",
+							Message:           "failed build",
+							TriggeredWorkflow: "wf-one",
+							TriggeredPipeline: "",
+						},
+					},
+				},
+			},
+		}
+
+		resp := provider.TransformResponse(baseRespModel)
+		expectedText := "failed build"
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: RespModel{
+				ResponseType: "in_channel",
+				Text:         "",
+				Attachments: []AttachmentItemModel{
+					{
+						Text:     expectedText,
+						Fallback: expectedText,
+						Color:    slackColorDanger,
+					},
+				},
+			},
+			HTTPStatusCode: 200,
+		}, resp)
+	}
+
+	t.Log("Single response: multiple successful builds")
+	{
+		baseRespModel := hookCommon.TransformResponseInputModel{
+			SuccessTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
+				{
+					Status:            "ok",
+					Message:           "triggered build",
+					Service:           "bitrise",
+					AppSlug:           "app-slug",
+					BuildSlug:         "build-slug",
+					BuildNumber:       23,
+					BuildURL:          "bitrise.io/...",
+					TriggeredWorkflow: "wf-one",
+					Results: []bitriseapi.BuildTriggerRespItemModel{
+						{
+							Status:            "ok",
+							BuildSlug:         "build-slug",
+							BuildNumber:       23,
+							BuildURL:          "bitrise.io/...",
+							TriggeredWorkflow: "wf-one",
+							TriggeredPipeline: "",
+						},
+						{
+							Status:            "ok",
+							BuildSlug:         "second-build",
+							BuildNumber:       46,
+							BuildURL:          "bitrise.io/....",
+							TriggeredWorkflow: "",
+							TriggeredPipeline: "pipeline-one",
+						},
+					},
+				},
+			},
+		}
+
+		resp := provider.TransformResponse(baseRespModel)
+		expectedText := "Triggered 2 builds:\nbuild #23 (build-slug), with workflow: wf-one - url: bitrise.io/...\nbuild #46 (second-build), with pipeline: pipeline-one - url: bitrise.io/...."
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: RespModel{
+				ResponseType: "in_channel",
+				Text:         "",
+				Attachments: []AttachmentItemModel{
+					{
+						Text:     expectedText,
+						Fallback: expectedText,
+						Color:    slackColorGood,
+					},
+				},
+			},
+			HTTPStatusCode: 200,
+		}, resp)
+	}
+
+	t.Log("Single response: multiple failed builds")
+	{
+		baseRespModel := hookCommon.TransformResponseInputModel{
+			FailedTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
+				{
+					Status:  "error",
+					Message: "failed build",
+					Service: "bitrise",
+					AppSlug: "app-slug",
+					Results: []bitriseapi.BuildTriggerRespItemModel{
+						{
+							Status:            "error",
+							Message:           "failed build",
+							TriggeredWorkflow: "wf-one",
+							TriggeredPipeline: "",
+						},
+						{
+							Status:            "error",
+							Message:           "this failed too",
+							TriggeredWorkflow: "",
+							TriggeredPipeline: "pipeline-one",
+						},
+					},
+				},
+			},
+		}
+
+		resp := provider.TransformResponse(baseRespModel)
+		expectedText := "Triggered 2 builds:\nbuild with workflow: wf-one - failed: failed build\nbuild with pipeline: pipeline-one - failed: this failed too"
+		require.Equal(t, hookCommon.TransformResponseModel{
+			Data: RespModel{
+				ResponseType: "in_channel",
+				Text:         "",
+				Attachments: []AttachmentItemModel{
+					{
+						Text:     expectedText,
+						Fallback: expectedText,
+						Color:    slackColorDanger,
+					},
+				},
+			},
+			HTTPStatusCode: 200,
+		}, resp)
+	}
+
+	t.Log("Single response: multiple builds with mixed status")
+	{
+		baseRespModel := hookCommon.TransformResponseInputModel{
+			FailedTriggerResponses: []bitriseapi.TriggerAPIResponseModel{
+				{
+					Status:  "error",
+					Message: "failed build",
+					Service: "bitrise",
+					AppSlug: "app-slug",
+					Results: []bitriseapi.BuildTriggerRespItemModel{
+						{
+							Status:            "error",
+							Message:           "failed build",
+							TriggeredWorkflow: "wf-one",
+							TriggeredPipeline: "",
+						},
+						{
+							Status:            "ok",
+							BuildSlug:         "build-slug",
+							BuildNumber:       23,
+							BuildURL:          "bitrise.io/...",
+							TriggeredWorkflow: "wf-one",
+							TriggeredPipeline: "",
+						},
+						{
+							Status:            "error",
+							Message:           "this failed too",
+							TriggeredWorkflow: "",
+							TriggeredPipeline: "pipeline-one",
+						},
+					},
+				},
+			},
+		}
+
+		resp := provider.TransformResponse(baseRespModel)
+		expectedText := "Triggered 3 builds:\nbuild with workflow: wf-one - failed: failed build\nbuild #23 (build-slug), with workflow: wf-one - url: bitrise.io/...\nbuild with pipeline: pipeline-one - failed: this failed too"
 		require.Equal(t, hookCommon.TransformResponseModel{
 			Data: RespModel{
 				ResponseType: "in_channel",

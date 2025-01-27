@@ -3,6 +3,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 app:
   envs:
     - GO_PROJECT_PATH: github.com/bitrise-io/bitrise-webhooks
+    - GO_VERSION: 1.21.2
     - PORT: "4000"
     - IS_USE_GIN: "yes"
       opts:
@@ -21,10 +22,10 @@ workflows:
                 set -ex
 
                 # Check for unhandled errors
-                go get -u github.com/kisielk/errcheck
+                go install github.com/kisielk/errcheck@latest
 
                 # Go lint
-                go get -u golang.org/x/lint/golint
+                go install golang.org/x/lint/golint@latest
   publish-release-package:
     before_run:
       - configure-git-credentials
@@ -119,18 +120,6 @@ workflows:
                 git push upstream --tags
 
                 git checkout ${RELEASE_START_BRANCH}
-  deps-update:
-    steps:
-      - script:
-          inputs:
-            - content: |-
-                #!/bin/bash
-                set -ex
-                go get -u -v github.com/golang/dep/cmd/dep
-                # to prevent "Gopkg.lock is out of sync ..." when new deps are added
-                dep ensure -v
-                # to do the actual update
-                dep ensure -v -update
   start:
     steps:
       - script:
@@ -140,7 +129,7 @@ workflows:
                 set -ex
                 go install $GO_PROJECT_PATH
                 if [ "$IS_USE_GIN" == "yes" ] ; then
-                  go get github.com/codegangsta/gin
+                  (go install github.com/codegangsta/gin@latest)
                   gin --port $PORT
                 else
                   bitrise-webhooks -port $PORT
@@ -149,6 +138,16 @@ workflows:
     before_run:
       - _install_test_tools
     steps:
+      - script:
+          title: Update go
+          run_if: .IsCI
+          inputs:
+            - content: |
+                #!/bin/bash
+                set -ex
+                ./_scripts/update_go.sh
+                # some legacy steps don't have go.mod and would fail without this
+                go env -w GO111MODULE=auto
       - script:
           title: Print infos for the test
           inputs:
@@ -173,7 +172,13 @@ workflows:
       - script:
           title: Err check
           inputs:
-            - content: errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
+            - content: |-
+                #!/bin/bash
+                set -ex
+                if [ -x "$(command -v asdf)" ]; then
+                    asdf reshim golang
+                fi
+                errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
       - script:
           title: Go Lint
           inputs:

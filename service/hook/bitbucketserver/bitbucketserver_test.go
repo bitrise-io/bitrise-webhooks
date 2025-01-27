@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bitrise-io/go-utils/pointers"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
@@ -64,6 +63,29 @@ const (
       "fromHash":"from-hash-2",
       "toHash":"to-hash-2",
       "type":"UPDATE"
+    }
+  ],
+  "commits": [
+    {
+      "id": "a00945762949b7b787ecabc388c0e20b1b85f0b4",
+      "displayId": "a0094576294",
+      "author": {
+        "name": "Administrator",
+        "emailAddress": "admin@example.com"
+      },
+      "authorTimestamp": 1673403328000,
+      "committer": {
+        "name": "Administrator",
+        "emailAddress": "admin@example.com"
+      },
+      "committerTimestamp": 1673403328000,
+      "message": "My commit message",
+      "parents": [
+          {
+            "id": "197a3e0d2f9a2b3ed1c4fe5923d5dd701bee9fdd",
+            "displayId": "197a3e0d2f9"
+          }
+      ]
     }
   ]
 }`
@@ -502,6 +524,8 @@ const (
 }`
 )
 
+var intOne = 1
+
 func Test_detectContentTypeSecretAndEventKey(t *testing.T) {
 	t.Log("All required headers - should handle")
 	{
@@ -605,6 +629,16 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
+			Commits: []CommitModel{
+				{
+					ID:      "abc123",
+					Message: "first commit",
+				},
+				{
+					ID:      "TO-966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+					Message: "second commit",
+				},
+			},
 		}
 
 		// OK
@@ -615,8 +649,10 @@ func Test_transformPushEvent(t *testing.T) {
 			require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 				{
 					BuildParams: bitriseapi.BuildParamsModel{
-						CommitHash: "TO-966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
-						Branch:     "master",
+						CommitHash:     "TO-966d0bfe79b80f97268c2f6bb45e65e79ef09b31",
+						CommitMessage:  "second commit",
+						CommitMessages: []string{"first commit", "second commit"},
+						Branch:         "master",
 					},
 					TriggeredBy: "webhook-bitbucket-server/user",
 				},
@@ -790,6 +826,16 @@ func Test_transformPushEvent(t *testing.T) {
 					},
 				},
 			},
+			// It is possible that a push webhook has details about multiple branches in a single payload for cascading merge (https://confluence.atlassian.com/bitbucketserver/cascading-merge-776639993.html)
+			// There is no official source for this, just an open source issue(https://github.com/gocd/gocd/issues/10071).
+			// There is no example that includes commit data in this case, so we don’t know how we could correlate commits with changesets.
+			// As such, when detecting multiple sets of changes, commit messages and changed files will be left empty.
+			Commits: []CommitModel{
+				{
+					ID:      "abc123",
+					Message: "this commit message should not be included",
+				},
+			},
 		}
 
 		hookTransformResult := transformPushEvent(pushEvent)
@@ -859,6 +905,16 @@ func Test_transformPushEvent(t *testing.T) {
 						DisplayID: "3.0.5",
 						Type:      "TAG",
 					},
+				},
+			},
+			// It is possible that a push webhook has details about multiple branches in a single payload for cascading merge (https://confluence.atlassian.com/bitbucketserver/cascading-merge-776639993.html)
+			// There is no official source for this, just an open source issue(https://github.com/gocd/gocd/issues/10071).
+			// There is no example that includes commit data in this case, so we don’t know how we could correlate commits with changesets.
+			// As such, when detecting multiple sets of changes, commit messages and changed files will be left empty.
+			Commits: []CommitModel{
+				{
+					ID:      "abc123",
+					Message: "this commit message should not be included",
 				},
 			},
 		}
@@ -945,7 +1001,6 @@ func Test_transformPushEvent(t *testing.T) {
 				TriggeredBy: "webhook-bitbucket-server/user",
 			},
 		}, hookTransformResult.TriggerAPIParams)
-		//require.EqualError(t, hookTransformResult.Error, "'changes' specified in the webhook, but none can be transformed into a build. Collected errors: [Not a type=branch nor type=tag change. Change.Type was: not-branch-nor-tag]")
 
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
@@ -1113,7 +1168,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage: "Title of pull request",
 					Branch:        "a-branch",
 					BranchDest:    "master",
-					PullRequestID: pointers.NewIntPtr(1),
+					PullRequestID: &intOne,
 				},
 				TriggeredBy: "webhook-bitbucket-server/user",
 			},
@@ -1284,7 +1339,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitMessage: "a new file added",
 					Branch:        "a-branch",
 					BranchDest:    "master",
-					PullRequestID: pointers.NewIntPtr(1),
+					PullRequestID: &intOne,
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1311,7 +1366,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitMessage: "a new file added",
 					Branch:        "a-branch",
 					BranchDest:    "master",
-					PullRequestID: pointers.NewIntPtr(1),
+					PullRequestID: &intOne,
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1338,7 +1393,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitMessage: "a new file added",
 					Branch:        "a-branch",
 					BranchDest:    "master",
-					PullRequestID: pointers.NewIntPtr(1),
+					PullRequestID: &intOne,
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},

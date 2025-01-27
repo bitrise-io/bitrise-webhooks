@@ -8,7 +8,6 @@ import (
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/go-utils/stringutil"
 )
 
 const (
@@ -53,8 +52,13 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	}
 
 	environments := []bitriseapi.EnvironmentItem{
-		bitriseapi.EnvironmentItem{Name: envKeyHeaders, Value: string(headerAsJSON), IsExpand: false},
-		bitriseapi.EnvironmentItem{Name: envKeyBody, Value: string(bodyBytes), IsExpand: false},
+		{Name: envKeyHeaders, Value: string(headerAsJSON), IsExpand: false},
+		{Name: envKeyBody, Value: string(bodyBytes), IsExpand: false},
+	}
+
+	commitMessage := string(bodyBytes)
+	if len(commitMessage) > bodyCharsCountForCommitMsg {
+		commitMessage = commitMessage[:bodyCharsCountForCommitMsg-3] + "..."
 	}
 
 	return hookCommon.TransformResultModel{
@@ -62,7 +66,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
 					Branch:        "master",
-					CommitMessage: stringutil.MaxFirstCharsWithDots(string(bodyBytes), bodyCharsCountForCommitMsg),
+					CommitMessage: commitMessage,
 					Environments:  environments,
 				},
 			},

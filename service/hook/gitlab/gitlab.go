@@ -39,12 +39,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/go-utils/sliceutil"
+	"github.com/bitrise-io/envman/envman"
+	"go.uber.org/zap"
 )
 
 // --------------------------
@@ -54,16 +58,24 @@ const (
 	tagPushEventID              = "Tag Push Hook"
 	codePushEventID             = "Push Hook"
 	mergeRequestEventID         = "Merge Request Hook"
+	commentEventID              = "Note Hook"
 	gitlabPublicVisibilityLevel = 20
 
 	// ProviderID ...
 	ProviderID = "gitlab"
+
+	commitMessagesEnvKey      = "BITRISE_WEBHOOK_COMMIT_MESSAGES"
+	fallbackEnvBytesLimitInKB = 256
+	kbToB                     = 1024
 )
 
 // CommitModel ...
 type CommitModel struct {
-	CommitHash    string `json:"id"`
-	CommitMessage string `json:"message"`
+	CommitHash    string   `json:"id"`
+	CommitMessage string   `json:"message"`
+	AddedFiles    []string `json:"added"`
+	ModifiedFiles []string `json:"modified"`
+	RemovedFiles  []string `json:"removed"`
 }
 
 // CodePushEventModel ...
@@ -105,8 +117,14 @@ type LastCommitInfoModel struct {
 	SHA string `json:"id"`
 }
 
-// ObjectAttributesInfoModel ...
-type ObjectAttributesInfoModel struct {
+// LabelInfoModel ...
+type LabelInfoModel struct {
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
+}
+
+// MergeRequestInfoModel ...
+type MergeRequestInfoModel struct {
 	ID             int                 `json:"iid"`
 	Title          string              `json:"title"`
 	Description    string              `json:"description"`
@@ -121,6 +139,8 @@ type ObjectAttributesInfoModel struct {
 	Target         BranchInfoModel     `json:"target"`
 	TargetBranch   string              `json:"target_branch"`
 	LastCommit     LastCommitInfoModel `json:"last_commit"`
+	Draft          bool                `json:"draft"`
+	Labels         []LabelInfoModel    `json:"labels"`
 }
 
 // UserModel ...
@@ -129,18 +149,69 @@ type UserModel struct {
 	Username string `json:"username"`
 }
 
+// BoolChanges ...
+type BoolChanges struct {
+	Previous bool `json:"previous"`
+	Current  bool `json:"current"`
+}
+
+// Changes ...
+type Changes struct {
+	Draft  BoolChanges  `json:"draft"`
+	Labels LabelChanges `json:"labels"`
+}
+
+// LabelChanges ...
+type LabelChanges struct {
+	Previous []LabelInfoModel `json:"previous"`
+	Current  []LabelInfoModel `json:"current"`
+}
+
 // MergeRequestEventModel ...
 type MergeRequestEventModel struct {
-	ObjectKind       string                    `json:"object_kind"`
-	ObjectAttributes ObjectAttributesInfoModel `json:"object_attributes"`
-	User             UserModel                 `json:"user"`
+	ObjectKind       string                `json:"object_kind"`
+	ObjectAttributes MergeRequestInfoModel `json:"object_attributes"`
+	Labels           []LabelInfoModel      `json:"labels"`
+	User             UserModel             `json:"user"`
+	Changes          Changes               `json:"changes"`
+}
+
+// CommentInfoModel ...
+type CommentInfoModel struct {
+	ID           int    `json:"id"`
+	Note         string `json:"note"`
+	NoteableType string `json:"noteable_type"`
+}
+
+// MergeRequestCommentEventModel ...
+type MergeRequestCommentEventModel struct {
+	ObjectKind       string                `json:"object_kind"`
+	ObjectAttributes CommentInfoModel      `json:"object_attributes"`
+	MergeRequest     MergeRequestInfoModel `json:"merge_request"`
+	User             UserModel             `json:"user"`
 }
 
 // ---------------------------------------
 // --- Webhook Provider Implementation ---
 
 // HookProvider ...
-type HookProvider struct{}
+type HookProvider struct {
+	timeProvider hookCommon.TimeProvider
+	logger       *zap.Logger
+}
+
+// NewHookProvider ...
+func NewHookProvider(timeProvider hookCommon.TimeProvider, logger *zap.Logger) HookProvider {
+	return HookProvider{
+		timeProvider: timeProvider,
+		logger:       logger,
+	}
+}
+
+// NewDefaultHookProvider ...
+func NewDefaultHookProvider(logger *zap.Logger) HookProvider {
+	return NewHookProvider(hookCommon.NewDefaultTimeProvider(), logger)
+}
 
 func detectContentTypeAndEventID(header http.Header) (string, string, error) {
 	contentType := header.Get("Content-Type")
@@ -157,16 +228,51 @@ func detectContentTypeAndEventID(header http.Header) (string, string, error) {
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return sliceutil.IsStringInSlice(eventKey, []string{tagPushEventID, codePushEventID, mergeRequestEventID})
+	return slices.Contains([]string{tagPushEventID, codePushEventID, mergeRequestEventID, commentEventID}, eventKey)
 }
 
 func isAcceptMergeRequestState(prState string) bool {
-	return sliceutil.IsStringInSlice(prState, []string{"opened", "reopened"})
+	return slices.Contains([]string{"opened", "reopened"}, prState)
 }
 
-func isAcceptMergeRequestAction(prAction string, prOldrev string) bool {
-	// an "update" without "oldrev" present isn't a code change, so skip
-	return prAction == "open" || prAction == "update" && prOldrev != ""
+func isAcceptMergeRequestAction(prAction string, prOldrev string, changes Changes) bool {
+	if prAction == "open" {
+		return true
+	}
+	if prAction == "update" {
+		// an "update" with "oldrev" present is a code change
+		if prOldrev != "" {
+			return true
+		}
+
+		// converted from draft to ready to review
+		if changes.Draft.Previous == true && changes.Draft.Current == false {
+			return true
+		}
+
+		// new labels were added
+		newLabels := changes.getNewLabels()
+		return len(newLabels) > 0
+	}
+
+	return false
+}
+
+func (changes Changes) getNewLabels() []string {
+	labelMap := make(map[int64]string)
+	for _, label := range changes.Labels.Current {
+		labelMap[label.ID] = label.Title
+	}
+	for _, label := range changes.Labels.Previous {
+		delete(labelMap, label.ID)
+	}
+
+	var newLabels []string
+	for _, label := range labelMap {
+		newLabels = append(newLabels, label)
+	}
+	slices.Sort(newLabels)
+	return newLabels
 }
 
 func (branchInfoModel BranchInfoModel) getRepositoryURL() string {
@@ -183,7 +289,7 @@ func (repository RepositoryModel) getRepositoryURL() string {
 	return repository.GitSSHURL
 }
 
-func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
+func (hp HookProvider) transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.TransformResultModel {
 	if !strings.HasPrefix(codePushEvent.Ref, "refs/heads/") {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
@@ -192,6 +298,18 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 		}
 	}
 	branch := strings.TrimPrefix(codePushEvent.Ref, "refs/heads/")
+
+	// In case of squashed merge requests, Gitlab sends 3 event hooks: a Push, a Merge Request and another Push.
+	// The 2nd Push event does not contain commits and its checkout_sha is set to null.
+	//
+	// Related issue: https://bitrise.atlassian.net/browse/SSW-127
+	if codePushEvent.CheckoutSHA == "" {
+		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
+			Error:                      fmt.Errorf("The 'checkout_sha' field is not set - potential squashed merge request"),
+			ShouldSkip:                 true,
+		}
+	}
 
 	lastCommit := CommitModel{}
 	isLastCommitFound := false
@@ -210,6 +328,28 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 		}
 	}
 
+	var commitPaths []bitriseapi.CommitPaths
+	var commitMessages []string
+	for _, aCommit := range codePushEvent.Commits {
+		commitPaths = append(commitPaths, bitriseapi.CommitPaths{
+			Added:    aCommit.AddedFiles,
+			Removed:  aCommit.RemovedFiles,
+			Modified: aCommit.ModifiedFiles,
+		})
+		commitMessages = append(commitMessages, aCommit.CommitMessage)
+	}
+	maxSize := envVarSizeLimitInByte()
+	commitMessagesStr, err := hp.commitMessagesToString(commitMessages, maxSize)
+	if err != nil {
+		hp.logger.Warn("gitlab.HookProvider.transformCodePushEvent: failed to convert commit messages", zap.Error(err))
+	}
+
+	var environments []bitriseapi.EnvironmentItem
+	if len(commitMessagesStr) > 0 {
+		environments = []bitriseapi.EnvironmentItem{
+			{Name: commitMessagesEnvKey, Value: commitMessagesStr, IsExpand: false},
+		}
+	}
 	return hookCommon.TransformResultModel{
 		DontWaitForTriggerResponse: true,
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
@@ -217,13 +357,79 @@ func transformCodePushEvent(codePushEvent CodePushEventModel) hookCommon.Transfo
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitHash:        lastCommit.CommitHash,
 					CommitMessage:     lastCommit.CommitMessage,
+					CommitMessages:    commitMessages,
+					PushCommitPaths:   commitPaths,
 					Branch:            branch,
 					BaseRepositoryURL: codePushEvent.Repository.getRepositoryURL(),
+					Environments:      environments,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, codePushEvent.UserUsername),
 			},
 		},
 	}
+}
+
+func envVarSizeLimitInByte() int {
+	config, err := envman.GetConfigs()
+	if err == nil {
+		return config.EnvBytesLimitInKB * kbToB
+	}
+	return fallbackEnvBytesLimitInKB * kbToB
+}
+
+func decreaseMaxMessageSizeByControlCharsSize(commitMessages []string, maxSize int) int {
+	controlCharsPerMessageSize := len([]byte("- \n"))
+	controlCharsSize := len(commitMessages) * controlCharsPerMessageSize
+	return maxSize - controlCharsSize
+}
+
+func (hp HookProvider) ensureCommitMessagesSize(commitMessages []string, maxSize int) ([]string, error) {
+	commitMessagesCount := len(commitMessages)
+	if commitMessagesCount > 20 {
+		// The count of push events commits, shouldn't be more than 20:
+		// https://docs.gitlab.com/ee/user/project/integrations/webhook_events.html#push-events
+		// With this limit, 256KB max env var size, and 20 commits, every commit message has ~12KB (~12.000 chars) limitation.
+		// A higher number of commit messages might require a more sophisticated size limitation mechanism.
+		hp.logger.Warn(fmt.Sprintf("Expected 20 commits in the push event, got: %d, limiting commit messages count to 20", commitMessagesCount))
+		commitMessages = commitMessages[:20]
+	}
+
+	maxSize = decreaseMaxMessageSizeByControlCharsSize(commitMessages, maxSize)
+	if maxSize <= 0 {
+		return nil, fmt.Errorf("max messages size should be greater than 0, got: %d", maxSize)
+	}
+
+	maxMessageSize := int(math.Floor(float64(maxSize) / float64(len(commitMessages))))
+	trimmedMessageSuffix := []byte("...")
+	trimmedMessageSuffixSize := len(trimmedMessageSuffix)
+	if maxMessageSize-trimmedMessageSuffixSize <= 0 {
+		return nil, fmt.Errorf("max message size should be greater than %d, got: %d", trimmedMessageSuffixSize, maxMessageSize)
+	}
+
+	for idx, message := range commitMessages {
+		messageBytes := []byte(message)
+		messageSize := len(messageBytes)
+		if messageSize > maxMessageSize {
+			trimmedMessageBytes := messageBytes[:maxMessageSize-trimmedMessageSuffixSize]
+			commitMessages[idx] = string(append(trimmedMessageBytes, trimmedMessageSuffix...))
+		}
+	}
+
+	return commitMessages, nil
+}
+
+func (hp HookProvider) commitMessagesToString(commitMessages []string, maxSize int) (string, error) {
+	var err error
+	commitMessages, err = hp.ensureCommitMessagesSize(commitMessages, maxSize)
+	if err != nil {
+		return "", err
+	}
+
+	commitMessagesStr := ""
+	for _, commitMessage := range commitMessages {
+		commitMessagesStr += fmt.Sprintf("- %s\n", commitMessage)
+	}
+	return commitMessagesStr, nil
 }
 
 func transformTagPushEvent(tagPushEvent TagPushEventModel) hookCommon.TransformResultModel {
@@ -265,8 +471,8 @@ func transformTagPushEvent(tagPushEvent TagPushEventModel) hookCommon.TransformR
 	}
 }
 
-func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.TransformResultModel {
-	if mergeRequest.ObjectKind != "merge_request" {
+func transformMergeRequestEvent(event MergeRequestEventModel) hookCommon.TransformResultModel {
+	if event.ObjectKind != "merge_request" {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
 			Error:                      errors.New("Not a Merge Request object"),
@@ -274,7 +480,63 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 		}
 	}
 
-	if mergeRequest.ObjectAttributes.State == "" {
+	mergeRequest := event.ObjectAttributes
+	if !isAcceptMergeRequestAction(mergeRequest.Action, mergeRequest.Oldrev, event.Changes) {
+		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
+			Error:                      fmt.Errorf("Merge Request action doesn't require a build: %s", mergeRequest.Action),
+			ShouldSkip:                 true,
+		}
+	}
+
+	newLabels := event.Changes.getNewLabels()
+	readyState := mergeRequestReadyState(event)
+	user := event.User
+
+	return transformMergeRequest(mergeRequest, user, readyState, newLabels, "", 0)
+}
+
+func transformMergeRequestCommentEvent(event MergeRequestCommentEventModel) hookCommon.TransformResultModel {
+	if event.ObjectKind != "note" {
+		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
+			Error:                      errors.New("Not a Note object"),
+			ShouldSkip:                 true,
+		}
+	}
+
+	if event.ObjectAttributes.NoteableType != "MergeRequest" {
+		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
+			Error:                      errors.New("Not a Merge Request note"),
+			ShouldSkip:                 true,
+		}
+	}
+
+	comment := event.ObjectAttributes
+	mergeRequest := event.MergeRequest
+	user := event.User
+	var newLabels []string
+
+	var readyState bitriseapi.PullRequestReadyState
+	if mergeRequest.Draft {
+		readyState = bitriseapi.PullRequestReadyStateDraft
+	} else {
+		readyState = bitriseapi.PullRequestReadyStateReadyForReview
+	}
+
+	return transformMergeRequest(mergeRequest, user, readyState, newLabels, comment.Note, comment.ID)
+}
+
+func transformMergeRequest(
+	mergeRequest MergeRequestInfoModel,
+	user UserModel,
+	readyState bitriseapi.PullRequestReadyState,
+	newLabels []string,
+	comment string,
+	commentID int,
+) hookCommon.TransformResultModel {
+	if mergeRequest.State == "" {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
 			Error:                      errors.New("No Merge Request state specified"),
@@ -282,7 +544,7 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 		}
 	}
 
-	if mergeRequest.ObjectAttributes.MergeCommitSHA != "" {
+	if mergeRequest.MergeCommitSHA != "" {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
 			Error:                      errors.New("Merge Request already merged"),
@@ -290,23 +552,15 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 		}
 	}
 
-	if !isAcceptMergeRequestState(mergeRequest.ObjectAttributes.State) {
+	if !isAcceptMergeRequestState(mergeRequest.State) {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
-			Error:                      fmt.Errorf("Merge Request state doesn't require a build: %s", mergeRequest.ObjectAttributes.State),
+			Error:                      fmt.Errorf("Merge Request state doesn't require a build: %s", mergeRequest.State),
 			ShouldSkip:                 true,
 		}
 	}
 
-	if !isAcceptMergeRequestAction(mergeRequest.ObjectAttributes.Action, mergeRequest.ObjectAttributes.Oldrev) {
-		return hookCommon.TransformResultModel{
-			DontWaitForTriggerResponse: true,
-			Error:                      fmt.Errorf("Merge Request action doesn't require a build: %s", mergeRequest.ObjectAttributes.Action),
-			ShouldSkip:                 true,
-		}
-	}
-
-	if mergeRequest.ObjectAttributes.MergeStatus == "cannot_be_merged" || mergeRequest.ObjectAttributes.MergeError != "" {
+	if mergeRequest.MergeStatus == "cannot_be_merged" || mergeRequest.MergeError != "" {
 		return hookCommon.TransformResultModel{
 			DontWaitForTriggerResponse: true,
 			Error:                      errors.New("Merge Request is not mergeable"),
@@ -314,9 +568,25 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 		}
 	}
 
-	commitMsg := mergeRequest.ObjectAttributes.Title
-	if mergeRequest.ObjectAttributes.Description != "" {
-		commitMsg = fmt.Sprintf("%s\n\n%s", commitMsg, mergeRequest.ObjectAttributes.Description)
+	commitMsg := mergeRequest.Title
+	if mergeRequest.Description != "" {
+		commitMsg = fmt.Sprintf("%s\n\n%s", commitMsg, mergeRequest.Description)
+	}
+
+	var mergeRef string
+	mergeStatus := mergeRequest.MergeStatus
+	if mergeStatus != "preparing" && mergeStatus != "unchecked" {
+		mergeRef = fmt.Sprintf("merge-requests/%d/merge", mergeRequest.ID)
+	}
+
+	var labels []string
+	for _, label := range mergeRequest.Labels {
+		labels = append(labels, label.Title)
+	}
+
+	var commentIDString string
+	if comment != "" || commentID != 0 {
+		commentIDString = strconv.Itoa(commentID)
 	}
 
 	return hookCommon.TransformResultModel{
@@ -325,25 +595,43 @@ func transformMergeRequestEvent(mergeRequest MergeRequestEventModel) hookCommon.
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
 					CommitMessage:            commitMsg,
-					CommitHash:               mergeRequest.ObjectAttributes.LastCommit.SHA,
-					Branch:                   mergeRequest.ObjectAttributes.SourceBranch,
-					BranchRepoOwner:          mergeRequest.ObjectAttributes.Source.Namespace,
-					BranchDest:               mergeRequest.ObjectAttributes.TargetBranch,
-					BranchDestRepoOwner:      mergeRequest.ObjectAttributes.Target.Namespace,
-					PullRequestID:            &mergeRequest.ObjectAttributes.ID,
-					BaseRepositoryURL:        mergeRequest.ObjectAttributes.Target.getRepositoryURL(),
-					HeadRepositoryURL:        mergeRequest.ObjectAttributes.Source.getRepositoryURL(),
-					PullRequestRepositoryURL: mergeRequest.ObjectAttributes.Source.getRepositoryURL(),
-					PullRequestAuthor:        mergeRequest.User.Name,
-					PullRequestMergeBranch:   fmt.Sprintf("merge-requests/%d/merge", mergeRequest.ObjectAttributes.ID),
-					PullRequestHeadBranch:    fmt.Sprintf("merge-requests/%d/head", mergeRequest.ObjectAttributes.ID),
+					CommitHash:               mergeRequest.LastCommit.SHA,
+					Branch:                   mergeRequest.SourceBranch,
+					BranchRepoOwner:          mergeRequest.Source.Namespace,
+					BranchDest:               mergeRequest.TargetBranch,
+					BranchDestRepoOwner:      mergeRequest.Target.Namespace,
+					PullRequestID:            &mergeRequest.ID,
+					BaseRepositoryURL:        mergeRequest.Target.getRepositoryURL(),
+					HeadRepositoryURL:        mergeRequest.Source.getRepositoryURL(),
+					PullRequestRepositoryURL: mergeRequest.Source.getRepositoryURL(),
+					PullRequestAuthor:        user.Name,
+					PullRequestMergeBranch:   mergeRef,
+					PullRequestHeadBranch:    fmt.Sprintf("merge-requests/%d/head", mergeRequest.ID),
+					PullRequestReadyState:    readyState,
+					PullRequestLabelsAdded:   newLabels,
+					PullRequestLabels:        labels,
+					PullRequestComment:       comment,
+					PullRequestCommentID:     commentIDString,
 				},
-				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, mergeRequest.User.Username),
+				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, user.Username),
 			},
 		},
-		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(mergeRequest.ObjectAttributes.Title) &&
-			hookCommon.IsSkipBuildByCommitMessage(mergeRequest.ObjectAttributes.Description),
+		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(mergeRequest.Title) &&
+			hookCommon.IsSkipBuildByCommitMessage(mergeRequest.Description),
 	}
+}
+
+func mergeRequestReadyState(mergeRequest MergeRequestEventModel) bitriseapi.PullRequestReadyState {
+	// converted from draft to ready to review
+	if mergeRequest.Changes.Draft.Previous == true && mergeRequest.Changes.Draft.Current == false {
+		return bitriseapi.PullRequestReadyStateConvertedToReadyForReview
+	}
+
+	if mergeRequest.ObjectAttributes.Draft {
+		return bitriseapi.PullRequestReadyStateDraft
+	}
+
+	return bitriseapi.PullRequestReadyStateReadyForReview
 }
 
 // TransformRequest ...
@@ -389,7 +677,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 				}
 			}
 		}
-		return transformCodePushEvent(codePushEvent)
+		return hp.transformCodePushEvent(codePushEvent)
 	} else if eventID == tagPushEventID {
 		// tag push
 		var tagPushEvent TagPushEventModel
@@ -412,6 +700,16 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		}
 
 		return transformMergeRequestEvent(mergeRequestEvent)
+	} else if eventID == commentEventID {
+		var commentEvent MergeRequestCommentEventModel
+		if err := json.NewDecoder(r.Body).Decode(&commentEvent); err != nil {
+			return hookCommon.TransformResultModel{
+				DontWaitForTriggerResponse: true,
+				Error:                      fmt.Errorf("Failed to parse request body as JSON: %s", err),
+			}
+		}
+
+		return transformMergeRequestCommentEvent(commentEvent)
 	}
 
 	return hookCommon.TransformResultModel{

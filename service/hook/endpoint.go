@@ -1,10 +1,12 @@
 package hook
 
 import (
+	"bytes"
 	"fmt"
-	"log"
+	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -13,6 +15,7 @@ import (
 	"github.com/bitrise-io/api-utils/logging"
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	"github.com/bitrise-io/bitrise-webhooks/config"
+	"github.com/bitrise-io/bitrise-webhooks/internal/pubsub"
 	"github.com/bitrise-io/bitrise-webhooks/metrics"
 	"github.com/bitrise-io/bitrise-webhooks/service"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/assembla"
@@ -26,17 +29,21 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/passthrough"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/slack"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/visualstudioteamservices"
-	"github.com/bitrise-io/go-utils/colorstring"
 )
 
-func supportedProviders() map[string]hookCommon.Provider {
+// Client ...
+type Client struct {
+	PubsubClient *pubsub.Client
+}
+
+func supportedProviders(logger *zap.Logger) map[string]hookCommon.Provider {
 	return map[string]hookCommon.Provider{
-		github.ProviderID:                   github.HookProvider{},
-		bitbucketv2.ProviderID:              bitbucketv2.HookProvider{},
+		github.ProviderID:                   github.NewDefaultHookProvider(),
+		bitbucketv2.ProviderID:              bitbucketv2.NewDefaultHookProvider(),
 		bitbucketserver.ProviderID:          bitbucketserver.HookProvider{},
 		slack.ProviderID:                    slack.HookProvider{},
 		visualstudioteamservices.ProviderID: visualstudioteamservices.HookProvider{},
-		gitlab.ProviderID:                   gitlab.HookProvider{},
+		gitlab.ProviderID:                   gitlab.NewDefaultHookProvider(logger),
 		gogs.ProviderID:                     gogs.HookProvider{},
 		deveo.ProviderID:                    deveo.HookProvider{},
 		assembla.ProviderID:                 assembla.HookProvider{},
@@ -103,16 +110,11 @@ func respondWithResults(w http.ResponseWriter, provider *hookCommon.Provider, re
 
 func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitriseapi.TriggerAPIParamsModel) (bitriseapi.TriggerAPIResponseModel, bool, error) {
 	logger := logging.WithContext(nil)
-	defer func() {
-		err := logger.Sync()
-		if err != nil {
-			fmt.Println("Failed to Sync logger")
-		}
-	}()
+
 	logger.Info(" ===> trigger build", zap.String("triggerURL", triggerURL.String()))
 	isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
 	if isOnlyLog {
-		logger.Debug(colorstring.Yellow(" (debug) isOnlyLog: true"))
+		logger.Debug(" \\x1b[33;1m(debug) isOnlyLog: true\\x1b[0m")
 	}
 
 	if err := triggerAPIParams.Validate(); err != nil {
@@ -127,7 +129,7 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 	}
 
 	logger.Info(" ===> trigger build - DONE", zap.Bool("success", isSuccess), zap.String("triggerURL", triggerURL.String()))
-	log.Printf("      (debug) response: (%#v)", responseModel)
+	logger.Debug(fmt.Sprintf("      (debug) response: (%#v)", responseModel))
 	return responseModel, isSuccess, nil
 }
 
@@ -135,25 +137,21 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 // --- Main HTTP Handler code ---
 
 // HTTPHandler ...
-func HTTPHandler(w http.ResponseWriter, r *http.Request) {
+func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	serviceID := vars["service-id"]
 	appSlug := vars["app-slug"]
 	apiToken := vars["api-token"]
 
-	logger := logging.WithContext(r.Context())
-	defer func() {
-		err := logger.Sync()
-		if err != nil {
-			fmt.Println("Failed to Sync logger")
-		}
-	}()
+	reqContext := r.Context()
+
+	logger := logging.WithContext(reqContext)
 
 	if serviceID == "" {
 		respondWithErrorString(w, nil, "No service-id defined")
 		return
 	}
-	hookProvider, isSupported := supportedProviders()[serviceID]
+	hookProvider, isSupported := supportedProviders(logger)[serviceID]
 	if !isSupported {
 		respondWithErrorString(w, nil, fmt.Sprintf("Unsupported Webhook Type / Provider: %s", serviceID))
 		return
@@ -168,6 +166,67 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metricsProvider, isMetricsProvider := hookProvider.(hookCommon.MetricsProvider)
+	if c.PubsubClient != nil && isMetricsProvider {
+		var webhookMetricsList []hookCommon.Metrics
+		var err error
+
+		metrics.Trace("Hook: GatherMetrics", func() {
+			// GatherMetrics reads the request body, so it needs to be rewinded
+			var originalBody []byte
+			if r.Body != nil {
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					logger.Error(" [!] Exception: failed to read request body", zap.Error(err))
+					return
+				}
+
+				originalBody = body
+			}
+			if originalBody != nil {
+				r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
+			}
+
+			webhookMetricsList, err = metricsProvider.GatherMetrics(r, appSlug)
+
+			if originalBody != nil {
+				r.Body = io.NopCloser(bytes.NewBuffer(originalBody))
+			}
+		})
+
+		if err != nil {
+			knownErrors := []string{
+				"unknown X-Github-Event in message",
+				"payload signature check failed",
+			}
+			isKnownError := false
+
+			for _, knownError := range knownErrors {
+				if strings.Contains(err.Error(), knownError) {
+					logger.Warn("Failed to gather metrics from the webhook", zap.Error(err))
+					isKnownError = true
+					break
+				}
+			}
+
+			if !isKnownError {
+				logger.Error("Failed to gather metrics from the webhook", zap.Error(err))
+			}
+		}
+
+		if len(webhookMetricsList) > 0 {
+			for _, webhookMetrics := range webhookMetricsList {
+				if webhookMetrics == nil {
+					continue
+				}
+
+				if err := c.PubsubClient.PublishMetrics(reqContext, webhookMetrics); err != nil {
+					logger.Error(" [!] Exception: PublishMetrics: failed to publish metrics results", zap.Error(err))
+				}
+			}
+		}
+	}
+
 	hookTransformResult := hookCommon.TransformResultModel{}
 	metrics.Trace("Hook: Transform", func() {
 		hookTransformResult = hookProvider.TransformRequest(r)
@@ -179,7 +238,7 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if hookTransformResult.Error != nil {
 		errMsg := fmt.Sprintf("Failed to transform the webhook: %s", hookTransformResult.Error)
-		log.Printf(" (debug) %s", errMsg)
+		logger.Debug(fmt.Sprintf(" (debug) %s", errMsg))
 		respondWithErrorString(w, &hookProvider, errMsg)
 		return
 	}
@@ -187,7 +246,7 @@ func HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	// Let's Trigger a build / some builds!
 	triggerURL := config.SendRequestToURL
 	if triggerURL == nil {
-		u, err := bitriseapi.BuildTriggerURL("https://app.bitrise.io", appSlug)
+		u, err := bitriseapi.BuildTriggerURL("http://web-monolith.web-monolith:3000", appSlug)
 		if err != nil {
 			logger.Error(" [!] Exception: hookHandler: failed to create Build Trigger URL", zap.Error(err))
 			respondWithErrorString(w, &hookProvider, fmt.Sprintf("Failed to create Build Trigger URL: %s", err))

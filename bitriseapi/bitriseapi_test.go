@@ -30,7 +30,7 @@ func Test_TriggerAPIParamsModel_Validate(t *testing.T) {
 		}
 
 		err := triggerParams.Validate()
-		require.EqualError(t, err, "Missing Branch, Tag and WorkflowID parameters - at least one of these is required")
+		require.EqualError(t, err, "Missing Branch, Tag, WorkflowID and PullRequestComment parameters - at least one of these is required")
 	}
 	t.Log("Missing TriggeredBy")
 	{
@@ -98,7 +98,7 @@ func TestTriggerBuild(t *testing.T) {
 
 		apiResponse, isSuccess, err := TriggerBuild(url, "api-token", triggerParams, true)
 		require.Equal(t, false, isSuccess)
-		require.EqualError(t, err, "TriggerBuild (url:https://app.bitrise.io/app/app-slug/build/start.json): build trigger parameter invalid: Missing Branch, Tag and WorkflowID parameters - at least one of these is required")
+		require.EqualError(t, err, "TriggerBuild (url:https://app.bitrise.io/app/app-slug/build/start.json): build trigger parameter invalid: Missing Branch, Tag, WorkflowID and PullRequestComment parameters - at least one of these is required")
 		require.Equal(t, TriggerAPIResponseModel{}, apiResponse)
 	}
 

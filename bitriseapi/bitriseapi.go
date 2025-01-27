@@ -12,9 +12,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/bitrise-io/api-utils/logging"
-	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/pkg/errors"
+
+	"github.com/bitrise-io/api-utils/logging"
 )
 
 // EnvironmentItem ...
@@ -31,12 +31,24 @@ type CommitPaths struct {
 	Modified []string `json:"modified"`
 }
 
+// PullRequestReadyState ...
+type PullRequestReadyState string
+
+// PullRequestReadyState ...
+const (
+	PullRequestReadyStateDraft                     PullRequestReadyState = "draft"
+	PullRequestReadyStateReadyForReview            PullRequestReadyState = "ready_for_review"
+	PullRequestReadyStateConvertedToReadyForReview PullRequestReadyState = "converted_to_ready_for_review"
+)
+
 // BuildParamsModel ...
 type BuildParamsModel struct {
 	// git commit hash
 	CommitHash string `json:"commit_hash,omitempty"`
-	// git commit message
+	// git commit message of head commit
 	CommitMessage string `json:"commit_message,omitempty"`
+	// git commit messages of all commits
+	CommitMessages []string `json:"commit_messages,omitempty"`
 	// source branch
 	Branch string `json:"branch,omitempty"`
 	// source branch repo owner
@@ -55,8 +67,14 @@ type BuildParamsModel struct {
 	BaseRepositoryURL string `json:"base_repository_url,omitempty"`
 	// URL of the head repository
 	HeadRepositoryURL string `json:"head_repository_url,omitempty"`
-	// pre-merged branch if the provider supports it, exposed for pull requests
+	// Pre-merged PR state, created by the git provider (if supported).
+	// IMPORTANT: This should only be defined if the state is already up-to-date with the latest PR head state
+	// Otherwise, use PullRequestUnverifiedMergeBranch.
 	PullRequestMergeBranch string `json:"pull_request_merge_branch,omitempty"`
+	// Similar to PullRequestMergeBranch, but this field contains a potentially stale state. One example is when a
+	// PR branch gets a new commit and the merge ref is not updated yet.
+	// A system using this field should check the freshness of the merge ref by other means before using it for checkouts.
+	PullRequestUnverifiedMergeBranch string `json:"pull_request_unverified_merge_branch,omitempty"`
 	// source branch mapped to the original repository if the provider supports it, exposed for pull requests
 	PullRequestHeadBranch string `json:"pull_request_head_branch,omitempty"`
 	// The creator of the pull request
@@ -67,8 +85,18 @@ type BuildParamsModel struct {
 	Environments []EnvironmentItem `json:"environments,omitempty"`
 	// URL of the diff
 	DiffURL string `json:"diff_url"`
-	// paths of changes
+	// paths of changes of all commits
 	PushCommitPaths []CommitPaths `json:"commit_paths"`
+	// pull request ready state
+	PullRequestReadyState PullRequestReadyState `json:"pull_request_ready_state,omitempty"`
+	// newly added pull request label
+	PullRequestLabelsAdded []string `json:"pull_request_labels_added,omitempty"`
+	// pull request labels
+	PullRequestLabels []string `json:"pull_request_labels,omitempty"`
+	// newly added pull request comment
+	PullRequestComment string `json:"pull_request_comment,omitempty"`
+	// newly added pull request comment's ID
+	PullRequestCommentID string `json:"pull_request_comment_id,omitempty"`
 }
 
 // TriggerAPIParamsModel ...
@@ -79,20 +107,37 @@ type TriggerAPIParamsModel struct {
 
 // TriggerAPIResponseModel ...
 type TriggerAPIResponseModel struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	Service string `json:"service"`
+	AppSlug string `json:"slug"`
+	// Deprecated
+	BuildSlug string `json:"build_slug"`
+	// Deprecated
+	BuildNumber int `json:"build_number"`
+	// Deprecated
+	BuildURL string `json:"build_url"`
+	// Deprecated
+	TriggeredWorkflow string                      `json:"triggered_workflow"`
+	Results           []BuildTriggerRespItemModel `json:"results"`
+}
+
+// BuildTriggerRespItemModel ...
+type BuildTriggerRespItemModel struct {
 	Status            string `json:"status"`
 	Message           string `json:"message"`
-	Service           string `json:"service"`
-	AppSlug           string `json:"slug"`
 	BuildSlug         string `json:"build_slug"`
 	BuildNumber       int    `json:"build_number"`
 	BuildURL          string `json:"build_url"`
 	TriggeredWorkflow string `json:"triggered_workflow"`
+	TriggeredPipeline string `json:"triggered_pipeline"`
 }
 
 // Validate ...
 func (triggerParams TriggerAPIParamsModel) Validate() error {
-	if triggerParams.BuildParams.Branch == "" && triggerParams.BuildParams.WorkflowID == "" && triggerParams.BuildParams.Tag == "" {
-		return errors.New("Missing Branch, Tag and WorkflowID parameters - at least one of these is required")
+	// This check validates the outgoing build params, catching cases that are clearly invalid. TODO it's incomplete, doesn't check for missing repo etc.
+	if triggerParams.BuildParams.Branch == "" && triggerParams.BuildParams.WorkflowID == "" && triggerParams.BuildParams.Tag == "" && triggerParams.BuildParams.PullRequestComment == "" {
+		return errors.New("Missing Branch, Tag, WorkflowID and PullRequestComment parameters - at least one of these is required")
 	}
 	if triggerParams.TriggeredBy == "" {
 		return errors.New("Missing TriggeredBy parameter")
@@ -115,18 +160,12 @@ func BuildTriggerURL(apiRootURL string, appSlug string) (*url.URL, error) {
 }
 
 // TriggerBuild ...
-// Returns an error in case it can't send the request, or the response is
-//  not a HTTP success response.
-// If the response is an HTTP success response then the whole response body
-//  will be returned, and error will be nil.
+// Returns an error in case it can't send the request, or the response is not a HTTP success response.
+//
+// If the response is an HTTP success response then the whole response body will be returned, and error will be nil.
 func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) (TriggerAPIResponseModel, bool, error) {
 	logger := logging.WithContext(nil)
-	defer func() {
-		err := logger.Sync()
-		if err != nil {
-			fmt.Println("Failed to Sync logger")
-		}
-	}()
+
 	if err := params.Validate(); err != nil {
 		return TriggerAPIResponseModel{}, false, errors.Wrapf(err, "TriggerBuild (url:%s): build trigger parameter invalid", url.String())
 	}
@@ -137,8 +176,8 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	}
 
 	if isOnlyLog {
-		log.Println(colorstring.Yellowf("===> Triggering Build: (url:%s)", url))
-		log.Println(colorstring.Yellowf("====> JSON body: %s", jsonStr))
+		log.Printf("\\x1b[33;1m===> Triggering Build: (url:%s)\\x1b[0m\n", url)
+		log.Printf("\\x1b[33;1m====> JSON body: %s\\x1b[0m\n", jsonStr)
 	}
 
 	if isOnlyLog {

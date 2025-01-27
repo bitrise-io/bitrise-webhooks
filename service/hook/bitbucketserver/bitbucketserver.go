@@ -9,16 +9,19 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
-
-	"github.com/bitrise-io/go-utils/sliceutil"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 )
 
 const (
-	scmGit = "git"
+	scmGit        = "git"
+	actionAdd     = "ADD"
+	actionUpdate  = "UPDATE"
+	refTypeBranch = "BRANCH"
+	refTypeTag    = "TAG"
 
 	// ProviderID ...
 	ProviderID = "bitbucket-server"
@@ -27,16 +30,17 @@ const (
 // --------------------------
 // --- Webhook Data Model ---
 
-//PushEventModel ...
+// PushEventModel ...
 type PushEventModel struct {
 	EventKey       string              `json:"eventKey"`
 	Date           string              `json:"date"`
 	Actor          UserInfoModel       `json:"actor"`
 	RepositoryInfo RepositoryInfoModel `json:"repository"`
 	Changes        []ChangeItemModel   `json:"changes"`
+	Commits        []CommitModel       `json:"commits"`
 }
 
-//ChangeItemModel ...
+// ChangeItemModel ...
 type ChangeItemModel struct {
 	RefID    string   `json:"refId"`
 	FromHash string   `json:"fromHash"`
@@ -45,20 +49,20 @@ type ChangeItemModel struct {
 	Ref      RefModel `json:"ref"`
 }
 
-//RefModel ...
+// RefModel ...
 type RefModel struct {
 	ID        string `json:"id"`
 	DisplayID string `json:"displayId"`
 	Type      string `json:"type"`
 }
 
-//UserInfoModel ...
+// UserInfoModel ...
 type UserInfoModel struct {
 	Name        string `json:"name"`
 	DisplayName string `json:"displayName"`
 }
 
-//RepositoryInfoModel ...
+// RepositoryInfoModel ...
 type RepositoryInfoModel struct {
 	Slug    string           `json:"slug"`
 	ID      int              `json:"id"`
@@ -68,7 +72,13 @@ type RepositoryInfoModel struct {
 	Project ProjectInfoModel `json:"owner"`
 }
 
-//ProjectInfoModel ...
+// CommitModel ...
+type CommitModel struct {
+	ID      string `json:"id"`
+	Message string `json:"message"`
+}
+
+// ProjectInfoModel ...
 type ProjectInfoModel struct {
 	Key    string `json:"key"`
 	ID     int    `json:"id"`
@@ -77,7 +87,7 @@ type ProjectInfoModel struct {
 	Type   string `json:"type"`
 }
 
-//PullRequestInfoModel ...
+// PullRequestInfoModel ...
 type PullRequestInfoModel struct {
 	ID          int                 `json:"id"`
 	Version     int                 `json:"version"`
@@ -91,7 +101,7 @@ type PullRequestInfoModel struct {
 	ToRef       PullRequestRefModel `json:"toRef"`
 }
 
-//PullRequestEventModel ...
+// PullRequestEventModel ...
 type PullRequestEventModel struct {
 	EventKey    string               `json:"eventKey"`
 	Date        string               `json:"date"`
@@ -99,7 +109,7 @@ type PullRequestEventModel struct {
 	PullRequest PullRequestInfoModel `json:"pullRequest"`
 }
 
-//PullRequestRefModel ...
+// PullRequestRefModel ...
 type PullRequestRefModel struct {
 	ID           string              `json:"id"`
 	DisplayID    string              `json:"displayId"`
@@ -149,29 +159,59 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 	triggerAPIParams := []bitriseapi.TriggerAPIParamsModel{}
 	var errs []string
+
+	var validChangeCount = 0
+	for _, change := range pushEvent.Changes {
+		if change.Ref.Type == refTypeBranch && (change.Type == actionAdd || change.Type == actionUpdate) {
+			validChangeCount++
+		} else if change.Ref.Type == refTypeTag && change.Type == actionAdd {
+			validChangeCount++
+		}
+	}
+	multipleChanges := validChangeCount > 1
+
+	var commitMessages = make(map[string]string)
+	var allCommitMessages []string
+	if !multipleChanges {
+		for _, commit := range pushEvent.Commits {
+			commitMessages[commit.ID] = commit.Message
+			allCommitMessages = append(allCommitMessages, commit.Message)
+		}
+	}
+
 	for _, aChange := range pushEvent.Changes {
-		if pushEvent.RepositoryInfo.Scm == scmGit && aChange.Ref.Type == "BRANCH" {
-			if aChange.Type != "ADD" && aChange.Type != "UPDATE" {
+		if pushEvent.RepositoryInfo.Scm == scmGit && aChange.Ref.Type == refTypeBranch {
+			if aChange.Type != actionAdd && aChange.Type != actionUpdate {
 				errs = append(errs, fmt.Sprintf("Not a type=UPDATE nor type=ADD change. Change.Type was: %s", aChange.Type))
 				continue
 			}
+
+			headCommmitMessage, _ := commitMessages[aChange.ToHash]
+
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch:     aChange.Ref.DisplayID,
-					CommitHash: aChange.ToHash,
+					Branch:         aChange.Ref.DisplayID,
+					CommitHash:     aChange.ToHash,
+					CommitMessage:  headCommmitMessage,
+					CommitMessages: allCommitMessages,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Actor.Name),
 			}
 			triggerAPIParams = append(triggerAPIParams, aTriggerAPIParams)
-		} else if aChange.Ref.Type == "TAG" { //tag
-			if aChange.Type != "ADD" {
+		} else if aChange.Ref.Type == refTypeTag { //tag
+			if aChange.Type != actionAdd {
 				errs = append(errs, fmt.Sprintf("Not a type=ADD change. Change.Type was: %s", aChange.Type))
 				continue
 			}
+
+			headCommmitMessage, _ := commitMessages[aChange.ToHash]
+
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:        aChange.Ref.DisplayID,
-					CommitHash: aChange.ToHash,
+					Tag:            aChange.Ref.DisplayID,
+					CommitHash:     aChange.ToHash,
+					CommitMessage:  headCommmitMessage,
+					CommitMessages: allCommitMessages,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Actor.Name),
 			}
@@ -218,8 +258,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return sliceutil.IsStringInSlice(eventKey,
-		[]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged", "diagnostics:ping", "pr:from_ref_updated"})
+	return slices.Contains([]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged", "diagnostics:ping", "pr:from_ref_updated"}, eventKey)
 }
 
 // TransformRequest ...

@@ -1,14 +1,14 @@
 package visualstudioteamservices
 
 import (
-	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
-	"github.com/bitrise-io/go-utils/pointers"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 )
 
 const (
@@ -230,6 +230,8 @@ const (
   }`
 )
 
+var intFourteen = 14
+
 func Test_detectContentType(t *testing.T) {
 	t.Log("Proper Content-Type")
 	{
@@ -266,16 +268,17 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "33b55f7cb7e7e245323987634f960cf4a6e6bc74",
-					CommitMessage: "Fixed bug",
-					Branch:        "master",
+					CommitHash:     "33b55f7cb7e7e245323987634f960cf4a6e6bc74",
+					CommitMessage:  "Fixed bug",
+					CommitMessages: []string{"Fixed bug"},
+					Branch:         "master",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
-	t.Log("Push with multiple commits - only the first one (latest commit) should be picked")
+	t.Log("Push with multiple commits")
 	{
 		request := http.Request{
 			Header: http.Header{
@@ -289,9 +292,10 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "0c23515bcd14e30961356a0a129c732asd9d0wds",
-					CommitMessage: "More changes",
-					Branch:        "master",
+					CommitHash:     "0c23515bcd14e30961356a0a129c732asd9d0wds",
+					CommitMessage:  "More changes",
+					CommitMessages: []string{"Fixed bug", "More changes"},
+					Branch:         "master",
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -577,7 +581,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage:     "Jamal Hartnett created a new pull request",
 					Branch:            "feature/addAzureDevOpsPullRequestSupport",
 					BranchDest:        "master",
-					PullRequestID:     pointers.NewIntPtr(14),
+					PullRequestID:     &intFourteen,
 					PullRequestAuthor: "Jamal Hartnett",
 				},
 			},
@@ -651,7 +655,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 }`)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
-		require.False(t, hookTransformResult.ShouldSkip)
+		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Pull request is not mergeable")
 		require.Nil(t, hookTransformResult.TriggerAPIParams)
 		require.False(t, hookTransformResult.DontWaitForTriggerResponse)
@@ -912,7 +916,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 					CommitMessage:     "Jamal Hartnett updated the source branch of pull request 14",
 					Branch:            "feature/addAzureDevOpsPullRequestSupport",
 					BranchDest:        "master",
-					PullRequestID:     pointers.NewIntPtr(14),
+					PullRequestID:     &intFourteen,
 					PullRequestAuthor: "Jamal Hartnett",
 				},
 			},
