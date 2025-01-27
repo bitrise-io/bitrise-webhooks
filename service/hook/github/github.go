@@ -271,14 +271,14 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 			// only description changed
 			if pullRequest.Changes.Title.From == "" {
 				return hookCommon.TransformResultModel{
-					Error:      errors.New("pull request edit doesn't require a build: only body/description was changed"),
+					Error:      errors.New("pull Request edit doesn't require a build: only body/description was changed"),
 					ShouldSkip: true,
 				}
 			}
 			// title changed without removing any [skip ci] pattern
 			if !hookCommon.IsSkipBuildByCommitMessage(pullRequest.Changes.Title.From) {
 				return hookCommon.TransformResultModel{
-					Error:      errors.New("pull request edit doesn't require a build: only title was changed, and previous one was not skipped"),
+					Error:      errors.New("pull Request edit doesn't require a build: only title was changed, and previous one was not skipped"),
 					ShouldSkip: true,
 				}
 			}
