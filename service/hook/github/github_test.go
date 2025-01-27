@@ -1483,7 +1483,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
-		require.EqualError(t, hookTransformResult.Error, "pull request edit doesn't require a build: only body/description was changed")
+		require.EqualError(t, hookTransformResult.Error, "pull Request edit doesn't require a build: only body/description was changed")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel(nil), hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
