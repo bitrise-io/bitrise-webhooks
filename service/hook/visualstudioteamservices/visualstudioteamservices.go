@@ -137,6 +137,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		branch := strings.TrimPrefix(pushRef, "refs/heads/")
 
 		if len(pushEvent.Resource.Commits) < 1 {
+			var commitMessage string
 			commitHash := headRefUpdate.NewObjectID
 			if commitHash == emptyCommitHash {
 				// no commits and the (new) commit hash is empty -> this is a delete event,
@@ -147,15 +148,17 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 				}
 			}
 			if headRefUpdate.OldObjectID == emptyCommitHash {
+				commitMessage = "Branch created"
 				// (new) commit hash was not empty, but old one is -> this is a create event,
 				// without any commits pushed, just the branch created
 				return hookCommon.TransformResultModel{
 					TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 						{
 							BuildParams: bitriseapi.BuildParamsModel{
-								Branch:        branch,
-								CommitHash:    commitHash,
-								CommitMessage: "Branch created",
+								Branch:         branch,
+								CommitHash:     commitHash,
+								CommitMessage:  commitMessage,
+								CommitMessages: []string{commitMessage},
 							},
 						},
 					},
@@ -170,13 +173,15 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 				// `git log`, but it does not include it in the hook event,
 				// only the head ref change.
 				// So, for now, we'll use the event's detailed message as the commit message.
+				commitMessage = pushEvent.DetailedMessage.Text
 				return hookCommon.TransformResultModel{
 					TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 						{
 							BuildParams: bitriseapi.BuildParamsModel{
-								Branch:        branch,
-								CommitHash:    commitHash,
-								CommitMessage: pushEvent.DetailedMessage.Text,
+								Branch:         branch,
+								CommitHash:     commitHash,
+								CommitMessage:  commitMessage,
+								CommitMessages: []string{commitMessage},
 							},
 						},
 					},

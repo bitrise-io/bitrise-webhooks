@@ -424,9 +424,10 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch:        "test-branch",
-					CommitHash:    "7c0d90dc542b86747e42ac8f03f794a96ecfc68a",
-					CommitMessage: "Branch created",
+					Branch:         "test-branch",
+					CommitHash:     "7c0d90dc542b86747e42ac8f03f794a96ecfc68a",
+					CommitMessage:  "Branch created",
+					CommitMessages: []string{"Branch created"},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
@@ -469,9 +470,10 @@ func Test_transformPushEvent(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch:        "master",
-					CommitHash:    "7c0d90dc542b86747e42ac8f03f794a96ecfc68a",
-					CommitMessage: "Author Name pushed 4 commits to branch master of test project\r\n - PR 3: Merge feature/new-branch-test to master 293d9ead ...",
+					Branch:         "master",
+					CommitHash:     "7c0d90dc542b86747e42ac8f03f794a96ecfc68a",
+					CommitMessage:  "Author Name pushed 4 commits to branch master of test project\r\n - PR 3: Merge feature/new-branch-test to master 293d9ead ...",
+					CommitMessages: []string{"Author Name pushed 4 commits to branch master of test project\r\n - PR 3: Merge feature/new-branch-test to master 293d9ead ..."},
 				},
 			},
 		}, hookTransformResult.TriggerAPIParams)
