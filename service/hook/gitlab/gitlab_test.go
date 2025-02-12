@@ -927,6 +927,22 @@ func Test_transformCodePushEvent(t *testing.T) {
 		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
+	t.Log("No  commits (branch creation)")
+	{
+		codePush := CodePushEventModel{
+			ObjectKind:   "push",
+			Ref:          "refs/heads/master",
+			CheckoutSHA:  "checkout-sha",
+			UserUsername: "test_user",
+			Commits:      []CommitModel{},
+		}
+		hookTransformResult := NewDefaultHookProvider(zap.NewNop()).transformCodePushEvent(codePush)
+		require.EqualError(t, hookTransformResult.Error, "Empty 'commits' array - probably created a branch with no commits yet")
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.Nil(t, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, true, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
 	t.Log("Commit without CheckoutSHA (squashed merge request)")
 	{
 		codePush := CodePushEventModel{

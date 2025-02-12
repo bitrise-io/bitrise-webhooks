@@ -311,6 +311,14 @@ func (hp HookProvider) transformCodePushEvent(codePushEvent CodePushEventModel) 
 		}
 	}
 
+	if len(codePushEvent.Commits) == 0 {
+		return hookCommon.TransformResultModel{
+			DontWaitForTriggerResponse: true,
+			Error:                      fmt.Errorf("Empty 'commits' array - probably created a branch with no commits yet"),
+			ShouldSkip:                 true,
+		}
+	}
+
 	lastCommit := CommitModel{}
 	isLastCommitFound := false
 	for _, aCommit := range codePushEvent.Commits {
