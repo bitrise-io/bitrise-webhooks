@@ -1,6 +1,8 @@
 module github.com/bitrise-io/bitrise-webhooks
 
-go 1.21
+go 1.22.0
+
+toolchain go1.24.1
 
 require (
 	cloud.google.com/go/pubsub v1.42.0
@@ -8,6 +10,7 @@ require (
 	github.com/bitrise-io/envman v0.0.0-20240730123632-8066eeb61599
 	github.com/go-playground/webhooks/v6 v6.4.0
 	github.com/google/go-github/v67 v67.0.0
+	github.com/google/go-github/v69 v69.2.0
 	github.com/gorilla/mux v1.8.1
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.9.0
