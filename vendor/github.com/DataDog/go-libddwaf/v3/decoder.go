@@ -38,16 +38,18 @@ func decodeErrors(obj *bindings.WafObject) (map[string][]string, error) {
 	return wafErrors, nil
 }
 
-func decodeDiagnostics(obj *bindings.WafObject) (*Diagnostics, error) {
+func decodeDiagnostics(obj *bindings.WafObject) (Diagnostics, error) {
 	if !obj.IsMap() {
-		return nil, errors.ErrInvalidObjectType
+		return Diagnostics{}, errors.ErrInvalidObjectType
 	}
 	if obj.Value == 0 && obj.NbEntries > 0 {
-		return nil, errors.ErrNilObjectPtr
+		return Diagnostics{}, errors.ErrNilObjectPtr
 	}
 
-	var diags Diagnostics
-	var err error
+	var (
+		diags Diagnostics
+		err   error
+	)
 	for i := uint64(0); i < obj.NbEntries; i++ {
 		objElem := unsafe.CastWithOffset[bindings.WafObject](obj.Value, i)
 		key := unsafe.GostringSized(unsafe.Cast[byte](objElem.ParameterName), objElem.ParameterNameLength)
@@ -62,6 +64,8 @@ func decodeDiagnostics(obj *bindings.WafObject) (*Diagnostics, error) {
 			diags.Rules, err = decodeDiagnosticsEntry(objElem)
 		case "rules_data":
 			diags.RulesData, err = decodeDiagnosticsEntry(objElem)
+		case "exclusion_data":
+			diags.RulesData, err = decodeDiagnosticsEntry(objElem)
 		case "rules_override":
 			diags.RulesOverrides, err = decodeDiagnosticsEntry(objElem)
 		case "processors":
@@ -74,11 +78,11 @@ func decodeDiagnostics(obj *bindings.WafObject) (*Diagnostics, error) {
 			// ignore?
 		}
 		if err != nil {
-			return nil, err
+			return Diagnostics{}, err
 		}
 	}
 
-	return &diags, nil
+	return diags, nil
 }
 
 func decodeDiagnosticsEntry(obj *bindings.WafObject) (*DiagnosticEntry, error) {
@@ -105,6 +109,8 @@ func decodeDiagnosticsEntry(obj *bindings.WafObject) (*DiagnosticEntry, error) {
 			entry.Failed, err = decodeStringArray(objElem)
 		case "loaded":
 			entry.Loaded, err = decodeStringArray(objElem)
+		case "skipped":
+			entry.Skipped, err = decodeStringArray(objElem)
 		default:
 			return nil, errors.ErrUnsupportedValue
 		}
