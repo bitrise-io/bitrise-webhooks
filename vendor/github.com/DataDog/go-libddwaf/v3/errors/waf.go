@@ -33,24 +33,23 @@ const (
 	ErrEmptyRuleAddresses
 )
 
+var errorStrMap = map[RunError]string{
+	ErrInternal:           "internal waf error",
+	ErrInvalidObject:      "invalid waf object",
+	ErrInvalidArgument:    "invalid waf argument",
+	ErrTimeout:            "waf timeout",
+	ErrOutOfMemory:        "out of memory",
+	ErrEmptyRuleAddresses: "empty rule addresses",
+}
+
 // Error returns the string representation of the RunError.
 func (e RunError) Error() string {
-	switch e {
-	case ErrInternal:
-		return "internal waf error"
-	case ErrTimeout:
-		return "waf timeout"
-	case ErrInvalidObject:
-		return "invalid waf object"
-	case ErrInvalidArgument:
-		return "invalid waf argument"
-	case ErrOutOfMemory:
-		return "out of memory"
-	case ErrEmptyRuleAddresses:
-		return "empty rule addresses"
-	default:
+	description, ok := errorStrMap[e]
+	if !ok {
 		return fmt.Sprintf("unknown waf error %d", e)
 	}
+
+	return description
 }
 
 // PanicError is an error type wrapping a recovered panic value that happened

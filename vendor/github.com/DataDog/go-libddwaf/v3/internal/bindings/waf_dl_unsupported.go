@@ -33,6 +33,10 @@ func (waf *WafDl) WafKnownAddresses(handle WafHandle) []string {
 	return nil
 }
 
+func (waf *WafDl) WafKnownActions(handle WafHandle) []string {
+	return nil
+}
+
 func (waf *WafDl) WafContextInit(handle WafHandle) WafContext {
 	return 0
 }
