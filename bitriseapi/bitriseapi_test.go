@@ -8,19 +8,19 @@ import (
 )
 
 func TestBuildTriggerURL(t *testing.T) {
-	rootUrl, err := url.Parse("https://app.bitrise.io")
+	rootURL, err := url.Parse("https://app.bitrise.io")
 	require.NoError(t, err)
 
 	t.Log("Endpoint URL doesn't end with /")
 	{
-		url, err := BuildTriggerURL(rootUrl, "a..............b")
+		url, err := BuildTriggerURL(rootURL, "a..............b")
 		require.NoError(t, err)
 		require.Equal(t, "https://app.bitrise.io/app/a..............b/build/start.json", url.String())
 	}
 
 	t.Log("Endpoint URL ends with /")
 	{
-		url, err := BuildTriggerURL(rootUrl, "a..............b")
+		url, err := BuildTriggerURL(rootURL, "a..............b")
 		require.NoError(t, err)
 		require.Equal(t, "https://app.bitrise.io/app/a..............b/build/start.json", url.String())
 	}
@@ -91,9 +91,9 @@ func Test_TriggerAPIParamsModel_Validate(t *testing.T) {
 }
 
 func TestTriggerBuild(t *testing.T) {
-	rootUrl, err := url.Parse("https://app.bitrise.io")
+	rootURL, err := url.Parse("https://app.bitrise.io")
 	require.NoError(t, err)
-	url, err := BuildTriggerURL(rootUrl, "app-slug")
+	url, err := BuildTriggerURL(rootURL, "app-slug")
 	require.NoError(t, err)
 
 	t.Log("Empty trigger api params (invalid)")
