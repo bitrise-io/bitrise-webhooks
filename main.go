@@ -19,7 +19,7 @@ func main() {
 		portFlag            = flag.String("port", "", `Use port [$PORT]`)
 		sendRequestToFlag   = flag.String("send-request-to", "", `Send requests to this URL. If set, every request will be sent to this URL and not to bitrise.io. You can use this to debug/test, e.g. with http://requestb.in [$SEND_REQUEST_TO]`)
 		logOnlyModeFlag     = flag.Bool("log-only-mode", false, `Only print log messages without triggering builds [$LOG_ONLY_MODE]`)
-		buildTriggerUrlFlag = flag.String("build-trigger-url", "", "URL to send build trigger requests to [$BUILD_TRIGGER_URL]")
+		buildTriggerURLFlag = flag.String("build-trigger-url", "", "URL to send build trigger requests to [$BUILD_TRIGGER_URL]")
 	)
 	flag.Parse()
 
@@ -41,14 +41,14 @@ func main() {
 
 	logOnlyMode := boolFlagOrEnv(logOnlyModeFlag, "LOG_ONLY_MODE")
 
-	buildTriggerUrl := stringFlagOrEnv(buildTriggerUrlFlag, "BUILD_TRIGGER_URL")
-	if requestToStr == "" && buildTriggerUrl == "" {
+	buildTriggerURL := stringFlagOrEnv(buildTriggerURLFlag, "BUILD_TRIGGER_URL")
+	if requestToStr == "" && buildTriggerURL == "" {
 		log.Printf("No send-request-to or build-trigger-url specified, will only log requests")
 		logOnlyMode = true
-	} else if buildTriggerUrl != "" {
-		url, err := url.Parse(buildTriggerUrl)
+	} else if buildTriggerURL != "" {
+		url, err := url.Parse(buildTriggerURL)
 		if err != nil {
-			log.Fatalf("Failed to parse build-trigger-url (%s) as a URL, error: %s", buildTriggerUrl, err)
+			log.Fatalf("Failed to parse build-trigger-url (%s) as a URL, error: %s", buildTriggerURL, err)
 		}
 		config.BuildTriggerURL = url
 	}
