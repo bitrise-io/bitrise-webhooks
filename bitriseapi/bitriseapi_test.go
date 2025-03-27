@@ -1,22 +1,25 @@
 package bitriseapi
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestBuildTriggerURL(t *testing.T) {
+	rootUrl, _ := url.Parse("https://app.bitrise.io")
+
 	t.Log("Endpoint URL doesn't end with /")
 	{
-		url, err := BuildTriggerURL("https://app.bitrise.io", "a..............b")
+		url, err := BuildTriggerURL(rootUrl, "a..............b")
 		require.NoError(t, err)
 		require.Equal(t, "https://app.bitrise.io/app/a..............b/build/start.json", url.String())
 	}
 
 	t.Log("Endpoint URL ends with /")
 	{
-		url, err := BuildTriggerURL("https://app.bitrise.io/", "a..............b")
+		url, err := BuildTriggerURL(rootUrl, "a..............b")
 		require.NoError(t, err)
 		require.Equal(t, "https://app.bitrise.io/app/a..............b/build/start.json", url.String())
 	}
@@ -87,7 +90,8 @@ func Test_TriggerAPIParamsModel_Validate(t *testing.T) {
 }
 
 func TestTriggerBuild(t *testing.T) {
-	url, err := BuildTriggerURL("https://app.bitrise.io", "app-slug")
+	rootUrl, _ := url.Parse("https://app.bitrise.io")
+	url, err := BuildTriggerURL(rootUrl, "app-slug")
 	require.NoError(t, err)
 
 	t.Log("Empty trigger api params (invalid)")
