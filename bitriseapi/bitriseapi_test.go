@@ -8,7 +8,8 @@ import (
 )
 
 func TestBuildTriggerURL(t *testing.T) {
-	rootUrl, _ := url.Parse("https://app.bitrise.io")
+	rootUrl, err := url.Parse("https://app.bitrise.io")
+	require.NoError(t, err)
 
 	t.Log("Endpoint URL doesn't end with /")
 	{
@@ -90,7 +91,8 @@ func Test_TriggerAPIParamsModel_Validate(t *testing.T) {
 }
 
 func TestTriggerBuild(t *testing.T) {
-	rootUrl, _ := url.Parse("https://app.bitrise.io")
+	rootUrl, err := url.Parse("https://app.bitrise.io")
+	require.NoError(t, err)
 	url, err := BuildTriggerURL(rootUrl, "app-slug")
 	require.NoError(t, err)
 
