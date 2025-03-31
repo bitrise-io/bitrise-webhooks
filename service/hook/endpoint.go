@@ -112,7 +112,7 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 	logger := logging.WithContext(nil)
 
 	logger.Info(" ===> trigger build", zap.String("triggerURL", triggerURL.String()))
-	isOnlyLog := !(config.SendRequestToURL != nil || config.GetServerEnvMode() == config.ServerEnvModeProd)
+	isOnlyLog := config.LogOnlyMode
 	if isOnlyLog {
 		logger.Debug(" \\x1b[33;1m(debug) isOnlyLog: true\\x1b[0m")
 	}
@@ -246,7 +246,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	// Let's Trigger a build / some builds!
 	triggerURL := config.SendRequestToURL
 	if triggerURL == nil {
-		u, err := bitriseapi.BuildTriggerURL("http://web-monolith.web-monolith:3000", appSlug)
+		u, err := bitriseapi.BuildTriggerURL(config.BuildTriggerURL, appSlug)
 		if err != nil {
 			logger.Error(" [!] Exception: hookHandler: failed to create Build Trigger URL", zap.Error(err))
 			respondWithErrorString(w, &hookProvider, fmt.Sprintf("Failed to create Build Trigger URL: %s", err))

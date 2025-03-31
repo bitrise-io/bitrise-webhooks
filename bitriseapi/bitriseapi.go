@@ -146,17 +146,12 @@ func (triggerParams TriggerAPIParamsModel) Validate() error {
 }
 
 // BuildTriggerURL ...
-func BuildTriggerURL(apiRootURL string, appSlug string) (*url.URL, error) {
-	baseURL, err := url.Parse(apiRootURL)
-	if err != nil {
-		return nil, errors.Wrapf(err, "BuildTriggerURL: Failed to parse (%s)", apiRootURL)
-	}
-
+func BuildTriggerURL(apiRootURL *url.URL, appSlug string) (*url.URL, error) {
 	pathURL, err := url.Parse(fmt.Sprintf("/app/%s/build/start.json", appSlug))
 	if err != nil {
 		return nil, errors.Wrap(err, "BuildTriggerURL: Failed to parse PATH")
 	}
-	return baseURL.ResolveReference(pathURL), nil
+	return apiRootURL.ResolveReference(pathURL), nil
 }
 
 // TriggerBuild ...

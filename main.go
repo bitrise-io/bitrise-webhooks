@@ -16,8 +16,10 @@ func main() {
 	tracer.Start(tracer.WithServiceName("webhooks"))
 	defer tracer.Stop()
 	var (
-		portFlag          = flag.String("port", "", `Use port [$PORT]`)
-		sendRequestToFlag = flag.String("send-request-to", "", `Send requests to this URL. If set, every request will be sent to this URL and not to bitrise.io. You can use this to debug/test, e.g. with http://requestb.in [$SEND_REQUEST_TO]`)
+		portFlag            = flag.String("port", "", `Use port [$PORT]`)
+		sendRequestToFlag   = flag.String("send-request-to", "", `Send requests to this URL. If set, every request will be sent to this URL and not to bitrise.io. You can use this to debug/test, e.g. with http://requestb.in [$SEND_REQUEST_TO]`)
+		logOnlyModeFlag     = flag.Bool("log-only-mode", false, `Only print log messages without triggering builds [$LOG_ONLY_MODE]`)
+		buildTriggerURLFlag = flag.String("build-trigger-url", "", "URL to send build trigger requests to [$BUILD_TRIGGER_URL]")
 	)
 	flag.Parse()
 
@@ -36,6 +38,22 @@ func main() {
 		config.SendRequestToURL = url
 		log.Printf(" (!) Send-Request-To specified, every request will be sent to: %s", config.SendRequestToURL)
 	}
+
+	logOnlyMode := boolFlagOrEnv(logOnlyModeFlag, "LOG_ONLY_MODE")
+
+	buildTriggerURL := stringFlagOrEnv(buildTriggerURLFlag, "BUILD_TRIGGER_URL")
+	if requestToStr == "" && buildTriggerURL == "" {
+		log.Printf("No send-request-to or build-trigger-url specified, will only log requests")
+		logOnlyMode = true
+	} else if buildTriggerURL != "" {
+		url, err := url.Parse(buildTriggerURL)
+		if err != nil {
+			log.Fatalf("Failed to parse build-trigger-url (%s) as a URL, error: %s", buildTriggerURL, err)
+		}
+		config.BuildTriggerURL = url
+	}
+
+	config.LogOnlyMode = logOnlyMode
 
 	var (
 		pubsubServiceAccountJSON = os.Getenv("METRICS_PUBSUB_SERVICE_ACCOUNT_JSON")
@@ -72,4 +90,11 @@ func stringFlagOrEnv(flagValue *string, envKey string) string {
 		return *flagValue
 	}
 	return os.Getenv(envKey)
+}
+
+func boolFlagOrEnv(flagValue *bool, envKey string) bool {
+	if flagValue != nil {
+		return *flagValue
+	}
+	return os.Getenv(envKey) == "true"
 }
