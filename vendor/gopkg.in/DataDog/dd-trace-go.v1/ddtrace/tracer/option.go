@@ -15,7 +15,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"runtime/debug"
 	"strconv"
@@ -23,9 +22,11 @@ import (
 	"time"
 
 	"golang.org/x/mod/semver"
+
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/DataDog/dd-trace-go.v1/internal"
+	appsecconfig "gopkg.in/DataDog/dd-trace-go.v1/internal/appsec/config"
 	"gopkg.in/DataDog/dd-trace-go.v1/internal/civisibility/constants"
 	"gopkg.in/DataDog/dd-trace-go.v1/internal/globalconfig"
 	"gopkg.in/DataDog/dd-trace-go.v1/internal/log"
@@ -69,7 +70,6 @@ var contribIntegrations = map[string]struct {
 	"github.com/gomodule/redigo":                    {"Redigo", false},
 	"google.golang.org/api":                         {"Google API", false},
 	"google.golang.org/grpc":                        {"gRPC", false},
-	"google.golang.org/grpc/v12":                    {"gRPC v12", false},
 	"gopkg.in/jinzhu/gorm.v1":                       {"Gorm (gopkg)", false},
 	"github.com/gorilla/mux":                        {"Gorilla Mux", false},
 	"gorm.io/gorm.v1":                               {"Gorm v1", false},
@@ -99,6 +99,7 @@ var contribIntegrations = map[string]struct {
 	"github.com/zenazn/goji":                        {"Goji", false},
 	"log/slog":                                      {"log/slog", false},
 	"github.com/uptrace/bun":                        {"Bun", false},
+	"github.com/valkey-io/valkey-go":                {"Valkey", false},
 }
 
 var (
@@ -106,14 +107,23 @@ var (
 	// Replaced in tests
 	defaultSocketDSD = "/var/run/datadog/dsd.socket"
 
+	// defaultStatsdPort specifies the default port to use for connecting to the statsd server.
+	defaultStatsdPort = "8125"
+
 	// defaultMaxTagsHeaderLen specifies the default maximum length of the X-Datadog-Tags header value.
 	defaultMaxTagsHeaderLen = 128
+
+	// defaultRateLimit specifies the default trace rate limit used when DD_TRACE_RATE_LIMIT is not set.
+	defaultRateLimit = 100.0
 )
 
 // config holds the tracer configuration.
 type config struct {
 	// debug, when true, writes details to logs.
 	debug bool
+
+	// appsecStartOptions controls the options used when starting appsec features.
+	appsecStartOptions []appsecconfig.StartOption
 
 	// agent holds the capabilities of the agent and determines some
 	// of the behaviour of the tracer.
@@ -130,9 +140,12 @@ type config struct {
 	// output instead of using the agent. This is used in Lambda environments.
 	logToStdout bool
 
-	// sendRetries is the number of times a trace payload send is retried upon
+	// sendRetries is the number of times a trace or CI Visibility payload send is retried upon
 	// failure.
 	sendRetries int
+
+	// retryInterval is the interval between agent connection retries. It has no effect if sendRetries is not set
+	retryInterval time.Duration
 
 	// logStartup, when true, causes various startup info to be written
 	// when the tracer starts.
@@ -156,6 +169,9 @@ type config struct {
 
 	// agentURL is the agent URL that receives traces from the tracer.
 	agentURL *url.URL
+
+	// originalAgentURL is the agent URL that receives traces from the tracer and does not get changed.
+	originalAgentURL *url.URL
 
 	// serviceMappings holds a set of service mappings to dynamically rename services
 	serviceMappings map[string]string
@@ -186,6 +202,9 @@ type config struct {
 
 	// runtimeMetrics specifies whether collection of runtime metrics is enabled.
 	runtimeMetrics bool
+
+	// runtimeMetricsV2 specifies whether collection of runtime metrics v2 is enabled.
+	runtimeMetricsV2 bool
 
 	// dogstatsdAddr specifies the address to connect for sending metrics to the
 	// Datadog Agent. If not set, it defaults to "localhost:8125" or to the
@@ -277,6 +296,18 @@ type config struct {
 
 	// ciVisibilityEnabled controls if the tracer is loaded with CI Visibility mode. default false
 	ciVisibilityEnabled bool
+
+	// ciVisibilityAgentless controls if the tracer is loaded with CI Visibility agentless mode. default false
+	ciVisibilityAgentless bool
+
+	// logDirectory is directory for tracer logs specified by user-setting DD_TRACE_LOG_DIRECTORY. default empty/unused
+	logDirectory string
+
+	// tracingAsTransport specifies whether the tracer is running in transport-only mode, where traces are only sent when other products request it.
+	tracingAsTransport bool
+
+	// traceRateLimitPerSecond specifies the rate limit for traces.
+	traceRateLimitPerSecond float64
 }
 
 // orchestrionConfig contains Orchestrion configuration.
@@ -322,6 +353,22 @@ func newConfig(opts ...StartOption) *config {
 	}
 	c.globalSampleRate = sampleRate
 	c.httpClientTimeout = time.Second * 10 // 10 seconds
+
+	c.traceRateLimitPerSecond = defaultRateLimit
+	origin := telemetry.OriginDefault
+	if v, ok := os.LookupEnv("DD_TRACE_RATE_LIMIT"); ok {
+		l, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			log.Warn("DD_TRACE_RATE_LIMIT invalid, using default value %f: %v", defaultRateLimit, err)
+		} else if l < 0.0 {
+			log.Warn("DD_TRACE_RATE_LIMIT negative, using default value %f", defaultRateLimit)
+		} else {
+			c.traceRateLimitPerSecond = l
+			origin = telemetry.OriginEnvVar
+		}
+	}
+
+	reportTelemetryOnAppStarted(telemetry.Configuration{Name: "trace_rate_limit", Value: c.traceRateLimitPerSecond, Origin: origin})
 
 	if v := os.Getenv("OTEL_LOGS_EXPORTER"); v != "" {
 		log.Warn("OTEL_LOGS_EXPORTER is not supported")
@@ -379,7 +426,9 @@ func newConfig(opts ...StartOption) *config {
 	}
 	c.logStartup = internal.BoolEnv("DD_TRACE_STARTUP_LOGS", true)
 	c.runtimeMetrics = internal.BoolVal(getDDorOtelConfig("metrics"), false)
+	c.runtimeMetricsV2 = internal.BoolEnv("DD_RUNTIME_METRICS_V2_ENABLED", false)
 	c.debug = internal.BoolVal(getDDorOtelConfig("debugMode"), false)
+	c.logDirectory = os.Getenv("DD_TRACE_LOG_DIRECTORY")
 	c.enabled = newDynamicConfig("tracing_enabled", internal.BoolVal(getDDorOtelConfig("enabled"), true), func(b bool) bool { return true }, equal[bool])
 	if _, ok := os.LookupEnv("DD_TRACE_ENABLED"); ok {
 		c.enabled.cfgOrigin = telemetry.OriginEnvVar
@@ -436,23 +485,26 @@ func newConfig(opts ...StartOption) *config {
 	if v := os.Getenv("DD_TRACE_PEER_SERVICE_MAPPING"); v != "" {
 		internal.ForEachStringTag(v, internal.DDTagsDelimiter, func(key, val string) { c.peerServiceMappings[key] = val })
 	}
-
+	c.retryInterval = time.Millisecond
 	for _, fn := range opts {
 		fn(c)
 	}
 	if c.agentURL == nil {
 		c.agentURL = internal.AgentURLFromEnv()
 	}
-	if c.agentURL.Scheme == "unix" {
-		// If we're connecting over UDS we can just rely on the agent to provide the hostname
-		log.Debug("connecting to agent over unix, do not set hostname on any traces")
-		c.httpClient = udsClient(c.agentURL.Path, c.httpClientTimeout)
-		c.agentURL = &url.URL{
-			Scheme: "http",
-			Host:   fmt.Sprintf("UDS_%s", strings.NewReplacer(":", "_", "/", "_", `\`, "_").Replace(c.agentURL.Path)),
+	c.originalAgentURL = c.agentURL // Preserve the original agent URL for logging
+	if c.httpClient == nil {
+		if c.agentURL.Scheme == "unix" {
+			// If we're connecting over UDS we can just rely on the agent to provide the hostname
+			log.Debug("connecting to agent over unix, do not set hostname on any traces")
+			c.httpClient = udsClient(c.agentURL.Path, c.httpClientTimeout)
+			c.agentURL = &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("UDS_%s", strings.NewReplacer(":", "_", "/", "_", `\`, "_").Replace(c.agentURL.Path)),
+			}
+		} else {
+			c.httpClient = defaultHTTPClient(c.httpClientTimeout)
 		}
-	} else if c.httpClient == nil {
-		c.httpClient = defaultHTTPClient(c.httpClientTimeout)
 	}
 	WithGlobalTag(ext.RuntimeID, globalconfig.RuntimeID())(c)
 	globalTags := c.globalTags.get()
@@ -507,8 +559,18 @@ func newConfig(opts ...StartOption) *config {
 		log.SetLevel(log.LevelDebug)
 	}
 
-	// if using stdout or traces are disabled, agent is disabled
-	agentDisabled := c.logToStdout || !c.enabled.current
+	// Check if CI Visibility mode is enabled
+	if internal.BoolEnv(constants.CIVisibilityEnabledEnvironmentVariable, false) {
+		c.ciVisibilityEnabled = true               // Enable CI Visibility mode
+		c.httpClientTimeout = time.Second * 45     // Increase timeout up to 45 seconds (same as other tracers in CIVis mode)
+		c.logStartup = false                       // If we are in CI Visibility mode we don't want to log the startup to stdout to avoid polluting the output
+		ciTransport := newCiVisibilityTransport(c) // Create a default CI Visibility Transport
+		c.transport = ciTransport                  // Replace the default transport with the CI Visibility transport
+		c.ciVisibilityAgentless = ciTransport.agentless
+	}
+
+	// if using stdout or traces are disabled or we are in ci visibility agentless mode, agent is disabled
+	agentDisabled := c.logToStdout || !c.enabled.current || c.ciVisibilityAgentless
 	c.agent = loadAgentFeatures(agentDisabled, c.agentURL, c.httpClient)
 	info, ok := debug.ReadBuildInfo()
 	if !ok {
@@ -518,24 +580,7 @@ func newConfig(opts ...StartOption) *config {
 	}
 	if c.statsdClient == nil {
 		// configure statsd client
-		addr := c.dogstatsdAddr
-		if addr == "" {
-			// no config defined address; use defaults
-			addr = defaultDogstatsdAddr()
-		}
-		if agentport := c.agent.StatsdPort; agentport > 0 {
-			// the agent reported a non-standard port
-			host, _, err := net.SplitHostPort(addr)
-			if err == nil {
-				// we have a valid host:port address; replace the port because
-				// the agent knows better
-				if host == "" {
-					host = defaultHostname
-				}
-				addr = net.JoinHostPort(host, strconv.Itoa(agentport))
-			}
-			// not a valid TCP address, leave it as it is (could be a socket connection)
-		}
+		addr := resolveDogstatsdAddr(c)
 		globalconfig.SetDogstatsdAddr(addr)
 		c.dogstatsdAddr = addr
 	}
@@ -544,15 +589,61 @@ func newConfig(opts ...StartOption) *config {
 	globalTagsOrigin := c.globalTags.cfgOrigin
 	c.initGlobalTags(c.globalTags.get(), globalTagsOrigin)
 
-	// Check if CI Visibility mode is enabled
-	if internal.BoolEnv(constants.CIVisibilityEnabledEnvironmentVariable, false) {
-		c.ciVisibilityEnabled = true              // Enable CI Visibility mode
-		c.httpClientTimeout = time.Second * 45    // Increase timeout up to 45 seconds (same as other tracers in CIVis mode)
-		c.logStartup = false                      // If we are in CI Visibility mode we don't want to log the startup to stdout to avoid polluting the output
-		c.transport = newCiVisibilityTransport(c) // Replace the default transport with the CI Visibility transport
+	// TODO: change the name once APM Platform RFC is approved
+	if internal.BoolEnv("DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED", false) {
+		// Enable tracing as transport layer mode
+		// This means to stop sending trace metrics, send one trace per minute and those force-kept by other products
+		// using the tracer as transport layer for their data. And finally adding the _dd.apm.enabled=0 tag to all traces
+		// to let the backend know that it needs to keep APM UI disabled.
+		c.globalSampleRate = 1.0
+		c.traceRateLimitPerSecond = 1.0 / 60
+		c.tracingAsTransport = true
+		WithGlobalTag("_dd.apm.enabled", 0)(c)
+		// Disable runtime metrics. In `tracingAsTransport` mode, we'll still
+		// tell the agent we computed them, so it doesn't do it either.
+		c.runtimeMetrics = false
+		c.runtimeMetricsV2 = false
 	}
 
 	return c
+}
+
+// resolveDogstatsdAddr resolves the Dogstatsd address to use, based on the user-defined
+// address and the agent-reported port. If the agent reports a port, it will be used
+// instead of the user-defined address' port. UDS paths are honored regardless of the
+// agent-reported port.
+func resolveDogstatsdAddr(c *config) string {
+	addr := c.dogstatsdAddr
+	if addr == "" {
+		// no config defined address; use host and port from env vars
+		// or default to localhost:8125 if not set
+		addr = defaultDogstatsdAddr()
+	}
+	agentport := c.agent.StatsdPort
+	if agentport == 0 {
+		// the agent didn't report a port; use the already resolved address as
+		// features are loaded from the trace-agent, which might be not running
+		return addr
+	}
+	// the agent reported a port
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		// parsing the address failed; use the already resolved address as is
+		return addr
+	}
+	if host == "unix" {
+		// no need to change the address because it's a UDS connection
+		// and these don't have ports
+		return addr
+	}
+	if host == "" {
+		// no host was provided; use the default hostname
+		host = defaultHostname
+	}
+	// use agent-reported address if it differs from the user-defined TCP-based protocol URI
+	// we have a valid host:port address; replace the port because the agent knows better
+	addr = net.JoinHostPort(host, strconv.Itoa(agentport))
+	return addr
 }
 
 func newStatsdClient(c *config) (internal.StatsdClient, error) {
@@ -587,12 +678,15 @@ func udsClient(socketPath string, timeout time.Duration) *http.Client {
 
 // defaultDogstatsdAddr returns the default connection address for Dogstatsd.
 func defaultDogstatsdAddr() string {
-	envHost, envPort := os.Getenv("DD_AGENT_HOST"), os.Getenv("DD_DOGSTATSD_PORT")
+	envHost, envPort := os.Getenv("DD_DOGSTATSD_HOST"), os.Getenv("DD_DOGSTATSD_PORT")
+	if envHost == "" {
+		envHost = os.Getenv("DD_AGENT_HOST")
+	}
 	if _, err := os.Stat(defaultSocketDSD); err == nil && envHost == "" && envPort == "" {
 		// socket exists and user didn't specify otherwise via env vars
 		return "unix://" + defaultSocketDSD
 	}
-	host, port := defaultHostname, "8125"
+	host, port := defaultHostname, defaultStatsdPort
 	if envHost != "" {
 		host = envHost
 	}
@@ -626,6 +720,15 @@ type agentFeatures struct {
 
 	// featureFlags specifies all the feature flags reported by the trace-agent.
 	featureFlags map[string]struct{}
+
+	// peerTags specifies precursor tags to aggregate stats on when client stats is enabled
+	peerTags []string
+
+	// defaultEnv is the trace-agent's default env, used for stats calculation if no env override is present
+	defaultEnv string
+
+	// metaStructAvailable reports whether the trace-agent can receive spans with the `meta_struct` field.
+	metaStructAvailable bool
 }
 
 // HasFlag reports whether the agent has set the feat feature flag.
@@ -652,18 +755,26 @@ func loadAgentFeatures(agentDisabled bool, agentURL *url.URL, httpClient *http.C
 	}
 	defer resp.Body.Close()
 	type infoResponse struct {
-		Endpoints     []string `json:"endpoints"`
-		ClientDropP0s bool     `json:"client_drop_p0s"`
-		StatsdPort    int      `json:"statsd_port"`
-		FeatureFlags  []string `json:"feature_flags"`
+		Endpoints      []string `json:"endpoints"`
+		ClientDropP0s  bool     `json:"client_drop_p0s"`
+		FeatureFlags   []string `json:"feature_flags"`
+		PeerTags       []string `json:"peer_tags"`
+		SpanMetaStruct bool     `json:"span_meta_structs"`
+		Config         struct {
+			StatsdPort int `json:"statsd_port"`
+		} `json:"config"`
 	}
+
 	var info infoResponse
 	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
 		log.Error("Decoding features: %v", err)
 		return
 	}
+
 	features.DropP0s = info.ClientDropP0s
-	features.StatsdPort = info.StatsdPort
+	features.StatsdPort = info.Config.StatsdPort
+	features.metaStructAvailable = info.SpanMetaStruct
+	features.peerTags = info.PeerTags
 	for _, endpoint := range info.Endpoints {
 		switch endpoint {
 		case "/v0.6/stats":
@@ -697,23 +808,6 @@ func (c *config) loadContribIntegrations(deps []*debug.Module) {
 	}
 	for _, d := range deps {
 		p := d.Path
-		// special use case, since gRPC does not update version number
-		if p == "google.golang.org/grpc" {
-			re := regexp.MustCompile(`v(\d.\d)\d*`)
-			match := re.FindStringSubmatch(d.Version)
-			if match == nil {
-				log.Warn("Unable to parse version of GRPC %v", d.Version)
-				continue
-			}
-			ver, err := strconv.ParseFloat(match[1], 32)
-			if err != nil {
-				log.Warn("Unable to parse version of GRPC %v as a float", d.Version)
-				continue
-			}
-			if ver <= 1.2 {
-				p = p + "/v12"
-			}
-		}
 		s, ok := contribIntegrations[p]
 		if !ok {
 			continue
@@ -761,7 +855,26 @@ func statsTags(c *config) []string {
 // withNoopStats is used for testing to disable statsd client
 func withNoopStats() StartOption {
 	return func(c *config) {
-		c.statsdClient = &statsd.NoOpClient{}
+		c.statsdClient = &statsd.NoOpClientDirect{}
+	}
+}
+
+// WithAppSecEnabled specifies whether AppSec features should be activated
+// or not.
+//
+// By default, AppSec features are enabled if `DD_APPSEC_ENABLED` is set to a
+// truthy value; and may be enabled by remote configuration if
+// `DD_APPSEC_ENABLED` is not set at all.
+//
+// Using this option to explicitly disable appsec also prevents it from being
+// remote activated.
+func WithAppSecEnabled(enabled bool) StartOption {
+	mode := appsecconfig.ForcedOff
+	if enabled {
+		mode = appsecconfig.ForcedOn
+	}
+	return func(c *config) {
+		c.appsecStartOptions = append(c.appsecStartOptions, appsecconfig.WithEnablementMode(mode))
 	}
 }
 
@@ -832,6 +945,13 @@ func WithLambdaMode(enabled bool) StartOption {
 func WithSendRetries(retries int) StartOption {
 	return func(c *config) {
 		c.sendRetries = retries
+	}
+}
+
+// WithRetryInterval sets the interval, in seconds, for retrying submitting payloads to the agent.
+func WithRetryInterval(interval int) StartOption {
+	return func(c *config) {
+		c.retryInterval = time.Duration(interval) * time.Second
 	}
 }
 
@@ -1308,6 +1428,10 @@ func setHeaderTags(headerAsTags []string) bool {
 	globalconfig.ClearHeaderTags()
 	for _, h := range headerAsTags {
 		header, tag := normalizer.HeaderTag(h)
+		if len(header) == 0 || len(tag) == 0 {
+			log.Debug("Header-tag input is in unsupported format; dropping input value %v", h)
+			continue
+		}
 		globalconfig.SetHeaderTag(header, tag)
 	}
 	return true

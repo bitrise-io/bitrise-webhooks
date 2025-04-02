@@ -111,6 +111,8 @@ type spanContext struct {
 	baggage    map[string]string
 	hasBaggage uint32 // atomic int for quick checking presence of baggage. 0 indicates no baggage, otherwise baggage exists.
 	origin     string // e.g. "synthetics"
+
+	spanLinks []ddtrace.SpanLink // links to related spans in separate|external|disconnected traces
 }
 
 // newSpanContext creates a new SpanContext to serve as context for the given
@@ -166,6 +168,8 @@ func (c *spanContext) SpanID() uint64 { return c.spanID }
 // TraceID implements ddtrace.SpanContext.
 func (c *spanContext) TraceID() uint64 { return c.traceID.Lower() }
 
+func (c *spanContext) TraceIDUpper() uint64 { return c.traceID.Upper() }
+
 // TraceID128 implements ddtrace.SpanContextW3C.
 func (c *spanContext) TraceID128() string {
 	if c == nil {
@@ -177,6 +181,13 @@ func (c *spanContext) TraceID128() string {
 // TraceID128Bytes implements ddtrace.SpanContextW3C.
 func (c *spanContext) TraceID128Bytes() [16]byte {
 	return c.traceID
+}
+
+// SpanLinks implements ddtrace.SpanContextWithLinks
+func (c *spanContext) SpanLinks() []ddtrace.SpanLink {
+	cp := make([]ddtrace.SpanLink, len(c.spanLinks))
+	copy(cp, c.spanLinks)
+	return cp
 }
 
 // ForeachBaggageItem implements ddtrace.SpanContext.
@@ -228,13 +239,6 @@ func (c *spanContext) baggageItem(key string) string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.baggage[key]
-}
-
-func (c *spanContext) meta(key string) (val string, ok bool) {
-	c.span.RLock()
-	defer c.span.RUnlock()
-	val, ok = c.span.Meta[key]
-	return val, ok
 }
 
 // finish marks this span as finished in the trace.

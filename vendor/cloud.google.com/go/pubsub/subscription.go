@@ -310,8 +310,12 @@ type BigQueryConfig struct {
 	Table string
 
 	// When true, use the topic's schema as the columns to write to in BigQuery,
-	// if it exists.
+	// if it exists. Cannot be enabled at the same time as UseTableSchema.
 	UseTopicSchema bool
+
+	// When true, use the table's schema as the columns to write to in BigQuery,
+	// if it exists. Cannot be enabled at the same time as UseTopicSchema.
+	UseTableSchema bool
 
 	// When true, write the subscription name, message_id, publish_time,
 	// attributes, and ordering_key to additional columns in the table. The
@@ -345,6 +349,7 @@ func (bc *BigQueryConfig) toProto() *pb.BigQueryConfig {
 	pbCfg := &pb.BigQueryConfig{
 		Table:             bc.Table,
 		UseTopicSchema:    bc.UseTopicSchema,
+		UseTableSchema:    bc.UseTableSchema,
 		WriteMetadata:     bc.WriteMetadata,
 		DropUnknownFields: bc.DropUnknownFields,
 		State:             pb.BigQueryConfig_State(bc.State),
@@ -546,7 +551,7 @@ type SubscriptionConfig struct {
 	// When calling Subscription.Receive(), the client will check this
 	// value with a call to Subscription.Config(), which requires the
 	// roles/viewer or roles/pubsub.viewer role on your service account.
-	// If that call fails, mesages with ordering keys will be delivered in order.
+	// If that call fails, messages with ordering keys will be delivered in order.
 	EnableMessageOrdering bool
 
 	// DeadLetterPolicy specifies the conditions for dead lettering messages in
@@ -739,6 +744,7 @@ func protoToBQConfig(pbBQ *pb.BigQueryConfig) *BigQueryConfig {
 	bq := &BigQueryConfig{
 		Table:             pbBQ.GetTable(),
 		UseTopicSchema:    pbBQ.GetUseTopicSchema(),
+		UseTableSchema:    pbBQ.GetUseTableSchema(),
 		DropUnknownFields: pbBQ.GetDropUnknownFields(),
 		WriteMetadata:     pbBQ.GetWriteMetadata(),
 		State:             BigQueryConfigState(pbBQ.State),
@@ -899,8 +905,7 @@ type ReceiveSettings struct {
 	//
 	// MinExtensionPeriod must be between 10s and 600s (inclusive). This configuration
 	// can be disabled by specifying a duration less than (or equal to) 0.
-	// Defaults to off but set to 60 seconds if the subscription has exactly-once delivery enabled,
-	// which will be added in a future release.
+	// Disabled by default but set to 60 seconds if the subscription has exactly-once delivery enabled.
 	MinExtensionPeriod time.Duration
 
 	// MaxOutstandingMessages is the maximum number of unprocessed messages
@@ -1379,7 +1384,7 @@ func (s *Subscription) Receive(ctx context.Context, f func(context.Context, *Mes
 				}
 
 				msgs, err := iter.receive(maxToPull)
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					return nil
 				}
 				if err != nil {
