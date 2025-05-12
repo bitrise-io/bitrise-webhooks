@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"regexp"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
@@ -30,14 +31,26 @@ type CommitModel struct {
 	CommitMessage string `json:"message"`
 }
 
+// MergeQueueMeta ...
+type MergeQueuePushModel struct {
+    PRNumber     int    `json:"pr_number,omitempty"`
+    BaseBranch   string `json:"base_branch,omitempty"`
+    BaseSHA      string `json:"base_sha,omitempty"`
+    SyntheticSHA string `json:"synthetic_sha,omitempty"`
+	Provider     string `json:"provider,omitempty"`
+}
+
 // PushEventModel ...
 type PushEventModel struct {
-	Ref        string        `json:"ref"`
-	Deleted    bool          `json:"deleted"`
-	HeadCommit CommitModel   `json:"head_commit"`
-	Commits    []CommitModel `json:"commits"`
-	Repo       RepoInfoModel `json:"repository"`
-	Pusher     PusherModel   `json:"pusher"`
+	Ref        			string        			`json:"ref"`
+	Deleted    			bool          			`json:"deleted"`
+	HeadCommit 			CommitModel   			`json:"head_commit"`
+	Commits    			[]CommitModel 			`json:"commits"`
+	Repo       			RepoInfoModel 			`json:"repository"`
+	Pusher     			PusherModel   			`json:"pusher"`
+	IsMergeQueuePush 	bool   					`json:"is_merge_queue_push"`
+	After    			string					`json:"after"`
+    MergeQueue       	*MergeQueuePushModel 	`json:"merge_queue"`
 }
 
 // UserModel ...
@@ -205,6 +218,24 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		commitMessages = append(commitMessages, commit.CommitMessage)
 	}
 
+	if strings.HasPrefix(pushEvent.Ref, "refs/heads/gh-readonly-queue/") {
+		// merge queue push
+		base, pr, sha, err := parseMergeQueueRef(pushEvent.Ref)
+		if err != nil {
+			return hookCommon.TransformResultModel{
+				Error: fmt.Errorf("failed to parse merge queue ref: %w", err),
+			}
+		}
+		pushEvent.IsMergeQueuePush = true
+		pushEvent.MergeQueue = &MergeQueuePushModel{
+			Provider:     "github",
+			PRNumber:     pr,
+			BaseBranch:   base,
+			BaseSHA:      sha,
+			SyntheticSHA: pushEvent.After,
+		}
+	}
+
 	if strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
 		// code push
 		branch := strings.TrimPrefix(pushEvent.Ref, "refs/heads/")
@@ -246,6 +277,23 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 	}
 
 	return hookCommon.TransformResultModel{}
+}
+
+// Example: refs/heads/gh-readonly-queue/main/pr-42-abc123
+var mergeQueueRefRegex = regexp.MustCompile(`^refs/heads/gh-readonly-queue/([^/]+)/pr-(\d+)-([a-f0-9]+)$`)
+
+func parseMergeQueueRef(ref string) (baseBranch string, prNumber int, baseSHA string, err error) {
+    matches := mergeQueueRefRegex.FindStringSubmatch(ref)
+    if matches == nil || len(matches) != 4 {
+        return "", 0, "", errors.New("ref does not match merge queue format")
+    }
+
+    prNum, err := strconv.Atoi(matches[2])
+    if err != nil {
+        return "", 0, "", fmt.Errorf("invalid PR number in ref: %w", err)
+    }
+
+    return matches[1], prNum, matches[3], nil
 }
 
 func isAcceptPullRequestAction(prAction string) bool {
