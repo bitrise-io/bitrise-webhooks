@@ -667,6 +667,7 @@ const (
     "id": 517812
   }
 }`
+
 	sampleMergeQueuePushData = `{
   "ref": "refs/heads/gh-readonly-queue/main/pr-1-7ed40c455464eaa0c5c4a0aeaefb9ffb16bd2c64",
   "before": "0000000000000000000000000000000000000000",
@@ -723,6 +724,7 @@ const (
     ]
   }
 }`
+)
 
 var boolFalse = false
 var boolTrue = true
