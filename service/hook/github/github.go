@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -38,6 +39,7 @@ type PushEventModel struct {
 	Commits    []CommitModel `json:"commits"`
 	Repo       RepoInfoModel `json:"repository"`
 	Pusher     PusherModel   `json:"pusher"`
+	After      string        `json:"after"`
 }
 
 // UserModel ...
@@ -209,6 +211,33 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		// code push
 		branch := strings.TrimPrefix(pushEvent.Ref, "refs/heads/")
 
+		// merge queue push
+		var mergeQueue bitriseapi.MergeQueueModel
+		if strings.HasPrefix(pushEvent.Ref, "refs/heads/gh-readonly-queue/") || strings.HasPrefix(pushEvent.Ref, "refs/heads/gt-queue/") {
+			providerRef, base, pr, sha, err := parseMergeQueueRef(pushEvent.Ref)
+			if err != nil {
+				return hookCommon.TransformResultModel{
+					Error: fmt.Errorf("failed to parse merge queue ref: %w", err),
+				}
+			}
+
+			var provider string
+			switch providerRef {
+			case "gh-readonly-queue":
+				provider = "github"
+			case "gt-queue":
+				provider = "gitlab"
+			}
+
+			mergeQueue = bitriseapi.MergeQueueModel{
+				QueueProvider: provider,
+				PullRequestID: pr,
+				BaseBranch:    base,
+				BaseSHA:       sha,
+				SyntheticSHA:  pushEvent.After,
+			}
+		}
+
 		return hookCommon.TransformResultModel{
 			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 				{
@@ -219,6 +248,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 						CommitMessages:    commitMessages,
 						PushCommitPaths:   commitPaths,
 						BaseRepositoryURL: pushEvent.Repo.getRepositoryURL(),
+						MergeQueue:        mergeQueue,
 					},
 					TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Pusher.Name),
 				},
@@ -246,6 +276,23 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 	}
 
 	return hookCommon.TransformResultModel{}
+}
+
+// Example: refs/heads/gh-readonly-queue/main/pr-42-abc123
+var mergeQueueRefRegex = regexp.MustCompile(`^refs/heads/(gh-readonly-queue|gt-queue)/([^/]+)/pr-(\d+)-([a-f0-9]+)$`)
+
+func parseMergeQueueRef(ref string) (provider string, baseBranch string, prNumber int, baseSHA string, err error) {
+	matches := mergeQueueRefRegex.FindStringSubmatch(ref)
+	if matches == nil || len(matches) != 5 {
+		return "", "", 0, "", errors.New("ref does not match merge queue format")
+	}
+
+	prNum, err := strconv.Atoi(matches[3])
+	if err != nil {
+		return "", "", 0, "", fmt.Errorf("invalid PR number in ref: %w", err)
+	}
+
+	return matches[1], matches[2], prNum, matches[4], nil
 }
 
 func isAcceptPullRequestAction(prAction string) bool {
@@ -297,7 +344,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	if mergeRefUpToDate {
 		mergeRefBuildParam = unverifiedMergeRefBuildParam
 	}
-	if mergeRefUpToDate && *pullRequest.PullRequestInfo.Mergeable == false {
+	if mergeRefUpToDate && !*pullRequest.PullRequestInfo.Mergeable {
 		return hookCommon.TransformResultModel{
 			Error:      errors.New("pull Request is not mergeable"),
 			ShouldSkip: true,
@@ -480,12 +527,12 @@ func transformIssueCommentEvent(eventModel IssueCommentEventModel) hookCommon.Tr
 func detectContentTypeAndEventID(header http.Header) (string, string, error) {
 	contentType := header.Get("Content-Type")
 	if contentType == "" {
-		return "", "", errors.New("No Content-Type Header found")
+		return "", "", errors.New("no Content-Type Header found")
 	}
 
 	ghEvent := header.Get("X-Github-Event")
 	if ghEvent == "" {
-		return "", "", errors.New("No X-Github-Event Header found")
+		return "", "", errors.New("no X-Github-Event Header found")
 	}
 
 	return contentType, ghEvent, nil
@@ -496,7 +543,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	contentType, ghEvent, err := detectContentTypeAndEventID(r.Header)
 	if err != nil {
 		return hookCommon.TransformResultModel{
-			Error: fmt.Errorf("Issue with Headers: %s", err),
+			Error: fmt.Errorf("issue with Headers: %s", err),
 		}
 	}
 
@@ -549,7 +596,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 	}
 
 	return hookCommon.TransformResultModel{
-		Error: fmt.Errorf("Unsupported GitHub event type: %s", ghEvent),
+		Error: fmt.Errorf("unsupported GitHub event type: %s", ghEvent),
 	}
 }
 
@@ -557,7 +604,7 @@ func decodeEventPayload[T interface{}](r *http.Request, contentType string) (*T,
 	var eventModel T
 	if contentType == hookCommon.ContentTypeApplicationJSON {
 		if err := json.NewDecoder(r.Body).Decode(&eventModel); err != nil {
-			return nil, fmt.Errorf("Failed to parse request body as JSON: %s", err)
+			return nil, fmt.Errorf("failed to parse request body as JSON: %s", err)
 		}
 	} else if contentType == hookCommon.ContentTypeApplicationXWWWFormURLEncoded {
 		payloadValue := r.PostFormValue("payload")
@@ -565,10 +612,10 @@ func decodeEventPayload[T interface{}](r *http.Request, contentType string) (*T,
 			return nil, fmt.Errorf("failed to parse request body: empty payload")
 		}
 		if err := json.NewDecoder(strings.NewReader(payloadValue)).Decode(&eventModel); err != nil {
-			return nil, fmt.Errorf("Failed to parse payload: %s", err)
+			return nil, fmt.Errorf("failed to parse payload: %s", err)
 		}
 	} else {
-		return nil, fmt.Errorf("Unsupported Content-Type: %s", contentType)
+		return nil, fmt.Errorf("unsupported Content-Type: %s", contentType)
 	}
 
 	return &eventModel, nil
