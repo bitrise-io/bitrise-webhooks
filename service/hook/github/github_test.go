@@ -667,7 +667,62 @@ const (
     "id": 517812
   }
 }`
-)
+	sampleMergeQueuePushData = `{
+  "ref": "refs/heads/gh-readonly-queue/main/pr-1-7ed40c455464eaa0c5c4a0aeaefb9ffb16bd2c64",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "cc76bc3a5ffd4836ca30d0eeb224967b7127ab50",
+  "repository": {
+    "name": "birmacher-test",
+    "full_name": "bitrise-io/birmacher-test",
+    "private": true,
+    "html_url": "https://github.com/bitrise-io/birmacher-test",
+    "description": null,
+    "fork": false,
+    "url": "https://api.github.com/repos/bitrise-io/birmacher-test",
+    "ssh_url": "git@github.com:bitrise-io/birmacher-test.git",
+    "clone_url": "https://github.com/bitrise-io/birmacher-test.git",
+  },
+  "pusher": {
+    "name": "github-merge-queue[bot]",
+    "email": null
+  },
+  "sender": {
+  },
+  "created": true,
+  "deleted": false,
+  "forced": false,
+  "base_ref": "refs/heads/main",
+  "compare": "https://github.com/bitrise-io/birmacher-test/compare/gh-readonly-queue/main/pr-1-7ed40c455464eaa0c5c4a0aeaefb9ffb16bd2c64",
+  "commits": [
+  ],
+  "head_commit": {
+    "id": "cc76bc3a5ffd4836ca30d0eeb224967b7127ab50",
+    "tree_id": "ca78a46cdb752ae92599844f4fe30983eacc27de",
+    "distinct": true,
+    "message": "Merge pull request #1 from bitrise-io/birmacher-patch-1\n\nUpdate README.md",
+    "timestamp": "2025-05-12T16:04:25Z",
+    "url": "https://github.com/bitrise-io/birmacher-test/commit/cc76bc3a5ffd4836ca30d0eeb224967b7127ab50",
+    "author": {
+      "name": "Barnabas Birmacher",
+      "email": "birmacher@gmail.com",
+      "username": "birmacher"
+    },
+    "committer": {
+      "name": "GitHub",
+      "email": "noreply@github.com",
+      "username": "web-flow"
+    },
+    "added": [
+
+    ],
+    "removed": [
+
+    ],
+    "modified": [
+      "README.md"
+    ]
+  }
+}`
 
 var boolFalse = false
 var boolTrue = true
