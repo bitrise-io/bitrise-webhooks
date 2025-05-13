@@ -1,7 +1,7 @@
 package github
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -1892,7 +1892,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				"X-Github-Event": {"push"},
 				"Content-Type":   {"application/json"},
 			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleCodePushData)),
+			Body: io.NopCloser(strings.NewReader(sampleCodePushData)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.NoError(t, hookTransformResult.Error)
@@ -1936,7 +1936,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				"X-Github-Event": {"push"},
 				"Content-Type":   {"application/json"},
 			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleTagPushData)),
+			Body: io.NopCloser(strings.NewReader(sampleTagPushData)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.NoError(t, hookTransformResult.Error)
@@ -1970,7 +1970,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				"X-Github-Event": {"pull_request"},
 				"Content-Type":   {"application/json"},
 			},
-			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestData)),
+			Body: io.NopCloser(strings.NewReader(samplePullRequestData)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.NoError(t, hookTransformResult.Error)
@@ -2010,7 +2010,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				"X-Github-Event": {"pull_request"},
 				"Content-Type":   {"application/json"},
 			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleDraftPullRequestData)),
+			Body: io.NopCloser(strings.NewReader(sampleDraftPullRequestData)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.NoError(t, hookTransformResult.Error)
@@ -2056,7 +2056,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				"X-Github-Event": {"pull_request"},
 				"Content-Type":   {"application/json"},
 			},
-			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestEditedData)),
+			Body: io.NopCloser(strings.NewReader(samplePullRequestEditedData)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.NoError(t, hookTransformResult.Error)
@@ -2092,7 +2092,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				"X-Github-Event": {"pull_request"},
 				"Content-Type":   {"application/json"},
 			},
-			Body: ioutil.NopCloser(strings.NewReader(samplePullRequestLabeledData)),
+			Body: io.NopCloser(strings.NewReader(samplePullRequestLabeledData)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.NoError(t, hookTransformResult.Error)
@@ -2130,7 +2130,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				"X-Github-Event": {"issue_comment"},
 				"Content-Type":   {"application/json"},
 			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleIssueCommentCreatedData)),
+			Body: io.NopCloser(strings.NewReader(sampleIssueCommentCreatedData)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.NoError(t, hookTransformResult.Error)
@@ -2166,7 +2166,7 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 				"X-Github-Event": {"issue_comment"},
 				"Content-Type":   {"application/json"},
 			},
-			Body: ioutil.NopCloser(strings.NewReader(sampleIssueCommentEditedData)),
+			Body: io.NopCloser(strings.NewReader(sampleIssueCommentEditedData)),
 		}
 		hookTransformResult := provider.TransformRequest(&request)
 		require.NoError(t, hookTransformResult.Error)
