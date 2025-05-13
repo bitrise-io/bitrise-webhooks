@@ -799,7 +799,7 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 			"Content-Type": {"application/json"},
 		}
 		contentType, ghEvent, err := detectContentTypeAndEventID(header)
-		require.EqualError(t, err, "No X-Github-Event Header found")
+		require.EqualError(t, err, "no X-Github-Event Header found")
 		require.Equal(t, "", contentType)
 		require.Equal(t, "", ghEvent)
 	}
@@ -810,7 +810,7 @@ func Test_detectContentTypeAndEventID(t *testing.T) {
 			"X-Github-Event": {"push"},
 		}
 		contentType, ghEvent, err := detectContentTypeAndEventID(header)
-		require.EqualError(t, err, "No Content-Type Header found")
+		require.EqualError(t, err, "no Content-Type Header found")
 		require.Equal(t, "", contentType)
 		require.Equal(t, "", ghEvent)
 	}
