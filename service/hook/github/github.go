@@ -31,26 +31,15 @@ type CommitModel struct {
 	CommitMessage string `json:"message"`
 }
 
-// MergeQueueMeta ...
-type MergeQueuePushModel struct {
-	QueueProvider string `json:"queue_provider,omitempty"`
-	PRNumber      int    `json:"pr_number,omitempty"`
-	BaseBranch    string `json:"base_branch,omitempty"`
-	BaseSHA       string `json:"base_sha,omitempty"`
-	SyntheticSHA  string `json:"synthetic_sha,omitempty"`
-}
-
 // PushEventModel ...
 type PushEventModel struct {
-	Ref              string               `json:"ref"`
-	Deleted          bool                 `json:"deleted"`
-	HeadCommit       CommitModel          `json:"head_commit"`
-	Commits          []CommitModel        `json:"commits"`
-	Repo             RepoInfoModel        `json:"repository"`
-	Pusher           PusherModel          `json:"pusher"`
-	IsMergeQueuePush bool                 `json:"is_merge_queue_push"`
-	After            string               `json:"after"`
-	MergeQueue       *MergeQueuePushModel `json:"merge_queue"`
+	Ref        string        `json:"ref"`
+	Deleted    bool          `json:"deleted"`
+	HeadCommit CommitModel   `json:"head_commit"`
+	Commits    []CommitModel `json:"commits"`
+	Repo       RepoInfoModel `json:"repository"`
+	Pusher     PusherModel   `json:"pusher"`
+	After      string        `json:"after"`
 }
 
 // UserModel ...
@@ -218,27 +207,36 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 		commitMessages = append(commitMessages, commit.CommitMessage)
 	}
 
-	if strings.HasPrefix(pushEvent.Ref, "refs/heads/gh-readonly-queue/") || strings.HasPrefix(pushEvent.Ref, "refs/heads/gt-queue/") {
-		// merge queue push
-		provider, base, pr, sha, err := parseMergeQueueRef(pushEvent.Ref)
-		if err != nil {
-			return hookCommon.TransformResultModel{
-				Error: fmt.Errorf("failed to parse merge queue ref: %w", err),
-			}
-		}
-		pushEvent.IsMergeQueuePush = true
-		pushEvent.MergeQueue = &MergeQueuePushModel{
-			QueueProvider: provider,
-			PRNumber:      pr,
-			BaseBranch:    base,
-			BaseSHA:       sha,
-			SyntheticSHA:  pushEvent.After,
-		}
-	}
-
 	if strings.HasPrefix(pushEvent.Ref, "refs/heads/") {
 		// code push
 		branch := strings.TrimPrefix(pushEvent.Ref, "refs/heads/")
+
+		// merge queue push
+		var mergeQueue bitriseapi.MergeQueueModel
+		if strings.HasPrefix(pushEvent.Ref, "refs/heads/gh-readonly-queue/") || strings.HasPrefix(pushEvent.Ref, "refs/heads/gt-queue/") {
+			providerRef, base, pr, sha, err := parseMergeQueueRef(pushEvent.Ref)
+			if err != nil {
+				return hookCommon.TransformResultModel{
+					Error: fmt.Errorf("failed to parse merge queue ref: %w", err),
+				}
+			}
+
+			var provider string
+			switch providerRef {
+			case "gh-readonly-queue":
+				provider = "github"
+			case "gt-queue":
+				provider = "gitlab"
+			}
+
+			mergeQueue = bitriseapi.MergeQueueModel{
+				QueueProvider: provider,
+				PullRequestID: pr,
+				BaseBranch:    base,
+				BaseSHA:       sha,
+				SyntheticSHA:  pushEvent.After,
+			}
+		}
 
 		return hookCommon.TransformResultModel{
 			TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
@@ -250,6 +248,7 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 						CommitMessages:    commitMessages,
 						PushCommitPaths:   commitPaths,
 						BaseRepositoryURL: pushEvent.Repo.getRepositoryURL(),
+						MergeQueue:        mergeQueue,
 					},
 					TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Pusher.Name),
 				},

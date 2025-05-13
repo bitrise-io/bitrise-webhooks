@@ -681,7 +681,7 @@ const (
     "fork": false,
     "url": "https://api.github.com/repos/bitrise-io/birmacher-test",
     "ssh_url": "git@github.com:bitrise-io/birmacher-test.git",
-    "clone_url": "https://github.com/bitrise-io/birmacher-test.git",
+    "clone_url": "https://github.com/bitrise-io/birmacher-test.git"
   },
   "pusher": {
     "name": "github-merge-queue[bot]",
@@ -1924,6 +1924,47 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					BaseRepositoryURL: "git@github.com:test_user/webhook-test.git",
 				},
 				TriggeredBy: "webhook-github/test_user",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Merge Queue Push - should be handled")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Github-Event": {"push"},
+				"Content-Type":   {"application/json"},
+			},
+			Body: io.NopCloser(strings.NewReader(sampleMergeQueuePushData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:     "cc76bc3a5ffd4836ca30d0eeb224967b7127ab50",
+					CommitMessage:  "Merge pull request #1 from bitrise-io/birmacher-patch-1\n\nUpdate README.md",
+					CommitMessages: []string{"Merge pull request #1 from bitrise-io/birmacher-patch-1\n\nUpdate README.md"},
+					Branch:         "gh-readonly-queue/main/pr-1-7ed40c455464eaa0c5c4a0aeaefb9ffb16bd2c64",
+					PushCommitPaths: []bitriseapi.CommitPaths{
+						{
+							Added:    []string{},
+							Removed:  []string{},
+							Modified: []string{"README.md"},
+						},
+					},
+					BaseRepositoryURL: "git@github.com:bitrise-io/birmacher-test.git",
+					MergeQueue: bitriseapi.MergeQueueModel{
+						QueueProvider: "github",
+						PullRequestID: 1,
+						BaseBranch:    "main",
+						BaseSHA:       "7ed40c455464eaa0c5c4a0aeaefb9ffb16bd2c64",
+						SyntheticSHA:  "cc76bc3a5ffd4836ca30d0eeb224967b7127ab50",
+					},
+				},
+				TriggeredBy: "webhook-github/github-merge-queue[bot]",
 			},
 		}, hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
