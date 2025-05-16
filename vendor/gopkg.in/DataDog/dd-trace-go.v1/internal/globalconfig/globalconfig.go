@@ -9,6 +9,7 @@ package globalconfig
 
 import (
 	"math"
+	"os"
 	"sync"
 
 	"gopkg.in/DataDog/dd-trace-go.v1/internal"
@@ -80,7 +81,10 @@ func SetDogstatsdAddr(addr string) {
 func StatsTags() []string {
 	cfg.mu.RLock()
 	defer cfg.mu.RUnlock()
-	return cfg.statsTags
+	// Copy the slice before returning it, so that callers cannot pollute the underlying array
+	tags := make([]string, len(cfg.statsTags))
+	copy(tags, cfg.statsTags)
+	return tags
 }
 
 // SetStatsTags configures the list of tags that should be applied to contribs' statsd.Client as global tags
@@ -88,7 +92,10 @@ func StatsTags() []string {
 func SetStatsTags(tags []string) {
 	cfg.mu.Lock()
 	defer cfg.mu.Unlock()
-	cfg.statsTags = tags
+	// Copy the slice before setting it, so that any changes to the slice provided to SetStatsTags does not pollute the underlying array of statsTags
+	statsTags := make([]string, len(tags))
+	copy(statsTags, tags)
+	cfg.statsTags = statsTags
 }
 
 // RuntimeID returns this process's unique runtime id.
@@ -123,4 +130,19 @@ func HeaderTagsLen() int {
 // It is invoked when WithHeaderTags is called, in order to overwrite the config
 func ClearHeaderTags() {
 	cfg.headersAsTags.Clear()
+}
+
+// InstrumentationInstallID returns the install ID as described in DD_INSTRUMENTATION_INSTALL_ID
+func InstrumentationInstallID() string {
+	return os.Getenv("DD_INSTRUMENTATION_INSTALL_ID")
+}
+
+// InstrumentationInstallType returns the install type as described in DD_INSTRUMENTATION_INSTALL_TYPE
+func InstrumentationInstallType() string {
+	return os.Getenv("DD_INSTRUMENTATION_INSTALL_TYPE")
+}
+
+// InstrumentationInstallTime returns the install time as described in DD_INSTRUMENTATION_INSTALL_TIME
+func InstrumentationInstallTime() string {
+	return os.Getenv("DD_INSTRUMENTATION_INSTALL_TIME")
 }

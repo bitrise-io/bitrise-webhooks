@@ -18,6 +18,7 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/internal/globalconfig"
 	"gopkg.in/DataDog/dd-trace-go.v1/internal/log"
 	"gopkg.in/DataDog/dd-trace-go.v1/internal/osinfo"
+	telemetrylog "gopkg.in/DataDog/dd-trace-go.v1/internal/telemetry/log"
 	"gopkg.in/DataDog/dd-trace-go.v1/internal/version"
 )
 
@@ -43,7 +44,7 @@ type startupInfo struct {
 	ServiceMappings             map[string]string            `json:"service_mappings"`               // Service Mappings
 	Tags                        map[string]string            `json:"tags"`                           // Global tags
 	RuntimeMetricsEnabled       bool                         `json:"runtime_metrics_enabled"`        // Whether runtime metrics are enabled
-	HealthMetricsEnabled        bool                         `json:"health_metrics_enabled"`         // Whether health metrics are enabled
+	RuntimeMetricsV2Enabled     bool                         `json:"runtime_metrics_v2_enabled"`     // Whether runtime metrics v2 are enabled
 	ProfilerCodeHotspotsEnabled bool                         `json:"profiler_code_hotspots_enabled"` // Whether profiler code hotspots are enabled
 	ProfilerEndpointsEnabled    bool                         `json:"profiler_endpoints_enabled"`     // Whether profiler endpoints are enabled
 	ApplicationVersion          string                       `json:"dd_version"`                     // Version of the user's application
@@ -59,6 +60,8 @@ type startupInfo struct {
 	FeatureFlags                []string                     `json:"feature_flags"`
 	PropagationStyleInject      string                       `json:"propagation_style_inject"`  // Propagation style for inject
 	PropagationStyleExtract     string                       `json:"propagation_style_extract"` // Propagation style for extract
+	TracingAsTransport          bool                         `json:"tracing_as_transport"`      // Whether the tracer is disabled and other products are using it as a transport
+	DogstatsdAddr               string                       `json:"dogstatsd_address"`         // Destination of statsd payloads
 }
 
 // checkEndpoint tries to connect to the URL specified by endpoint.
@@ -92,7 +95,25 @@ func logStartup(t *tracer) {
 		featureFlags = append(featureFlags, f)
 	}
 
-	cp, _ := t.config.propagator.(*chainedPropagator)
+	var injectorNames, extractorNames string
+	switch v := t.config.propagator.(type) {
+	case *chainedPropagator:
+		injectorNames = v.injectorNames
+		extractorNames = v.extractorsNames
+	case nil:
+		injectorNames = ""
+		extractorNames = ""
+	default:
+		injectorNames = "custom"
+		extractorNames = "custom"
+	}
+	// Determine the agent URL to use in the logs
+	var agentURL string
+	if t.config.originalAgentURL != nil && t.config.originalAgentURL.Scheme == "unix" {
+		agentURL = t.config.originalAgentURL.String()
+	} else {
+		agentURL = t.config.transport.endpoint()
+	}
 
 	info := startupInfo{
 		Date:                        time.Now().Format(time.RFC3339),
@@ -103,7 +124,7 @@ func logStartup(t *tracer) {
 		LangVersion:                 runtime.Version(),
 		Env:                         t.config.env,
 		Service:                     t.config.serviceName,
-		AgentURL:                    t.config.transport.endpoint(),
+		AgentURL:                    agentURL,
 		Debug:                       t.config.debug,
 		AnalyticsEnabled:            !math.IsNaN(globalconfig.AnalyticsRate()),
 		SampleRate:                  fmt.Sprintf("%f", t.rulesSampling.traces.globalRate),
@@ -113,7 +134,7 @@ func logStartup(t *tracer) {
 		ServiceMappings:             t.config.serviceMappings,
 		Tags:                        tags,
 		RuntimeMetricsEnabled:       t.config.runtimeMetrics,
-		HealthMetricsEnabled:        t.config.runtimeMetrics,
+		RuntimeMetricsV2Enabled:     t.config.runtimeMetricsV2,
 		ApplicationVersion:          t.config.version,
 		ProfilerCodeHotspotsEnabled: t.config.profilerHotspots,
 		ProfilerEndpointsEnabled:    t.config.profilerEndpoints,
@@ -127,8 +148,10 @@ func logStartup(t *tracer) {
 		PartialFlushMinSpans:        t.config.partialFlushMinSpans,
 		Orchestrion:                 t.config.orchestrionCfg,
 		FeatureFlags:                featureFlags,
-		PropagationStyleInject:      cp.injectorNames,
-		PropagationStyleExtract:     cp.extractorsNames,
+		PropagationStyleInject:      injectorNames,
+		PropagationStyleExtract:     extractorNames,
+		TracingAsTransport:          t.config.tracingAsTransport,
+		DogstatsdAddr:               t.config.dogstatsdAddr,
 	}
 	if _, _, err := samplingRulesFromEnv(); err != nil {
 		info.SamplingRulesError = fmt.Sprintf("%s", err)
@@ -148,4 +171,5 @@ func logStartup(t *tracer) {
 		return
 	}
 	log.Info("DATADOG TRACER CONFIGURATION %s\n", string(bs))
+	telemetrylog.Debug("DATADOG TRACER CONFIGURATION %s\n", string(bs))
 }
