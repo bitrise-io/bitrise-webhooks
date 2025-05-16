@@ -24,4 +24,29 @@ const (
 	// This environment variable should be set to your Datadog API key, allowing the agentless mode to authenticate and
 	// send data directly to the Datadog platform.
 	APIKeyEnvironmentVariable = "DD_API_KEY"
+
+	// CIVisibilityTestSessionNameEnvironmentVariable indicate the test session name to be used on CI Visibility payloads
+	CIVisibilityTestSessionNameEnvironmentVariable = "DD_TEST_SESSION_NAME"
+
+	// CIVisibilityFlakyRetryEnabledEnvironmentVariable kill-switch that allows to explicitly disable retries even if the remote setting is enabled.
+	// This environment variable should be set to "0" or "false" to disable the flaky retry feature.
+	CIVisibilityFlakyRetryEnabledEnvironmentVariable = "DD_CIVISIBILITY_FLAKY_RETRY_ENABLED"
+
+	// CIVisibilityFlakyRetryCountEnvironmentVariable indicates the maximum number of retry attempts for a single test case.
+	CIVisibilityFlakyRetryCountEnvironmentVariable = "DD_CIVISIBILITY_FLAKY_RETRY_COUNT"
+
+	// CIVisibilityTotalFlakyRetryCountEnvironmentVariable indicates the maximum number of retry attempts for the entire session.
+	CIVisibilityTotalFlakyRetryCountEnvironmentVariable = "DD_CIVISIBILITY_TOTAL_FLAKY_RETRY_COUNT"
+
+	// CIVisibilityTestManagementEnabledEnvironmentVariable indicates if the test management feature is enabled.
+	CIVisibilityTestManagementEnabledEnvironmentVariable = "DD_TEST_MANAGEMENT_ENABLED"
+
+	// CIVisibilityTestManagementAttemptToFixRetriesEnvironmentVariable indicates the maximum number of retries for the attempt to fix a test.
+	CIVisibilityTestManagementAttemptToFixRetriesEnvironmentVariable = "DD_TEST_MANAGEMENT_ATTEMPT_TO_FIX_RETRIES"
+
+	// CIVisibilityAutoInstrumentationProviderEnvironmentVariable indicates that the auto-instrumentation script was used.
+	CIVisibilityAutoInstrumentationProviderEnvironmentVariable = "DD_CIVISIBILITY_AUTO_INSTRUMENTATION_PROVIDER"
+
+	// CIVisibilityEnvironmentDataFilePath is the environment variable that holds the path to the file containing the environmental data.
+	CIVisibilityEnvironmentDataFilePath = "DD_TEST_OPTIMIZATION_ENV_DATA_FILE"
 )

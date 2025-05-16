@@ -473,10 +473,15 @@ func (tkn *SQLTokenizer) Scan() (TokenKind, []byte) {
 			// modulo operator (e.g. 'id % 8')
 			return TokenKind(ch), tkn.bytes()
 		case '$':
-			if isDigit(tkn.lastChar) {
-				// TODO(gbbr): the first digit after $ does not necessarily guarantee
-				// that this isn't a dollar-quoted string constant. We might eventually
-				// want to cover for this use-case too (e.g. $1$some text$1$).
+			if isDigit(tkn.lastChar) || tkn.lastChar == '?' {
+				// TODO(knusbaum): Valid dollar quote tags start with alpha characters and contain no symbols.
+				// See: https://www.postgresql.org/docs/15/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
+				// See also: https://pgpedia.info/d/dollar-quoting.html instead.
+				//
+				// Instances of $[integer] or $? are prepared statement variables.
+				// We may eventually want to expand this to check for symbols other than numbers and '?',
+				// since other symbols are not valid dollar quote tags, but for now this covers prepared statement
+				// variables without exposing us to more risk of not obfuscating something than necessary.
 				return tkn.scanPreparedStatement('$')
 			}
 
@@ -610,9 +615,9 @@ func (tkn *SQLTokenizer) scanIdentifier() (TokenKind, []byte) {
 	return ID, t
 }
 
-//nolint:revive // TODO(APM) Fix revive linter
-func (tkn *SQLTokenizer) scanVariableIdentifier(prefix rune) (TokenKind, []byte) {
+func (tkn *SQLTokenizer) scanVariableIdentifier(_ rune) (TokenKind, []byte) {
 	for tkn.advance(); tkn.lastChar != ')' && tkn.lastChar != EndChar; tkn.advance() {
+		continue
 	}
 	tkn.advance()
 	if !isLetter(tkn.lastChar) {
@@ -623,8 +628,7 @@ func (tkn *SQLTokenizer) scanVariableIdentifier(prefix rune) (TokenKind, []byte)
 	return Variable, tkn.bytes()
 }
 
-//nolint:revive // TODO(APM) Fix revive linter
-func (tkn *SQLTokenizer) scanFormatParameter(prefix rune) (TokenKind, []byte) {
+func (tkn *SQLTokenizer) scanFormatParameter(_ rune) (TokenKind, []byte) {
 	tkn.advance()
 	return Variable, tkn.bytes()
 }
@@ -677,12 +681,16 @@ func (tkn *SQLTokenizer) scanDollarQuotedString() (TokenKind, []byte) {
 	return DollarQuotedString, buf.Bytes()
 }
 
-//nolint:revive // TODO(APM) Fix revive linter
-func (tkn *SQLTokenizer) scanPreparedStatement(prefix rune) (TokenKind, []byte) {
+func (tkn *SQLTokenizer) scanPreparedStatement(_ rune) (TokenKind, []byte) {
 	// a prepared statement expect a digit identifier like $1
-	if !isDigit(tkn.lastChar) {
+	if !isDigit(tkn.lastChar) && tkn.lastChar != '?' {
 		tkn.setErr(`prepared statements must start with digits, got "%c" (%d)`, tkn.lastChar, tkn.lastChar)
 		return LexError, tkn.bytes()
+	}
+
+	if tkn.lastChar == '?' {
+		tkn.advance()
+		return PreparedStatement, tkn.bytes()
 	}
 
 	// scanNumber keeps the prefix rune intact.
@@ -695,8 +703,7 @@ func (tkn *SQLTokenizer) scanPreparedStatement(prefix rune) (TokenKind, []byte) 
 	return PreparedStatement, buff
 }
 
-//nolint:revive // TODO(APM) Fix revive linter
-func (tkn *SQLTokenizer) scanEscapeSequence(braces rune) (TokenKind, []byte) {
+func (tkn *SQLTokenizer) scanEscapeSequence(_ rune) (TokenKind, []byte) {
 	for tkn.lastChar != '}' && tkn.lastChar != EndChar {
 		tkn.advance()
 	}
@@ -825,8 +832,7 @@ func (tkn *SQLTokenizer) scanString(delim rune, kind TokenKind) (TokenKind, []by
 	return kind, buf.Bytes()
 }
 
-//nolint:revive // TODO(APM) Fix revive linter
-func (tkn *SQLTokenizer) scanCommentType1(prefix string) (TokenKind, []byte) {
+func (tkn *SQLTokenizer) scanCommentType1(_ string) (TokenKind, []byte) {
 	for tkn.lastChar != EndChar {
 		if tkn.lastChar == '\n' {
 			tkn.advance()

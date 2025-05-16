@@ -7,13 +7,16 @@ package http
 
 import (
 	"fmt"
-	"gopkg.in/DataDog/dd-trace-go.v1/appsec/events"
 	"math"
 	"net/http"
 	"os"
 	"strconv"
 
+	"gopkg.in/DataDog/dd-trace-go.v1/appsec/events"
+	"gopkg.in/DataDog/dd-trace-go.v1/contrib/internal/httptrace"
+	"gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http/internal/config"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/baggage"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"gopkg.in/DataDog/dd-trace-go.v1/internal/appsec"
@@ -38,8 +41,8 @@ func (rt *roundTripper) RoundTrip(req *http.Request) (res *http.Response, err er
 		tracer.SpanType(ext.SpanTypeHTTP),
 		tracer.ResourceName(resourceName),
 		tracer.Tag(ext.HTTPMethod, req.Method),
-		tracer.Tag(ext.HTTPURL, url.String()),
-		tracer.Tag(ext.Component, componentName),
+		tracer.Tag(ext.HTTPURL, httptrace.UrlFromRequest(req, rt.cfg.queryString)),
+		tracer.Tag(ext.Component, config.ComponentName),
 		tracer.Tag(ext.SpanKind, ext.SpanKindClient),
 		tracer.Tag(ext.NetworkDestinationName, url.Hostname()),
 	}
@@ -70,6 +73,9 @@ func (rt *roundTripper) RoundTrip(req *http.Request) (res *http.Response, err er
 		rt.cfg.before(req, span)
 	}
 	r2 := req.Clone(ctx)
+	for k, v := range baggage.All(ctx) {
+		span.SetBaggageItem(k, v)
+	}
 	if rt.cfg.propagation {
 		// inject the span context into the http request copy
 		err = tracer.Inject(span.Context(), tracer.HTTPHeadersCarrier(r2.Header))
@@ -86,7 +92,6 @@ func (rt *roundTripper) RoundTrip(req *http.Request) (res *http.Response, err er
 	}
 
 	res, err = rt.base.RoundTrip(r2)
-
 	if err != nil {
 		span.SetTag("http.errors", err.Error())
 		if rt.cfg.errCheck == nil || rt.cfg.errCheck(err) {
@@ -94,8 +99,7 @@ func (rt *roundTripper) RoundTrip(req *http.Request) (res *http.Response, err er
 		}
 	} else {
 		span.SetTag(ext.HTTPCode, strconv.Itoa(res.StatusCode))
-		// treat 5XX as errors
-		if res.StatusCode/100 == 5 {
+		if rt.cfg.isStatusError(res.StatusCode) {
 			span.SetTag("http.errors", res.Status)
 			span.SetTag(ext.Error, fmt.Errorf("%d: %s", res.StatusCode, http.StatusText(res.StatusCode)))
 		}
