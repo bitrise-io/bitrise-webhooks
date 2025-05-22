@@ -57,6 +57,14 @@ func (a *appsecTelemetry) addConfig(name string, value any) {
 	a.configs = append(a.configs, telemetry.Configuration{Name: name, Value: value})
 }
 
+// addCodeConfig adds a new configuration entry to this telemetry event.
+func (a *appsecTelemetry) addCodeConfig(name string, value any) {
+	if a == nil {
+		return
+	}
+	a.configs = append(a.configs, telemetry.Configuration{Name: name, Value: value, Origin: telemetry.OriginCode})
+}
+
 // addEnvConfig adds a new envionment-sourced configuration entry to this event.
 func (a *appsecTelemetry) addEnvConfig(name string, value any) {
 	if a == nil {
@@ -79,5 +87,11 @@ func (a *appsecTelemetry) emit() {
 		return
 	}
 
-	telemetry.GlobalClient.ProductChange(telemetry.NamespaceAppSec, a.enabled, a.configs)
+	if a.enabled {
+		telemetry.ProductStarted(telemetry.NamespaceAppSec)
+	} else {
+		telemetry.ProductStopped(telemetry.NamespaceAppSec)
+	}
+
+	telemetry.RegisterAppConfigs(a.configs...)
 }

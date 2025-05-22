@@ -491,7 +491,7 @@ func depthOf(ctx context.Context, obj reflect.Value) (depth int, err error) {
 	}
 }
 
-// resovlePointer attempts to resolve a pointer while limiting the pointer depth
+// resolvePointer attempts to resolve a pointer while limiting the pointer depth
 // to be traversed, so that this is not susceptible to an infinite loop when
 // provided a self-referencing pointer.
 func resolvePointer(obj reflect.Value) (reflect.Value, reflect.Kind) {

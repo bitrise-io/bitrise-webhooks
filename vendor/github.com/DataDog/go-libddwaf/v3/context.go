@@ -7,14 +7,13 @@ package waf
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/DataDog/go-libddwaf/v3/errors"
 	"github.com/DataDog/go-libddwaf/v3/internal/bindings"
 	"github.com/DataDog/go-libddwaf/v3/internal/unsafe"
 	"github.com/DataDog/go-libddwaf/v3/timer"
-
-	"sync/atomic"
 )
 
 // Context is a WAF execution context. It allows running the WAF incrementally
@@ -26,9 +25,10 @@ type Context struct {
 	cgoRefs  cgoRefPool          // Used to retain go data referenced by WAF Objects the context holds
 	cContext bindings.WafContext // The C ddwaf_context pointer
 
-	timeoutCount atomic.Uint64 // Cumulative timeout count for this context.
+	// timeoutCount count all calls which have timeout'ed by scope. Keys are fixed at creation time.
+	timeoutCount map[Scope]*atomic.Uint64
 
-	// Mutex protecting the use of cContext which is not thread-safe and cgoRefs.
+	// mutex protecting the use of cContext which is not thread-safe and cgoRefs.
 	mutex sync.Mutex
 
 	// timer registers the time spent in the WAF and go-libddwaf
@@ -39,7 +39,7 @@ type Context struct {
 
 	// truncations provides details about truncations that occurred while
 	// encoding address data for WAF execution.
-	truncations map[TruncationReason][]int
+	truncations map[Scope]map[TruncationReason][]int
 }
 
 // RunAddressData provides address data to the Context.Run method. If a given key is present in both
@@ -51,6 +51,8 @@ type RunAddressData struct {
 	// Ephemeral address data is scoped to a given Context.Run call and is not persisted across calls. This is used for
 	// protocols such as gRPC client/server streaming or GraphQL, where a single request can incur multiple subrequests.
 	Ephemeral map[string]any
+	// Scope is the way to classify the different runs in the same context in order to have different metrics
+	Scope Scope
 }
 
 func (d RunAddressData) isEmpty() bool {
@@ -70,9 +72,13 @@ func (context *Context) Run(addressData RunAddressData) (res Result, err error) 
 		return
 	}
 
+	if addressData.Scope == "" {
+		addressData.Scope = DefaultScope
+	}
+
 	defer func() {
 		if err == errors.ErrTimeout {
-			context.timeoutCount.Add(1)
+			context.timeoutCount[addressData.Scope].Add(1)
 		}
 	}()
 
@@ -94,13 +100,13 @@ func (context *Context) Run(addressData RunAddressData) (res Result, err error) 
 
 	runTimer.Start()
 	defer func() {
-		context.metrics.add(wafRunTag, runTimer.Stop())
-		context.metrics.merge(runTimer.Stats())
+		context.metrics.add(addressData.Scope, wafRunTag, runTimer.Stop())
+		context.metrics.merge(addressData.Scope, runTimer.Stats())
 	}()
 
 	wafEncodeTimer := runTimer.MustLeaf(wafEncodeTag)
 	wafEncodeTimer.Start()
-	persistentData, persistentEncoder, err := context.encodeOneAddressType(addressData.Persistent, wafEncodeTimer)
+	persistentData, persistentEncoder, err := context.encodeOneAddressType(addressData.Scope, addressData.Persistent, wafEncodeTimer)
 	if err != nil {
 		wafEncodeTimer.Stop()
 		return res, err
@@ -108,7 +114,7 @@ func (context *Context) Run(addressData RunAddressData) (res Result, err error) 
 
 	// The WAF releases ephemeral address data at the max of each run call, so we need not keep the Go values live beyond
 	// that in the same way we need for persistent data. We hence use a separate encoder.
-	ephemeralData, ephemeralEncoder, err := context.encodeOneAddressType(addressData.Ephemeral, wafEncodeTimer)
+	ephemeralData, ephemeralEncoder, err := context.encodeOneAddressType(addressData.Scope, addressData.Ephemeral, wafEncodeTimer)
 	if err != nil {
 		wafEncodeTimer.Stop()
 		return res, err
@@ -180,7 +186,7 @@ func merge[K comparable, V any](a, b map[K][]V) (merged map[K][]V) {
 // is a nil map, but this  behaviour is expected since either persistent or ephemeral addresses are allowed to be null
 // one at a time. In this case, Encode will return nil contrary to Encode which will return a nil wafObject,
 // which is what we need to send to ddwaf_run to signal that the address data is empty.
-func (context *Context) encodeOneAddressType(addressData map[string]any, timer timer.Timer) (*bindings.WafObject, encoder, error) {
+func (context *Context) encodeOneAddressType(scope Scope, addressData map[string]any, timer timer.Timer) (*bindings.WafObject, encoder, error) {
 	encoder := newLimitedEncoder(timer)
 	if addressData == nil {
 		return nil, encoder, nil
@@ -191,7 +197,7 @@ func (context *Context) encodeOneAddressType(addressData map[string]any, timer t
 		context.mutex.Lock()
 		defer context.mutex.Unlock()
 
-		context.truncations = merge(context.truncations, encoder.truncations)
+		context.truncations[scope] = merge(context.truncations[scope], encoder.truncations)
 	}
 
 	if timer.Exhausted() {
@@ -269,14 +275,15 @@ func (context *Context) Close() {
 
 // TotalRuntime returns the cumulated WAF runtime across various run calls within the same WAF context.
 // Returned time is in nanoseconds.
-// Deprecated: use Timings instead
+// Deprecated: use Stats instead
 func (context *Context) TotalRuntime() (uint64, uint64) {
-	return uint64(context.metrics.get(wafRunTag)), uint64(context.metrics.get(wafDurationTag))
+	return uint64(context.metrics.get(DefaultScope, wafRunTag)), uint64(context.metrics.get(DefaultScope, wafDurationTag))
 }
 
 // TotalTimeouts returns the cumulated amount of WAF timeouts across various run calls within the same WAF context.
+// Deprecated: use Stats instead
 func (context *Context) TotalTimeouts() uint64 {
-	return context.timeoutCount.Load()
+	return context.timeoutCount[DefaultScope].Load()
 }
 
 // Stats returns the cumulative time spent in various parts of the WAF, all in nanoseconds
@@ -285,15 +292,36 @@ func (context *Context) Stats() Stats {
 	context.mutex.Lock()
 	defer context.mutex.Unlock()
 
-	truncations := make(map[TruncationReason][]int, len(context.truncations))
-	for reason, counts := range context.truncations {
+	truncations := make(map[TruncationReason][]int, len(context.truncations[DefaultScope]))
+	for reason, counts := range context.truncations[DefaultScope] {
 		truncations[reason] = make([]int, len(counts))
 		copy(truncations[reason], counts)
 	}
 
+	raspTruncations := make(map[TruncationReason][]int, len(context.truncations[RASPScope]))
+	for reason, counts := range context.truncations[RASPScope] {
+		raspTruncations[reason] = make([]int, len(counts))
+		copy(raspTruncations[reason], counts)
+	}
+
+	var (
+		timeoutDefault uint64
+		timeoutRASP    uint64
+	)
+
+	if atomic, ok := context.timeoutCount[DefaultScope]; ok {
+		timeoutDefault = atomic.Load()
+	}
+
+	if atomic, ok := context.timeoutCount[RASPScope]; ok {
+		timeoutRASP = atomic.Load()
+	}
+
 	return Stats{
-		Timers:       context.metrics.copy(),
-		TimeoutCount: context.timeoutCount.Load(),
-		Truncations:  truncations,
+		Timers:           context.metrics.timers(),
+		TimeoutCount:     timeoutDefault,
+		TimeoutRASPCount: timeoutRASP,
+		Truncations:      truncations,
+		TruncationsRASP:  raspTruncations,
 	}
 }
