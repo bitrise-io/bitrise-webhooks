@@ -129,12 +129,13 @@ Here is an example of the flow of operations on a simple call to Run():
 
 This library uses [purego](https://github.com/ebitengine/purego) to implement C bindings without requiring use of CGO at compilation time. The high-level workflow
 is to embed the C shared library using `go:embed`, dump it into a file, open the library using `dlopen`, load the
-symbols using `dlsym`, and finally call them.
+symbols using `dlsym`, and finally call them. On Linux systems, using `memfd_create(2)` enables the library to be loaded without
+writing to the filesystem.
+
+Another requirement of `libddwaf` is to have a FHS filesystem on your machine and, for Linux, to provide `libc.so.6`,
+`libpthread.so.0`, and `libdl.so.2` as dynamic libraries.
 
 > :warning: Keep in mind that **purego only works on linux/darwin for amd64/arm64 and so does go-libddwaf.**
-
-Another requirement of `libddwaf` is to have a FHS filesystem on your machine and, for linux, to provide `libc.so.6`,
-`libpthread.so.0`, and `libdl.so.2` as dynamic libraries.
 
 ## Contributing pitfalls
 

@@ -5,6 +5,10 @@
 
 package bindings
 
+import (
+	"structs"
+)
+
 const (
 	WafMaxStringLength   = 4096
 	WafMaxContainerDepth = 20
@@ -22,7 +26,7 @@ const (
 	WafMatch
 )
 
-// wafObjectType is an enum in C which has the size of DWORD.
+// WafObjectType is an enum in C which has the size of DWORD.
 // But DWORD is 4 bytes in amd64 and arm64 so uint32 it is.
 type WafObjectType uint32
 
@@ -39,6 +43,7 @@ const (
 )
 
 type WafObject struct {
+	_                   structs.HostLayout
 	ParameterName       uintptr
 	ParameterNameLength uint64
 	Value               uintptr
@@ -53,50 +58,54 @@ type WafObject struct {
 	// packed (apart from breaking all tracers of course)
 }
 
-// isInvalid determines whether this WAF Object has the invalid type (which is the 0-value).
+// IsInvalid determines whether this WAF Object has the invalid type (which is the 0-value).
 func (w *WafObject) IsInvalid() bool {
 	return w.Type == WafInvalidType
 }
 
-// isNil determines whether this WAF Object is nil or not.
+// IsNil determines whether this WAF Object is nil or not.
 func (w *WafObject) IsNil() bool {
 	return w.Type == WafNilType
 }
 
-// isArray determines whether this WAF Object is an array or not.
+// IsArray determines whether this WAF Object is an array or not.
 func (w *WafObject) IsArray() bool {
 	return w.Type == WafArrayType
 }
 
-// isMap determines whether this WAF Object is a map or not.
+// IsMap determines whether this WAF Object is a map or not.
 func (w *WafObject) IsMap() bool {
 	return w.Type == WafMapType
 }
 
 // IsUnusable returns true if the wafObject has no impact on the WAF execution
 // But we still need this kind of objects to forward map keys in case the value of the map is invalid
-func (wo *WafObject) IsUnusable() bool {
-	return wo.Type == WafInvalidType || wo.Type == WafNilType
+func (w *WafObject) IsUnusable() bool {
+	return w.Type == WafInvalidType || w.Type == WafNilType
 }
 
 type WafConfig struct {
+	_          structs.HostLayout
 	Limits     WafConfigLimits
 	Obfuscator WafConfigObfuscator
 	FreeFn     uintptr
 }
 
 type WafConfigLimits struct {
+	_                 structs.HostLayout
 	MaxContainerSize  uint32
 	MaxContainerDepth uint32
 	MaxStringLength   uint32
 }
 
 type WafConfigObfuscator struct {
+	_          structs.HostLayout
 	KeyRegex   uintptr // char *
 	ValueRegex uintptr // char *
 }
 
 type WafResult struct {
+	_            structs.HostLayout
 	Timeout      byte
 	Events       WafObject
 	Actions      WafObject
@@ -104,10 +113,10 @@ type WafResult struct {
 	TotalRuntime uint64
 }
 
-// wafHandle is a forward declaration in ddwaf.h header
+// WafHandle is a forward declaration in ddwaf.h header
 // We basically don't need to modify it, only to give it to the waf
 type WafHandle uintptr
 
-// wafContext is a forward declaration in ddwaf.h header
+// WafContext is a forward declaration in ddwaf.h header
 // We basically don't need to modify it, only to give it to the waf
 type WafContext uintptr

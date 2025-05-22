@@ -8,6 +8,7 @@ package tracer
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 	"sync"
@@ -185,7 +186,7 @@ func (t *tracer) onRemoteConfigUpdate(u remoteconfig.ProductUpdate) map[string]s
 		}
 		if len(telemConfigs) > 0 {
 			log.Debug("Reporting %d configuration changes to telemetry", len(telemConfigs))
-			telemetry.GlobalClient.ConfigChange(telemConfigs)
+			telemetry.RegisterAppConfigs(telemConfigs...)
 		}
 		return statuses
 	}
@@ -198,20 +199,6 @@ func (t *tracer) onRemoteConfigUpdate(u remoteconfig.ProductUpdate) map[string]s
 		if err := json.Unmarshal(raw, &c); err != nil {
 			log.Debug("Error while unmarshalling payload for %s: %v. Configuration won't be applied.", path, err)
 			statuses[path] = state.ApplyStatus{State: state.ApplyStateError, Error: err.Error()}
-			continue
-		}
-		if c.ServiceTarget.Service != t.config.serviceName {
-			log.Debug(
-				"Skipping config for service %s. Current service is %s",
-				c.ServiceTarget.Service,
-				t.config.serviceName,
-			)
-			statuses[path] = state.ApplyStatus{State: state.ApplyStateError, Error: "service mismatch"}
-			continue
-		}
-		if c.ServiceTarget.Env != t.config.env {
-			log.Debug("Skipping config for env %s. Current env is %s", c.ServiceTarget.Env, t.config.env)
-			statuses[path] = state.ApplyStatus{State: state.ApplyStateError, Error: "env mismatch"}
 			continue
 		}
 		statuses[path] = state.ApplyStatus{State: state.ApplyStateAcknowledged}
@@ -243,7 +230,7 @@ func (t *tracer) onRemoteConfigUpdate(u remoteconfig.ProductUpdate) map[string]s
 	}
 	if len(telemConfigs) > 0 {
 		log.Debug("Reporting %d configuration changes to telemetry", len(telemConfigs))
-		telemetry.GlobalClient.ConfigChange(telemConfigs)
+		telemetry.RegisterAppConfigs(telemConfigs...)
 	}
 	return statuses
 }
@@ -298,11 +285,29 @@ func initalizeDynamicInstrumentationRemoteConfigState() {
 			time.Sleep(time.Second * 5)
 			diRCState.Lock()
 			for _, v := range diRCState.state {
+				accessStringsToMitigatePageFault(v.runtimeID, v.configPath, v.configContent)
 				passProbeConfiguration(v.runtimeID, v.configPath, v.configContent)
 			}
 			diRCState.Unlock()
 		}
 	}()
+}
+
+// accessStringsToMitigatePageFault iterates over each string to trigger a page fault,
+// ensuring it is loaded into RAM or listed in the translation lookaside buffer.
+// This is done by writing the string to io.Discard.
+//
+// This function addresses an issue with the bpf program that hooks the
+// `passProbeConfiguration()` function from system-probe. The bpf program fails
+// to read strings if a page fault occurs because the `bpf_probe_read()` helper
+// disables paging (uprobe bpf programs can't sleep). Consequently, page faults
+// cause `bpf_probe_read()` to return an error and not read any data.
+// By preloading the strings, we mitigate this issue, enhancing the reliability
+// of the Go Dynamic Instrumentation product.
+func accessStringsToMitigatePageFault(strs ...string) {
+	for i := range strs {
+		io.WriteString(io.Discard, strs[i])
+	}
 }
 
 // startRemoteConfig starts the remote config client.
