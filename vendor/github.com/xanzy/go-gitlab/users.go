@@ -61,6 +61,16 @@ type BasicUser struct {
 	WebURL    string     `json:"web_url"`
 }
 
+// ServiceAccount represents a GitLab service account.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/user_service_accounts.html
+type ServiceAccount struct {
+	ID       int    `json:"id"`
+	Username string `json:"username"`
+	Name     string `json:"name"`
+}
+
 // User represents a GitLab user.
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/users.html
@@ -1543,11 +1553,21 @@ func (s *UsersService) CreateUserRunner(opts *CreateUserRunnerOptions, options .
 	return r, resp, nil
 }
 
-// CreateServiceAccountUser creates a new service account user. Note only administrators can create new service account users.
+
+// CreateServiceAccountUserOptions represents the available CreateServiceAccountUser() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ee/api/users.html#create-service-account-user
-func (s *UsersService) CreateServiceAccountUser(options ...RequestOptionFunc) (*User, *Response, error) {
-	req, err := s.client.NewRequest(http.MethodPost, "service_accounts", nil, options)
+// GitLab API docs: https://docs.gitlab.com/ee/api/user_service_accounts.html#create-a-service-account-user
+type CreateServiceAccountUserOptions struct {
+	Name     *string `url:"name,omitempty" json:"name,omitempty"`
+	Username *string `url:"username,omitempty" json:"username,omitempty"`
+}
+
+// CreateServiceAccountUser creates a new service account user.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/users.html#create-service-account-user
+func (s *UsersService) CreateServiceAccountUser(opts *CreateServiceAccountUserOptions, options ...RequestOptionFunc) (*User, *Response, error) {
+	req, err := s.client.NewRequest(http.MethodPost, "service_accounts", opts, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1559,6 +1579,25 @@ func (s *UsersService) CreateServiceAccountUser(options ...RequestOptionFunc) (*
 	}
 
 	return usr, resp, nil
+}
+
+// ListServiceAccounts lists all service accounts.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/users.html#create-service-account-user
+func (s *UsersService) ListServiceAccounts(opt *ListServiceAccountsOptions, options ...RequestOptionFunc) ([]*ServiceAccount, *Response, error) {
+	req, err := s.client.NewRequest(http.MethodGet, "service_accounts", opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var sas []*ServiceAccount
+	resp, err := s.client.Do(req, &sas)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return sas, resp, nil
 }
 
 // UploadAvatar uploads an avatar to the current user.
