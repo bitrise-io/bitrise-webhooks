@@ -28,6 +28,7 @@ type Diagnostics struct {
 	Exclusions     *DiagnosticEntry
 	RulesOverrides *DiagnosticEntry
 	RulesData      *DiagnosticEntry
+	ExclusionData  *DiagnosticEntry
 	Processors     *DiagnosticEntry
 	Scanners       *DiagnosticEntry
 	Version        string
@@ -44,6 +45,7 @@ func (d *Diagnostics) TopLevelError() error {
 		"exclusions":     d.Exclusions,
 		"rules_override": d.RulesOverrides,
 		"rules_data":     d.RulesData,
+		"exclusion_data": d.ExclusionData,
 		"processors":     d.Processors,
 		"scanners":       d.Scanners,
 	}
@@ -68,6 +70,7 @@ type DiagnosticEntry struct {
 	Error     string              // If the entire entry was in error (e.g: invalid format)
 	Loaded    []string            // Successfully loaded entity identifiers (or index:#)
 	Failed    []string            // Failed entity identifiers (or index:#)
+	Skipped   []string            // Skipped entity identifiers (or index:#)
 }
 
 // DiagnosticAddresses stores the information - provided by the WAF - about the known addresses and
@@ -119,8 +122,8 @@ var (
 // libddwaf is usable but some non-critical errors happened, such as failures
 // to remove temporary files. It is safe to continue using libddwaf in such
 // case.
-func Load() (ok bool, err error) {
-	if ok, err = Health(); !ok {
+func Load() (bool, error) {
+	if ok, err := Health(); !ok {
 		return false, err
 	}
 
