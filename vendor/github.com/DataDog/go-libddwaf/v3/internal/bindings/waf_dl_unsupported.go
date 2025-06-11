@@ -4,48 +4,56 @@
 // Copyright 2016-present Datadog, Inc.
 
 // Build when the target OS or architecture are not supported
-//go:build (!linux && !darwin) || (!amd64 && !arm64) || go1.24 || datadog.no_waf || (!cgo && !appsec)
+//go:build (!linux && !darwin) || (!amd64 && !arm64) || go1.25 || datadog.no_waf || (!cgo && !appsec)
 
 package bindings
 
+import (
+	"errors"
+)
+
 type WafDl struct{}
 
-func NewWafDl() (dl *WafDl, err error) {
-	return nil, nil
+func NewWafDl() (*WafDl, error) {
+	return nil, errors.New("WAF is not supported on this platform")
 }
 
 func (waf *WafDl) WafGetVersion() string {
 	return ""
 }
 
-func (waf *WafDl) WafInit(obj *WafObject, config *WafConfig, info *WafObject) WafHandle {
+func (waf *WafDl) WafInit(*WafObject, *WafConfig, *WafObject) WafHandle {
 	return 0
 }
 
-func (waf *WafDl) WafUpdate(handle WafHandle, ruleset *WafObject, info *WafObject) WafHandle {
+func (waf *WafDl) WafUpdate(WafHandle, *WafObject, *WafObject) WafHandle {
 	return 0
 }
 
-func (waf *WafDl) WafDestroy(handle WafHandle) {
+func (waf *WafDl) WafDestroy(WafHandle) {
 }
 
-func (waf *WafDl) WafKnownAddresses(handle WafHandle) []string {
+func (waf *WafDl) WafKnownAddresses(WafHandle) []string {
 	return nil
 }
 
-func (waf *WafDl) WafContextInit(handle WafHandle) WafContext {
+func (waf *WafDl) WafKnownActions(WafHandle) []string {
+	return nil
+}
+
+func (waf *WafDl) WafContextInit(WafHandle) WafContext {
 	return 0
 }
 
-func (waf *WafDl) WafContextDestroy(context WafContext) {
+func (waf *WafDl) WafContextDestroy(WafContext) {
 }
 
-func (waf *WafDl) WafResultFree(result *WafResult) {
+func (waf *WafDl) WafResultFree(*WafResult) {
 }
 
-func (waf *WafDl) WafObjectFree(obj *WafObject) {
+func (waf *WafDl) WafObjectFree(*WafObject) {
 }
 
-func (waf *WafDl) WafRun(context WafContext, persistentData, ephemeralData *WafObject, result *WafResult, timeout uint64) WafReturnCode {
+func (waf *WafDl) WafRun(WafContext, *WafObject, *WafObject, *WafResult, uint64) WafReturnCode {
 	return WafErrInternal
 }
