@@ -41,6 +41,15 @@ const (
 	PullRequestReadyStateConvertedToReadyForReview PullRequestReadyState = "converted_to_ready_for_review"
 )
 
+// MergeQueue ...
+type MergeQueueModel struct {
+	QueueProvider string `json:"queue_provider"`
+	PullRequestID int    `json:"pull_request_id"`
+	BaseBranch    string `json:"base_branch"`
+	BaseSHA       string `json:"base_sha"`
+	SyntheticSHA  string `json:"synthetic_sha"`
+}
+
 // BuildParamsModel ...
 type BuildParamsModel struct {
 	// git commit hash
@@ -97,6 +106,8 @@ type BuildParamsModel struct {
 	PullRequestComment string `json:"pull_request_comment,omitempty"`
 	// newly added pull request comment's ID
 	PullRequestCommentID string `json:"pull_request_comment_id,omitempty"`
+	// merge queue
+	MergeQueue MergeQueueModel `json:"merge_queue,omitempty"`
 }
 
 // TriggerAPIParamsModel ...
