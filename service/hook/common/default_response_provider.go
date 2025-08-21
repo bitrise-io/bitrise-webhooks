@@ -5,8 +5,7 @@ import (
 )
 
 // DefaultResponseProvider ...
-type DefaultResponseProvider struct {
-}
+type DefaultResponseProvider struct{}
 
 // SingleErrorRespModel ...
 type SingleErrorRespModel struct {
@@ -40,7 +39,7 @@ func (hp DefaultResponseProvider) TransformResponse(input TransformResponseInput
 	}
 
 	if len(input.Errors) > 0 {
-		httpStatusCode = 400
+		httpStatusCode = 500
 	}
 
 	if len(input.FailedTriggerResponses) > 0 {
