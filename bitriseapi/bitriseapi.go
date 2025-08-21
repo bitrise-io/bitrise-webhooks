@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -203,11 +203,15 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 		}
 	}()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return TriggerAPIResponseModel{}, false, errors.Wrapf(err, "TriggerBuild (url:%s): request sent, but failed to read response body (http-code:%d)", url.String(), resp.StatusCode)
 	}
 	bodyString := string(body)
+
+	if resp.StatusCode >= 500 || resp.StatusCode < 600 {
+		return TriggerAPIResponseModel{}, false, errors.Wrapf(err, "TriggerBuild (url:%s): request sent, but received a server error response (http-code:%d, response body:%s)", url.String(), resp.StatusCode, bodyString)
+	}
 
 	var respModel TriggerAPIResponseModel
 	if err := json.Unmarshal(body, &respModel); err != nil {
