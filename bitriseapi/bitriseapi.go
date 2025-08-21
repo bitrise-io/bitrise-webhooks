@@ -209,7 +209,7 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	}
 	bodyString := string(body)
 
-	if resp.StatusCode >= 500 || resp.StatusCode < 600 {
+	if resp.StatusCode >= 500 && resp.StatusCode < 600 {
 		return TriggerAPIResponseModel{}, false, errors.Wrapf(err, "TriggerBuild (url:%s): request sent, but received a server error response (http-code:%d, response body:%s)", url.String(), resp.StatusCode, bodyString)
 	}
 
