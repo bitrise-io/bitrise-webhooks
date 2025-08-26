@@ -1326,7 +1326,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
-		require.EqualError(t, hookTransformResult.Error, "pull Request edit doesn't require a build: only title and/or description was changed, and previous one was not skipped")
+		require.EqualError(t, hookTransformResult.Error, "pull Request edit doesn't require a build: only title was changed, and previous one was not skipped")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel(nil), hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
@@ -1397,7 +1397,7 @@ func Test_transformPullRequestEvent(t *testing.T) {
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
-	t.Log("Pull Request - edited - only body/description change - no skip ci in previous - no build")
+	t.Log("Pull Request - edited - only body/description change - no build")
 	{
 		pullRequest := PullRequestEventModel{
 			Action:        "edited",
@@ -1437,13 +1437,13 @@ func Test_transformPullRequestEvent(t *testing.T) {
 			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
-		require.EqualError(t, hookTransformResult.Error, "pull Request edit doesn't require a build: only title and/or description was changed, and previous one was not skipped")
+		require.EqualError(t, hookTransformResult.Error, "pull Request edit doesn't require a build: only body/description was changed")
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel(nil), hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
-	t.Log("Pull Request - edited - only body/description change - BUT the previous title included a skip CI pattern - should build")
+	t.Log("Pull Request - edited - only body/description change - the previous body included a skip CI pattern - still shouldn't build")
 	{
 		pullRequest := PullRequestEventModel{
 			Action:        "edited",
@@ -1483,28 +1483,9 @@ func Test_transformPullRequestEvent(t *testing.T) {
 			},
 		}
 		hookTransformResult := transformPullRequestEvent(pullRequest)
-		require.NoError(t, hookTransformResult.Error)
-		require.False(t, hookTransformResult.ShouldSkip)
-		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
-			{
-				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:                       "83b86e5f286f546dc5a4a58db66ceef44460c85e",
-					CommitMessage:                    "PR test\n\nPR text body",
-					Branch:                           "feature/github-pr",
-					BranchDest:                       "develop",
-					PullRequestID:                    &intTwelve,
-					PullRequestRepositoryURL:         "https://github.com/bitrise-io/bitrise-webhooks.git",
-					BaseRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
-					HeadRepositoryURL:                "https://github.com/bitrise-io/bitrise-webhooks.git",
-					PullRequestMergeBranch:           "pull/12/merge",
-					PullRequestUnverifiedMergeBranch: "pull/12/merge",
-					PullRequestHeadBranch:            "pull/12/head",
-					Environments:                     make([]bitriseapi.EnvironmentItem, 0),
-					PullRequestReadyState:            bitriseapi.PullRequestReadyStateReadyForReview,
-				},
-				TriggeredBy: "webhook-github/test_user",
-			},
-		}, hookTransformResult.TriggerAPIParams)
+		require.EqualError(t, hookTransformResult.Error, "pull Request edit doesn't require a build: only body/description was changed")
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel(nil), hookTransformResult.TriggerAPIParams)
 		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 
