@@ -276,9 +276,17 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 		for _, aBuildTriggerParam := range hookTransformResult.TriggerAPIParams {
 			commitMessage := aBuildTriggerParam.BuildParams.CommitMessage
 
-			if hookCommon.IsSkipBuildByCommitMessage(commitMessage) {
+			if hookCommon.ContainsSkipInstruction(commitMessage) {
 				respondWith.SkippedTriggerResponses = append(respondWith.SkippedTriggerResponses, hookCommon.SkipAPIResponseModel{
 					Message:       "Build skipped because the commit message included a skip ci keyword ([skip ci] or [ci skip]).",
+					CommitHash:    aBuildTriggerParam.BuildParams.CommitHash,
+					CommitMessage: aBuildTriggerParam.BuildParams.CommitMessage,
+					Branch:        aBuildTriggerParam.BuildParams.Branch,
+				})
+				continue
+			} else if hookCommon.ContainsSkipInstruction(aBuildTriggerParam.BuildParams.PullRequestComment) {
+				respondWith.SkippedTriggerResponses = append(respondWith.SkippedTriggerResponses, hookCommon.SkipAPIResponseModel{
+					Message:       "Build skipped because the PR comment included a skip ci keyword ([skip ci] or [ci skip]).",
 					CommitHash:    aBuildTriggerParam.BuildParams.CommitHash,
 					CommitMessage: aBuildTriggerParam.BuildParams.CommitMessage,
 					Branch:        aBuildTriggerParam.BuildParams.Branch,
