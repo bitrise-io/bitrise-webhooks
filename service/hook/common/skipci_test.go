@@ -24,7 +24,7 @@ line too`,
 			`this message has \\[skip bitrise\\] because of markdown`,
 		} {
 			t.Log(" * Commit message:", aCommitMsg)
-			require.Equal(t, true, IsSkipBuildByCommitMessage(aCommitMsg))
+			require.Equal(t, true, ContainsSkipInstruction(aCommitMsg))
 		}
 	}
 
@@ -38,7 +38,7 @@ line too`,
 			"this won't be skipped either: [ bitrise skip ]",
 		} {
 			t.Log(" * Commit message:", aCommitMsg)
-			require.Equal(t, false, IsSkipBuildByCommitMessage(aCommitMsg))
+			require.Equal(t, false, ContainsSkipInstruction(aCommitMsg))
 		}
 	}
 }
@@ -61,7 +61,7 @@ line too`,
 			`this message has \\[skip ci\\] because of markdown`,
 		} {
 			t.Log(" * Commit message:", aCommitMsg)
-			require.Equal(t, true, IsSkipBuildByCommitMessage(aCommitMsg))
+			require.Equal(t, true, ContainsSkipInstruction(aCommitMsg))
 		}
 	}
 
@@ -75,7 +75,7 @@ line too`,
 			"this won't be skipped either: [ ci skip ]",
 		} {
 			t.Log(" * Commit message:", aCommitMsg)
-			require.Equal(t, false, IsSkipBuildByCommitMessage(aCommitMsg))
+			require.Equal(t, false, ContainsSkipInstruction(aCommitMsg))
 		}
 	}
 }

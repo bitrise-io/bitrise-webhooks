@@ -2,8 +2,8 @@ package common
 
 import "strings"
 
-// IsSkipBuildByCommitMessage ...
-func IsSkipBuildByCommitMessage(commitMsg string) bool {
+// ContainsSkipInstruction ...
+func ContainsSkipInstruction(commitMsg string) bool {
 	if checkSkipPatternPair(commitMsg, "ci", "skip") {
 		return true
 	}

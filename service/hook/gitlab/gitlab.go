@@ -624,8 +624,8 @@ func transformMergeRequest(
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, user.Username),
 			},
 		},
-		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(mergeRequest.Title) &&
-			hookCommon.IsSkipBuildByCommitMessage(mergeRequest.Description),
+		SkippedByPrDescription: !hookCommon.ContainsSkipInstruction(mergeRequest.Title) &&
+			hookCommon.ContainsSkipInstruction(mergeRequest.Description),
 	}
 }
 

@@ -268,7 +268,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	if pullRequest.Action == "edited" {
 		// skip it if only title / description changed, and the previous pattern did not include a [skip ci] pattern
 		if pullRequest.Changes.Base == nil {
-			if !hookCommon.IsSkipBuildByCommitMessage(pullRequest.Changes.Title.From) && !hookCommon.IsSkipBuildByCommitMessage(pullRequest.Changes.Body.From) {
+			if !hookCommon.ContainsSkipInstruction(pullRequest.Changes.Title.From) && !hookCommon.ContainsSkipInstruction(pullRequest.Changes.Body.From) {
 				return hookCommon.TransformResultModel{
 					Error:      errors.New("pull Request edit doesn't require a build: only title and/or description was changed, and previous one was not skipped"),
 					ShouldSkip: true,
@@ -355,8 +355,8 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			result,
 		},
-		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(pullRequest.PullRequestInfo.Title) &&
-			hookCommon.IsSkipBuildByCommitMessage(pullRequest.PullRequestInfo.Body),
+		SkippedByPrDescription: !hookCommon.ContainsSkipInstruction(pullRequest.PullRequestInfo.Title) &&
+			hookCommon.ContainsSkipInstruction(pullRequest.PullRequestInfo.Body),
 	}
 }
 
@@ -472,8 +472,8 @@ func transformIssueCommentEvent(eventModel IssueCommentEventModel) hookCommon.Tr
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			result,
 		},
-		SkippedByPrDescription: !hookCommon.IsSkipBuildByCommitMessage(issue.Title) &&
-			hookCommon.IsSkipBuildByCommitMessage(issue.Body),
+		SkippedByPrDescription: !hookCommon.ContainsSkipInstruction(issue.Title) &&
+			hookCommon.ContainsSkipInstruction(issue.Body),
 	}
 }
 
