@@ -266,14 +266,33 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		}
 	}
 	if pullRequest.Action == "edited" {
-		// skip it if only title / description changed, and the previous pattern did not include a [skip ci] pattern
 		if pullRequest.Changes.Base == nil {
-			if !hookCommon.ContainsSkipInstruction(pullRequest.Changes.Title.From) && !hookCommon.ContainsSkipInstruction(pullRequest.Changes.Body.From) {
+			// PR base ref was not changed, it's either the title or body
+			
+			// TODO: why wasn't this checked before?
+			if hookCommon.ContainsSkipInstruction(pullRequest.PullRequestInfo.Title) {
 				return hookCommon.TransformResultModel{
-					Error:      errors.New("pull Request edit doesn't require a build: only title and/or description was changed, and previous one was not skipped"),
+					Error:      errors.New("PR edit doesn't require a build: title contains skip instruction"),
 					ShouldSkip: true,
 				}
 			}
+
+			// TODO: why wasn't this checked before
+			if hookCommon.ContainsSkipInstruction(pullRequest.PullRequestInfo.Body) {
+				return hookCommon.TransformResultModel{
+					Error:      errors.New("PR edit doesn't require a build: body contains skip instruction"),
+					ShouldSkip: true,
+				}
+			}
+
+			if !hookCommon.ContainsSkipInstruction(pullRequest.Changes.Title.From) && !hookCommon.ContainsSkipInstruction(pullRequest.Changes.Body.From) {
+				return hookCommon.TransformResultModel{
+					Error:      errors.New("PR edit doesn't require a build: only title and/or description was changed"),
+					ShouldSkip: true,
+				}
+			}
+			// If previous title or body contained skip instructions and they are now removed, we want to trigger a build
+			// based on the latest PR state because previous state changes did not trigger builds.
 		}
 	}
 	if pullRequest.PullRequestInfo.Merged {
