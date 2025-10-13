@@ -2,7 +2,7 @@ module github.com/bitrise-io/bitrise-webhooks
 
 go 1.23.0
 
-toolchain go1.24.1
+toolchain go1.25.3
 
 require (
 	cloud.google.com/go/pubsub v1.42.0
