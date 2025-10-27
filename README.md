@@ -11,7 +11,7 @@ For more information check the [How to add support for a new Provider](https://g
 
 ## CI Skip
 
-If the (commit) message includes `[skip ci]` or `[ci skip]` no build will be triggered.
+If the (commit) message includes `[skip ci]`, `[ci skip]`, `[skip bitrise]` or `[bitrise skip]`, no build will be triggered.
 
 
 ## Supported webhooks / providers
@@ -89,8 +89,16 @@ a Bitbucket Server *repository*.
 4. Click on `Create webhook`
 5. Specify the `bitrise-webhooks` URL (`.../h/bitbucket-server/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `URL` field
 6. In the *Events* section select the following properties:
-  * Repository > Push
-  * Pull Request > Opened
+  * Repository
+    * Push
+  * Pull Request
+    * Opened
+    * Modified
+    * Source branch updated
+    * Declined
+    * Merged
+    * Commend added
+    * Comment edited
 7. Click `Save`
 
 That's all! The next time you __push code__, __push a new tag__ or __create a pull request__

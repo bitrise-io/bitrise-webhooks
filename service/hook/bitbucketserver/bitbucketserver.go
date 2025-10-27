@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
@@ -69,7 +70,7 @@ type RepositoryInfoModel struct {
 	Name    string           `json:"name"`
 	Public  bool             `json:"public"`
 	Scm     string           `json:"scmId"`
-	Project ProjectInfoModel `json:"owner"`
+	Project ProjectInfoModel `json:"project"`
 }
 
 // CommitModel ...
@@ -97,6 +98,7 @@ type PullRequestInfoModel struct {
 	Closed      bool                `json:"closed"`
 	CreatedDate int64               `json:"createdDate"`
 	UpdatedDate int64               `json:"updatedDate"`
+	Author      AuthorModel         `json:"author"`
 	FromRef     PullRequestRefModel `json:"fromRef"`
 	ToRef       PullRequestRefModel `json:"toRef"`
 }
@@ -107,15 +109,26 @@ type PullRequestEventModel struct {
 	Date        string               `json:"date"`
 	Actor       UserInfoModel        `json:"actor"`
 	PullRequest PullRequestInfoModel `json:"pullRequest"`
+	CommentInfo *CommentModel        `json:"comment"`
 }
 
 // PullRequestRefModel ...
 type PullRequestRefModel struct {
 	ID           string              `json:"id"`
 	DisplayID    string              `json:"displayId"`
-	Type         string              `json:"type"`
 	LatestCommit string              `json:"latestCommit"`
 	Repository   RepositoryInfoModel `json:"repository"`
+}
+
+// CommentModel ...
+type CommentModel struct {
+	ID   int    `json:"id"`
+	Text string `json:"text"`
+}
+
+// AuthorModel
+type AuthorModel struct {
+	User UserInfoModel `json:"user"`
 }
 
 // ---------------------------------------
@@ -240,16 +253,27 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	}
 
 	commitMsg := pullRequest.PullRequest.Title
+	// Note that description is missing here
+
+	var comment string
+	var commentID string
+	if pullRequest.CommentInfo != nil {
+		comment = pullRequest.CommentInfo.Text
+		commentID = strconv.Itoa(pullRequest.CommentInfo.ID)
+	}
 
 	return hookCommon.TransformResultModel{
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitMessage: commitMsg,
-					CommitHash:    pullRequest.PullRequest.FromRef.LatestCommit,
-					Branch:        pullRequest.PullRequest.FromRef.DisplayID,
-					BranchDest:    pullRequest.PullRequest.ToRef.DisplayID,
-					PullRequestID: &pullRequest.PullRequest.ID,
+					CommitMessage:        commitMsg,
+					CommitHash:           pullRequest.PullRequest.FromRef.LatestCommit,
+					Branch:               pullRequest.PullRequest.FromRef.DisplayID,
+					BranchDest:           pullRequest.PullRequest.ToRef.DisplayID,
+					PullRequestID:        &pullRequest.PullRequest.ID,
+					PullRequestAuthor:    pullRequest.PullRequest.Author.User.Name,
+					PullRequestComment:   comment,
+					PullRequestCommentID: commentID,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Actor.Name),
 			},
@@ -258,7 +282,7 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 }
 
 func isAcceptEventType(eventKey string) bool {
-	return slices.Contains([]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged", "diagnostics:ping", "pr:from_ref_updated"}, eventKey)
+	return slices.Contains([]string{"repo:refs_changed", "pr:opened", "pr:modified", "pr:merged", "diagnostics:ping", "pr:from_ref_updated", "pr:comment:added", "pr:comment:edited"}, eventKey)
 }
 
 // TransformRequest ...
@@ -301,7 +325,7 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		return transformPushEvent(pushEvent)
 	}
 
-	if eventKey == "pr:opened" || eventKey == "pr:modified" || eventKey == "pr:merged" || eventKey == "pr:from_ref_updated" {
+	if eventKey == "pr:opened" || eventKey == "pr:modified" || eventKey == "pr:merged" || eventKey == "pr:from_ref_updated" || eventKey == "pr:comment:added" || eventKey == "pr:comment:edited" {
 		var pullRequestEvent PullRequestEventModel
 		if err := json.NewDecoder(r.Body).Decode(&pullRequestEvent); err != nil {
 			return hookCommon.TransformResultModel{

@@ -519,6 +519,299 @@ const (
 	}
 }`
 
+	samplePRCommentAddedData = `{
+    "date": "2025-10-27T15:54:08+0000",
+    "actor": {
+        "emailAddress": "test_user@example.com",
+        "displayName": "admin",
+        "name": "admin",
+        "active": true,
+        "links": {"self": [{"href": "https://bitbucket.example.com/users/admin"}]},
+        "id": 3,
+        "type": "NORMAL",
+        "slug": "admin"
+    },
+    "eventKey": "pr:comment:added",
+    "comment": {
+        "severity": "NORMAL",
+        "createdDate": 1761580448905,
+        "comments": [],
+        "threadResolved": false,
+        "author": {
+            "emailAddress": "test_user@example.com",
+            "displayName": "admin",
+            "name": "admin",
+            "active": true,
+            "links": {"self": [{"href": "https://bitbucket.example.com/users/admin"}]},
+            "id": 3,
+            "type": "NORMAL",
+            "slug": "admin"
+        },
+        "id": 7,
+        "text": "This is a test comment.",
+        "updatedDate": 1761580448905,
+        "state": "OPEN",
+        "version": 0,
+        "properties": {"repositoryId": 2}
+    },
+    "pullRequest": {
+        "author": {
+            "approved": false,
+            "role": "AUTHOR",
+            "user": {
+                "emailAddress": "test_user@example.com",
+                "displayName": "admin",
+                "name": "admin",
+                "active": true,
+                "links": {"self": [{"href": "https://bitbucket.example.com/users/admin"}]},
+                "id": 3,
+                "type": "NORMAL",
+                "slug": "admin"
+            },
+            "status": "UNAPPROVED"
+        },
+        "description": "Test PR with comments",
+        "updatedDate": 1761138018299,
+        "title": "Test PR",
+        "version": 6,
+        "reviewers": [],
+        "toRef": {
+            "latestCommit": "70b0d7be6f073634f7910a2cb5bbed9ec1306dff",
+            "id": "refs/heads/master",
+            "displayId": "master",
+            "type": "BRANCH",
+            "repository": {
+                "archived": false,
+                "public": false,
+                "hierarchyId": "4e8506d8cbb6287a8dcd",
+                "name": "repo",
+                "forkable": true,
+                "project": {
+                    "public": false,
+                    "name": "test",
+                    "links": {"self": [{"href": "https://bitbucket.example.com/projects/TEST"}]},
+                    "id": 2,
+                    "type": "NORMAL",
+                    "key": "TEST"
+                },
+                "links": {
+                    "clone": [
+                        {
+                            "name": "http",
+                            "href": "https://bitbucket.example.com/scm/test/repo.git"
+                        },
+                        {
+                            "name": "ssh",
+                            "href": "ssh://git@bitbucket.example.com:7999/test/repo.git"
+                        }
+                    ],
+                    "self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/browse"}]
+                },
+                "id": 2,
+                "scmId": "git",
+                "state": "AVAILABLE",
+                "slug": "repo",
+                "statusMessage": "Available"
+            }
+        },
+        "createdDate": 1761134047464,
+        "draft": false,
+        "closed": false,
+        "fromRef": {
+            "latestCommit": "535dd99fabbecd4594c3dc844f387413fe6b97d4",
+            "id": "refs/heads/test-branch",
+            "displayId": "test-branch",
+            "type": "BRANCH",
+            "repository": {
+                "archived": false,
+                "public": false,
+                "hierarchyId": "4e8506d8cbb6287a8dcd",
+                "name": "repo",
+                "forkable": true,
+                "project": {
+                    "public": false,
+                    "name": "test",
+                    "links": {"self": [{"href": "https://bitbucket.example.com/projects/TEST"}]},
+                    "id": 2,
+                    "type": "NORMAL",
+                    "key": "TEST"
+                },
+                "links": {
+                    "clone": [
+                        {
+                            "name": "http",
+                            "href": "https://bitbucket.example.com/scm/test/repo.git"
+                        },
+                        {
+                            "name": "ssh",
+                            "href": "ssh://git@bitbucket.example.com:7999/test/repo.git"
+                        }
+                    ],
+                    "self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/browse"}]
+                },
+                "id": 2,
+                "scmId": "git",
+                "state": "AVAILABLE",
+                "slug": "repo",
+                "statusMessage": "Available"
+            }
+        },
+        "links": {"self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/pull-requests/2"}]},
+        "id": 1,
+        "state": "OPEN",
+        "locked": false,
+        "open": true,
+        "participants": []
+    }
+}`
+
+	samplePRCommentEditedData = `{
+    "date": "2025-10-27T16:10:28+0000",
+    "actor": {
+        "emailAddress": "test-user@example.com",
+        "displayName": "admin",
+        "name": "admin",
+        "active": true,
+        "links": {"self": [{"href": "https://bitbucket.example.com/users/admin"}]},
+        "id": 3,
+        "type": "NORMAL",
+        "slug": "admin"
+    },
+    "eventKey": "pr:comment:edited",
+    "comment": {
+        "severity": "NORMAL",
+        "createdDate": 1761580448905,
+        "comments": [],
+        "threadResolved": false,
+        "author": {
+            "emailAddress": "test-user@example.com",
+            "displayName": "admin",
+            "name": "admin",
+            "active": true,
+            "links": {"self": [{"href": "https://bitbucket.example.com/users/admin"}]},
+            "id": 3,
+            "type": "NORMAL",
+            "slug": "admin"
+        },
+        "id": 7,
+        "text": "This is an updated test comment.",
+        "updatedDate": 1761581427399,
+        "state": "OPEN",
+        "version": 1,
+        "properties": {"repositoryId": 2}
+    },
+    "pullRequest": {
+        "author": {
+            "approved": false,
+            "role": "AUTHOR",
+            "user": {
+                "emailAddress": "test-user@example.com",
+                "displayName": "admin",
+                "name": "admin",
+                "active": true,
+                "links": {"self": [{"href": "https://bitbucket.example.com/users/admin"}]},
+                "id": 3,
+                "type": "NORMAL",
+                "slug": "admin"
+            },
+            "status": "UNAPPROVED"
+        },
+        "description": "Test PR with comments",
+        "updatedDate": 1761138018299,
+        "title": "Test PR",
+        "version": 6,
+        "reviewers": [],
+        "toRef": {
+            "latestCommit": "70b0d7be6f073634f7910a2cb5bbed9ec1306dff",
+            "id": "refs/heads/master",
+            "displayId": "master",
+            "type": "BRANCH",
+            "repository": {
+                "archived": false,
+                "public": false,
+                "hierarchyId": "4e8506d8cbb6287a8dcd",
+                "name": "repo",
+                "forkable": true,
+                "project": {
+                    "public": false,
+                    "name": "test",
+                    "links": {"self": [{"href": "https://bitbucket.example.com/projects/TEST"}]},
+                    "id": 2,
+                    "type": "NORMAL",
+                    "key": "TEST"
+                },
+                "links": {
+                    "clone": [
+                        {
+                            "name": "http",
+                            "href": "https://bitbucket.example.com/scm/test/repo.git"
+                        },
+                        {
+                            "name": "ssh",
+                            "href": "ssh://git@bitbucket.example.com:7999/test/repo.git"
+                        }
+                    ],
+                    "self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/browse"}]
+                },
+                "id": 2,
+                "scmId": "git",
+                "state": "AVAILABLE",
+                "slug": "repo",
+                "statusMessage": "Available"
+            }
+        },
+        "createdDate": 1761134047464,
+        "draft": false,
+        "closed": false,
+        "fromRef": {
+            "latestCommit": "535dd99fabbecd4594c3dc844f387413fe6b97d4",
+            "id": "refs/heads/test-branch",
+            "displayId": "test-branch",
+            "type": "BRANCH",
+            "repository": {
+                "archived": false,
+                "public": false,
+                "hierarchyId": "4e8506d8cbb6287a8dcd",
+                "name": "repo",
+                "forkable": true,
+                "project": {
+                    "public": false,
+                    "name": "test",
+                    "links": {"self": [{"href": "https://bitbucket.example.com/projects/TEST"}]},
+                    "id": 2,
+                    "type": "NORMAL",
+                    "key": "TEST"
+                },
+                "links": {
+                    "clone": [
+                        {
+                            "name": "http",
+                            "href": "https://bitbucket.example.com/scm/test/repo.git"
+                        },
+                        {
+                            "name": "ssh",
+                            "href": "ssh://git@bitbucket.example.com:7999/test/repo.git"
+                        }
+                    ],
+                    "self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/browse"}]
+                },
+                "id": 2,
+                "scmId": "git",
+                "state": "AVAILABLE",
+                "slug": "repo",
+                "statusMessage": "Available"
+            }
+        },
+        "links": {"self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/pull-requests/2"}]},
+        "id": 1,
+        "state": "OPEN",
+        "locked": false,
+        "open": true,
+        "participants": []
+    },
+    "previousComment": "This is a test comment."
+}`
+
 	samplePingData = `{
 	"test": true
 }`
@@ -1181,8 +1474,11 @@ func Test_transformPullRequestEvent(t *testing.T) {
 func Test_isAcceptEventType(t *testing.T) {
 	t.Log("Accept")
 	{
-		for _, anAction := range []string{"repo:refs_changed",
+		for _, anAction := range []string{
+			"repo:refs_changed",
 			"pr:opened",
+			"pr:comment:added",
+			"pr:comment:edited",
 		} {
 			t.Log(" * " + anAction)
 			require.Equal(t, true, isAcceptEventType(anAction))
@@ -1195,7 +1491,7 @@ func Test_isAcceptEventType(t *testing.T) {
 			"a", "not-an-action",
 			"repo:forked", "repo:modified", "repo:comment:added", "repo:comment:edited", "repo:comment:deleted", "pr:reviewer:approved",
 			"pr:reviewer:unapproved", "pr:reviewer:needs_work", "pr:declined", "pr:deleted",
-			"pr:comment:added", "pr:comment:updated", "pr:comment:deleted",
+			"pr:comment:deleted",
 		} {
 			t.Log(" * " + anAction)
 			require.Equal(t, false, isAcceptEventType(anAction))
@@ -1335,11 +1631,12 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
-					CommitMessage: "a new file added",
-					Branch:        "a-branch",
-					BranchDest:    "master",
-					PullRequestID: &intOne,
+					CommitHash:        "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+					CommitMessage:     "a new file added",
+					Branch:            "a-branch",
+					BranchDest:        "master",
+					PullRequestID:     &intOne,
+					PullRequestAuthor: "admin",
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1362,11 +1659,12 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
-					CommitMessage: "a new file added",
-					Branch:        "a-branch",
-					BranchDest:    "master",
-					PullRequestID: &intOne,
+					CommitHash:        "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+					CommitMessage:     "a new file added",
+					Branch:            "a-branch",
+					BranchDest:        "master",
+					PullRequestID:     &intOne,
+					PullRequestAuthor: "admin",
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1389,11 +1687,12 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:    "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
-					CommitMessage: "a new file added",
-					Branch:        "a-branch",
-					BranchDest:    "master",
-					PullRequestID: &intOne,
+					CommitHash:        "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+					CommitMessage:     "a new file added",
+					Branch:            "a-branch",
+					BranchDest:        "master",
+					PullRequestID:     &intOne,
+					PullRequestAuthor: "admin",
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1413,5 +1712,65 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		hookTransformResult := provider.TransformRequest(&request)
 		require.True(t, hookTransformResult.ShouldSkip)
 		require.EqualError(t, hookTransformResult.Error, "Pull Request state doesn't require a build: MERGED")
+	}
+
+	t.Log("Test with Sample Pull Request comment added data")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":  {"pr:comment:added"},
+				"Content-Type": {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(samplePRCommentAddedData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:           "535dd99fabbecd4594c3dc844f387413fe6b97d4",
+					CommitMessage:        "Test PR",
+					Branch:               "test-branch",
+					BranchDest:           "master",
+					PullRequestID:        &intOne,
+					PullRequestAuthor:    "admin",
+					PullRequestComment:   "This is a test comment.",
+					PullRequestCommentID: "7",
+				},
+				TriggeredBy: "webhook-bitbucket-server/admin",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
+	}
+
+	t.Log("Test with Sample Pull Request comment edited data")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"X-Event-Key":  {"pr:comment:edited"},
+				"Content-Type": {"application/json"},
+			},
+			Body: ioutil.NopCloser(strings.NewReader(samplePRCommentEditedData)),
+		}
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
+			{
+				BuildParams: bitriseapi.BuildParamsModel{
+					CommitHash:           "535dd99fabbecd4594c3dc844f387413fe6b97d4",
+					CommitMessage:        "Test PR",
+					Branch:               "test-branch",
+					BranchDest:           "master",
+					PullRequestID:        &intOne,
+					PullRequestAuthor:    "admin",
+					PullRequestComment:   "This is an updated test comment.",
+					PullRequestCommentID: "7",
+				},
+				TriggeredBy: "webhook-bitbucket-server/admin",
+			},
+		}, hookTransformResult.TriggerAPIParams)
+		require.Equal(t, false, hookTransformResult.DontWaitForTriggerResponse)
 	}
 }
