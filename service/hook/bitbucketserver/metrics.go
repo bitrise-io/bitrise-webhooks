@@ -78,8 +78,8 @@ func (hp HookProvider) gatherPushMetrics(event PushEventModel, eventKey string, 
 		var latestCommitTime *time.Time
 		var masterBranch string
 
-		isBranchCreated := change.FromHash == ""
-		isBranchDeleted := change.ToHash == ""
+		isBranchCreated := change.Type == actionAdd
+		isBranchDeleted := change.Type == actionDelete
 
 		switch {
 		case isBranchCreated:

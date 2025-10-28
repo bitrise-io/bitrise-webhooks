@@ -21,6 +21,7 @@ const (
 	scmGit        = "git"
 	actionAdd     = "ADD"
 	actionUpdate  = "UPDATE"
+	actionDelete  = "DELETE"
 	refTypeBranch = "BRANCH"
 	refTypeTag    = "TAG"
 
