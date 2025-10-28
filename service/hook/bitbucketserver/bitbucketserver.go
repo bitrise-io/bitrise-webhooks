@@ -127,7 +127,7 @@ type CommentModel struct {
 	Text string `json:"text"`
 }
 
-// AuthorModel
+// AuthorModel ...
 type AuthorModel struct {
 	User UserInfoModel `json:"user"`
 }
