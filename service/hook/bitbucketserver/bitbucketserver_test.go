@@ -823,15 +823,13 @@ func Test_detectContentTypeSecretAndEventKey(t *testing.T) {
 	t.Log("All required headers - should handle")
 	{
 		header := http.Header{
-			"X-Event-Key":     {"repo:refs_changed"},
-			"Content-Type":    {"application/json"},
-			"X-Hub-Signature": {"secret"},
+			"X-Event-Key":  {"repo:refs_changed"},
+			"Content-Type": {"application/json"},
 		}
-		contentType, secret, eventKey, err := detectContentTypeSecretAndEventKey(header)
+		contentType, eventKey, err := detectContentTypeAndEventKey(header)
 		require.NoError(t, err)
 		require.Equal(t, "application/json", contentType)
 		require.Equal(t, "repo:refs_changed", eventKey)
-		require.Equal(t, "secret", secret)
 	}
 
 	t.Log("No signature header - should handle")
@@ -840,11 +838,10 @@ func Test_detectContentTypeSecretAndEventKey(t *testing.T) {
 			"X-Event-Key":  {"repo:refs_changed"},
 			"Content-Type": {"application/json"},
 		}
-		contentType, secret, eventKey, err := detectContentTypeSecretAndEventKey(header)
+		contentType, eventKey, err := detectContentTypeAndEventKey(header)
 		require.NoError(t, err)
 		require.Equal(t, "application/json", contentType)
 		require.Equal(t, "repo:refs_changed", eventKey)
-		require.Equal(t, "", secret)
 	}
 
 	t.Log("Missing X-Event-Key header")
@@ -852,11 +849,10 @@ func Test_detectContentTypeSecretAndEventKey(t *testing.T) {
 		header := http.Header{
 			"Content-Type": {"application/json"},
 		}
-		contentType, secret, eventKey, err := detectContentTypeSecretAndEventKey(header)
+		contentType, eventKey, err := detectContentTypeAndEventKey(header)
 		require.EqualError(t, err, "No X-Event-Key Header found")
 		require.Equal(t, "", contentType)
 		require.Equal(t, "", eventKey)
-		require.Equal(t, "", secret)
 	}
 
 	t.Log("Missing Content-Type header")
@@ -864,11 +860,10 @@ func Test_detectContentTypeSecretAndEventKey(t *testing.T) {
 		header := http.Header{
 			"X-Event-Key": {"repo:refs_changed"},
 		}
-		contentType, secret, eventKey, err := detectContentTypeSecretAndEventKey(header)
+		contentType, eventKey, err := detectContentTypeAndEventKey(header)
 		require.EqualError(t, err, "No Content-Type Header found")
 		require.Equal(t, "", contentType)
 		require.Equal(t, "", eventKey)
-		require.Equal(t, "", secret)
 	}
 
 	t.Log("Bitbucket Server UTF8 charset Content-Type header")
@@ -877,11 +872,10 @@ func Test_detectContentTypeSecretAndEventKey(t *testing.T) {
 			"Content-Type": {"application/json; charset=utf-8"},
 			"X-Event-Key":  {"repo:refs_changed"},
 		}
-		contentType, secret, eventKey, err := detectContentTypeSecretAndEventKey(header)
+		contentType, eventKey, err := detectContentTypeAndEventKey(header)
 		require.NoError(t, err)
 		require.Equal(t, "application/json; charset=utf-8", contentType)
 		require.Equal(t, "repo:refs_changed", eventKey)
-		require.Equal(t, "", secret)
 	}
 }
 
@@ -1631,12 +1625,14 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:        "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
-					CommitMessage:     "a new file added",
-					Branch:            "a-branch",
-					BranchDest:        "master",
-					PullRequestID:     &intOne,
-					PullRequestAuthor: "admin",
+					CommitHash:          "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+					CommitMessage:       "a new file added",
+					Branch:              "a-branch",
+					BranchRepoOwner:     "PROJ",
+					BranchDest:          "master",
+					BranchDestRepoOwner: "PROJ",
+					PullRequestID:       &intOne,
+					PullRequestAuthor:   "admin",
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1659,12 +1655,14 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:        "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
-					CommitMessage:     "a new file added",
-					Branch:            "a-branch",
-					BranchDest:        "master",
-					PullRequestID:     &intOne,
-					PullRequestAuthor: "admin",
+					CommitHash:          "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+					CommitMessage:       "a new file added",
+					Branch:              "a-branch",
+					BranchRepoOwner:     "PROJ",
+					BranchDest:          "master",
+					BranchDestRepoOwner: "PROJ",
+					PullRequestID:       &intOne,
+					PullRequestAuthor:   "admin",
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1687,12 +1685,14 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:        "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
-					CommitMessage:     "a new file added",
-					Branch:            "a-branch",
-					BranchDest:        "master",
-					PullRequestID:     &intOne,
-					PullRequestAuthor: "admin",
+					CommitHash:          "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+					CommitMessage:       "a new file added",
+					Branch:              "a-branch",
+					BranchRepoOwner:     "PROJ",
+					BranchDest:          "master",
+					BranchDestRepoOwner: "PROJ",
+					PullRequestID:       &intOne,
+					PullRequestAuthor:   "admin",
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1732,7 +1732,9 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitHash:           "535dd99fabbecd4594c3dc844f387413fe6b97d4",
 					CommitMessage:        "Test PR",
 					Branch:               "test-branch",
+					BranchRepoOwner:      "TEST",
 					BranchDest:           "master",
+					BranchDestRepoOwner:  "TEST",
 					PullRequestID:        &intOne,
 					PullRequestAuthor:    "admin",
 					PullRequestComment:   "This is a test comment.",
@@ -1762,7 +1764,9 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 					CommitHash:           "535dd99fabbecd4594c3dc844f387413fe6b97d4",
 					CommitMessage:        "Test PR",
 					Branch:               "test-branch",
+					BranchRepoOwner:      "TEST",
 					BranchDest:           "master",
+					BranchDestRepoOwner:  "TEST",
 					PullRequestID:        &intOne,
 					PullRequestAuthor:    "admin",
 					PullRequestComment:   "This is an updated test comment.",

@@ -135,22 +135,34 @@ type AuthorModel struct {
 // --- Webhook Provider Implementation ---
 
 // HookProvider ...
-type HookProvider struct{}
+type HookProvider struct {
+	timeProvider hookCommon.TimeProvider
+}
 
-func detectContentTypeSecretAndEventKey(header http.Header) (string, string, string, error) {
+// NewHookProvider ...
+func NewHookProvider(timeProvider hookCommon.TimeProvider) hookCommon.Provider {
+	return HookProvider{
+		timeProvider: timeProvider,
+	}
+}
+
+// NewDefaultHookProvider ...
+func NewDefaultHookProvider() hookCommon.Provider {
+	return NewHookProvider(hookCommon.NewDefaultTimeProvider())
+}
+
+func detectContentTypeAndEventKey(header http.Header) (string, string, error) {
 	contentType := header.Get("Content-Type")
 	if contentType == "" {
-		return "", "", "", errors.New("No Content-Type Header found")
+		return "", "", errors.New("No Content-Type Header found")
 	}
 
 	eventKey := header.Get("X-Event-Key")
 	if eventKey == "" {
-		return "", "", "", errors.New("No X-Event-Key Header found")
+		return "", "", errors.New("No X-Event-Key Header found")
 	}
 
-	secret := header.Get("X-Hub-Signature")
-
-	return contentType, secret, eventKey, nil
+	return contentType, eventKey, nil
 }
 
 func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultModel {
@@ -269,7 +281,9 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 					CommitMessage:        commitMsg,
 					CommitHash:           pullRequest.PullRequest.FromRef.LatestCommit,
 					Branch:               pullRequest.PullRequest.FromRef.DisplayID,
+					BranchRepoOwner:      pullRequest.PullRequest.FromRef.Repository.Project.Key,
 					BranchDest:           pullRequest.PullRequest.ToRef.DisplayID,
+					BranchDestRepoOwner:  pullRequest.PullRequest.ToRef.Repository.Project.Key,
 					PullRequestID:        &pullRequest.PullRequest.ID,
 					PullRequestAuthor:    pullRequest.PullRequest.Author.User.Name,
 					PullRequestComment:   comment,
@@ -287,7 +301,7 @@ func isAcceptEventType(eventKey string) bool {
 
 // TransformRequest ...
 func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformResultModel {
-	contentType, secret, eventKey, err := detectContentTypeSecretAndEventKey(r.Header)
+	contentType, eventKey, err := detectContentTypeAndEventKey(r.Header)
 	if err != nil {
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("Issue with Headers: %s", err),
@@ -303,9 +317,6 @@ func (hp HookProvider) TransformRequest(r *http.Request) hookCommon.TransformRes
 		return hookCommon.TransformResultModel{
 			Error: fmt.Errorf("X-Event-Key is not supported: %s", eventKey),
 		}
-	}
-	if secret != "" {
-		// todo handle secret
 	}
 
 	if r.Body == nil {
