@@ -40,7 +40,7 @@ func supportedProviders(logger *zap.Logger) map[string]hookCommon.Provider {
 	return map[string]hookCommon.Provider{
 		github.ProviderID:                   github.NewDefaultHookProvider(),
 		bitbucketv2.ProviderID:              bitbucketv2.NewDefaultHookProvider(),
-		bitbucketserver.ProviderID:          bitbucketserver.HookProvider{},
+		bitbucketserver.ProviderID:          bitbucketserver.NewDefaultHookProvider(),
 		slack.ProviderID:                    slack.HookProvider{},
 		visualstudioteamservices.ProviderID: visualstudioteamservices.HookProvider{},
 		gitlab.ProviderID:                   gitlab.NewDefaultHookProvider(logger),

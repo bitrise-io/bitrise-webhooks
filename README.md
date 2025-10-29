@@ -11,7 +11,7 @@ For more information check the [How to add support for a new Provider](https://g
 
 ## CI Skip
 
-If the (commit) message includes `[skip ci]` or `[ci skip]` no build will be triggered.
+If the (commit) message includes `[skip ci]`, `[ci skip]`, `[skip bitrise]` or `[bitrise skip]`, no build will be triggered.
 
 
 ## Supported webhooks / providers
@@ -51,11 +51,11 @@ a [GitHub](https://github.com) *repository*.
 4. Click on `Add webhook`
 5. Specify the `bitrise-webhooks` URL (`.../h/github/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `Payload URL` field
 6. Select the *events* you want to trigger a webhook for
-  * Right now `bitrise-webhooks` supports the `Push` and `Pull Request` events,
+  * Right now `bitrise-webhooks` supports the `Push`, `Pull Request` and `Issue comments` events,
     every other webhook (triggered by another event) will be ignored.
 7. Click `Add webhook`
 
-That's all! The next time you __push code__, __push a new tag__ or __create/update a pull request__
+That's all! The next time you __push code__, __push a new tag__, __create/update a pull request__ or __comment on a pull request__
 a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 
@@ -70,12 +70,18 @@ a [Bitbucket](https://bitbucket.org) *repository*.
 4. Click on `Add webhook`
 5. Specify the `bitrise-webhooks` URL (`.../h/bitbucket-v2/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `URL` field
 6. In the *Triggers* section select `Choose from a full list of triggers` and the following properties:
-  * Repository > Push
-  * Pull Request > Created
-  * Pull Request > Updated
+  * Repository
+    * Push
+  * Pull Request
+    * Created
+    * Updated
+    * Merged
+    * Declined
+    * Comment created
+    * Comment updated
 7. Click `Save`
 
-That's all! The next time you __push code__, __push a new tag__ or __create/update a pull request__
+That's all! The next time you __push code__, __push a new tag__, __create/update a pull request__ or __comment on a pull request__
 a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 ### Bitbucket Server Webhooks - setup & usage:
@@ -89,11 +95,19 @@ a Bitbucket Server *repository*.
 4. Click on `Create webhook`
 5. Specify the `bitrise-webhooks` URL (`.../h/bitbucket-server/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`) in the `URL` field
 6. In the *Events* section select the following properties:
-  * Repository > Push
-  * Pull Request > Opened
+  * Repository
+    * Push
+  * Pull Request
+    * Opened
+    * Modified
+    * Source branch updated
+    * Declined
+    * Merged
+    * Commend added
+    * Comment edited
 7. Click `Save`
 
-That's all! The next time you __push code__, __push a new tag__ or __create a pull request__
+That's all! The next time you __push code__, __push a new tag__, __create/update a pull request__ or __comment on a pull request__
 a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise). Please note that Bitbucket Server doesn't send any notifications when new commits are pushed to an existing PR, so no builds will be triggered by these events.
 
 ### GitLab - setup & usage:
@@ -109,9 +123,10 @@ a [GitLab](https://gitlab.com) *project*.
   * `Push events`
   * `Tag push events`
   * `Merge Request events`
+  * `Comments`
 6. Click `Add Web Hook`
 
-That's all! The next time you __push code__, __push a new tag__ or __create/update a merge request__
+That's all! The next time you __push code__, __push a new tag__, __create/update a merge request__ or __comment on a merge request__
 a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
 
 
