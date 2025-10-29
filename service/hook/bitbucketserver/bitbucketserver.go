@@ -66,12 +66,19 @@ type UserInfoModel struct {
 
 // RepositoryInfoModel ...
 type RepositoryInfoModel struct {
-	Slug    string           `json:"slug"`
-	ID      int              `json:"id"`
-	Name    string           `json:"name"`
-	Public  bool             `json:"public"`
-	Scm     string           `json:"scmId"`
-	Project ProjectInfoModel `json:"project"`
+	Slug    string                 `json:"slug"`
+	ID      int                    `json:"id"`
+	Name    string                 `json:"name"`
+	Public  bool                   `json:"public"`
+	Scm     string                 `json:"scmId"`
+	Project ProjectInfoModel       `json:"project"`
+	Links   map[string][]LinkModel `json:"links"`
+}
+
+// LinkModel ...
+type LinkModel struct {
+	Name string `json:"name"`
+	Href string `json:"href"`
 }
 
 // CommitModel ...
@@ -216,10 +223,11 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Branch:         aChange.Ref.DisplayID,
-					CommitHash:     aChange.ToHash,
-					CommitMessage:  headCommmitMessage,
-					CommitMessages: allCommitMessages,
+					Branch:            aChange.Ref.DisplayID,
+					CommitHash:        aChange.ToHash,
+					CommitMessage:     headCommmitMessage,
+					CommitMessages:    allCommitMessages,
+					BaseRepositoryURL: pushEvent.RepositoryInfo.getRepositoryURL(),
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Actor.Name),
 			}
@@ -234,10 +242,11 @@ func transformPushEvent(pushEvent PushEventModel) hookCommon.TransformResultMode
 
 			aTriggerAPIParams := bitriseapi.TriggerAPIParamsModel{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:            aChange.Ref.DisplayID,
-					CommitHash:     aChange.ToHash,
-					CommitMessage:  headCommmitMessage,
-					CommitMessages: allCommitMessages,
+					Tag:               aChange.Ref.DisplayID,
+					CommitHash:        aChange.ToHash,
+					CommitMessage:     headCommmitMessage,
+					CommitMessages:    allCommitMessages,
+					BaseRepositoryURL: pushEvent.RepositoryInfo.getRepositoryURL(),
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pushEvent.Actor.Name),
 			}
@@ -279,21 +288,40 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 		TriggerAPIParams: []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitMessage:        commitMsg,
-					CommitHash:           pullRequest.PullRequest.FromRef.LatestCommit,
-					Branch:               pullRequest.PullRequest.FromRef.DisplayID,
-					BranchRepoOwner:      pullRequest.PullRequest.FromRef.Repository.Project.Key,
-					BranchDest:           pullRequest.PullRequest.ToRef.DisplayID,
-					BranchDestRepoOwner:  pullRequest.PullRequest.ToRef.Repository.Project.Key,
-					PullRequestID:        &pullRequest.PullRequest.ID,
-					PullRequestAuthor:    pullRequest.PullRequest.Author.User.Name,
-					PullRequestComment:   comment,
-					PullRequestCommentID: commentID,
+					CommitMessage:            commitMsg,
+					CommitHash:               pullRequest.PullRequest.FromRef.LatestCommit,
+					Branch:                   pullRequest.PullRequest.FromRef.DisplayID,
+					BranchRepoOwner:          pullRequest.PullRequest.FromRef.Repository.Project.Key,
+					BranchDest:               pullRequest.PullRequest.ToRef.DisplayID,
+					BranchDestRepoOwner:      pullRequest.PullRequest.ToRef.Repository.Project.Key,
+					PullRequestID:            &pullRequest.PullRequest.ID,
+					BaseRepositoryURL:        pullRequest.PullRequest.ToRef.Repository.getRepositoryURL(),
+					HeadRepositoryURL:        pullRequest.PullRequest.FromRef.Repository.getRepositoryURL(),
+					PullRequestRepositoryURL: pullRequest.PullRequest.FromRef.Repository.getRepositoryURL(),
+					PullRequestAuthor:        pullRequest.PullRequest.Author.User.Name,
+					PullRequestComment:       comment,
+					PullRequestCommentID:     commentID,
 				},
 				TriggeredBy: hookCommon.GenerateTriggeredBy(ProviderID, pullRequest.Actor.Name),
 			},
 		},
 	}
+}
+
+func (repository RepositoryInfoModel) getRepositoryURL() string {
+	if cloneLinks, ok := repository.Links["clone"]; ok {
+		for _, link := range cloneLinks {
+			if link.Name == "ssh" && !repository.Public {
+				return link.Href
+			}
+
+			if link.Name == "http" && repository.Public {
+				return link.Href
+			}
+		}
+	}
+
+	return ""
 }
 
 func isAcceptEventType(eventKey string) bool {
