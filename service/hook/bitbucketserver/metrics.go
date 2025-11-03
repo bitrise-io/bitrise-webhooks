@@ -64,9 +64,13 @@ func (hp HookProvider) gatherPushMetrics(event PushEventModel, eventKey string, 
 		// general metrics
 		provider := ProviderID
 		repo := event.RepositoryInfo.Project.Key + "/" + event.RepositoryInfo.Slug
-		timestamp, err := time.Parse(TimestampFormat, event.Date)
-		if err != nil {
-			return nil, err
+		var eventTimestamp *time.Time
+		if event.Date != "" {
+			timestamp, err := time.Parse(TimestampFormat, event.Date)
+			if err != nil {
+				return nil, err
+			}
+			eventTimestamp = &timestamp
 		}
 		originalTrigger := common.OriginalTrigger(eventKey, "")
 		userName := event.Actor.Name
@@ -90,7 +94,7 @@ func (hp HookProvider) gatherPushMetrics(event PushEventModel, eventKey string, 
 			constructorFunc = common.NewPushMetrics
 		}
 
-		generalMetrics := common.NewGeneralMetrics(provider, repo, currentTime, &timestamp, appSlug, originalTrigger, userName, gitRef)
+		generalMetrics := common.NewGeneralMetrics(provider, repo, currentTime, eventTimestamp, appSlug, originalTrigger, userName, gitRef)
 		metrics := constructorFunc(generalMetrics, commitIDAfter, commitIDBefore, oldestCommitTime, latestCommitTime, masterBranch)
 		metricsList = append(metricsList, metrics)
 	}
@@ -102,9 +106,13 @@ func (hp HookProvider) gatherPRMetrics(event PullRequestEventModel, eventKey str
 	var constructorFunc func(generalMetrics common.GeneralMetrics, generalPullRequestMetrics common.GeneralPullRequestMetrics) common.PullRequestMetrics
 
 	provider := ProviderID
-	timestamp, err := time.Parse(TimestampFormat, event.Date)
-	if err != nil {
-		return nil, err
+	var eventTimestamp *time.Time
+	if event.Date != "" {
+		timestamp, err := time.Parse(TimestampFormat, event.Date)
+		if err != nil {
+			return nil, err
+		}
+		eventTimestamp = &timestamp
 	}
 	originalTrigger := common.OriginalTrigger(eventKey, "")
 	userName := event.Actor.Name
@@ -127,7 +135,7 @@ func (hp HookProvider) gatherPRMetrics(event PullRequestEventModel, eventKey str
 		return nil, nil
 	}
 
-	generalMetrics := common.NewGeneralMetrics(provider, repo, currentTime, &timestamp, appSlug, originalTrigger, userName, gitRef)
+	generalMetrics := common.NewGeneralMetrics(provider, repo, currentTime, eventTimestamp, appSlug, originalTrigger, userName, gitRef)
 	generalPullRequestMetrics := newGeneralPullRequestMetrics(pullRequest)
 	metrics := constructorFunc(generalMetrics, generalPullRequestMetrics)
 	return []common.Metrics{metrics}, nil
