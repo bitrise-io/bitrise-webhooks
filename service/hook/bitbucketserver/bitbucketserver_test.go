@@ -39,20 +39,7 @@ const (
       "public":false,
       "type":"NORMAL"
     },
-    "public":false,
-	"links": {
-		"clone": [
-			{
-				"name": "ssh",
-				"href": "ssh://git@bitbucket.example.com:7999/test/repo.git"
-			},
-			{
-				"name": "http",
-				"href": "https://bitbucket.example.com/scm/test/repo.git"
-			}
-		],
-		"self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/browse"}]
-	}
+    "public":false
   },
   "changes":[
     {
@@ -66,7 +53,7 @@ const (
       "toHash":"to-hash-1",
       "type":"UPDATE"
     },
-    {
+ {
       "ref":{
         "id":"refs/heads/master",
         "displayId":"a-branch",
@@ -126,20 +113,7 @@ const (
       "public": false,
       "type": "NORMAL"
     },
-    "public": false,
-	"links": {
-		"clone": [
-			{
-				"name": "ssh",
-				"href": "ssh://git@bitbucket.example.com:7999/test/repo.git"
-			},
-			{
-				"name": "http",
-				"href": "https://bitbucket.example.com/scm/test/repo.git"
-			}
-		],
-		"self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/browse"}]
-	}
+    "public": false
   },
   "changes": [
     {
@@ -196,20 +170,7 @@ const (
           "public":false,
           "type":"NORMAL"
         },
-        "public":false,
-        "links": {
-            "clone": [
-                {
-                    "name": "ssh",
-                    "href": "ssh://git@bitbucket.example.com:7999/test/repo.git"
-                },
-                {
-                    "name": "http",
-                    "href": "https://bitbucket.example.com/scm/test/repo.git"
-                }
-            ],
-            "self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/browse"}]
-        }
+        "public":false
       }
     },
     "toRef":{
@@ -231,20 +192,7 @@ const (
           "public":false,
           "type":"NORMAL"
         },
-        "public":false,
-        "links": {
-            "clone": [
-                {
-                    "name": "ssh",
-                    "href": "ssh://git@bitbucket.example.com:7999/test/repo.git"
-                },
-                {
-                    "name": "http",
-                    "href": "https://bitbucket.example.com/scm/test/repo.git"
-                }
-            ],
-            "self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/browse"}]
-        }
+        "public":false
       }
     },
     "locked":false,
@@ -268,7 +216,11 @@ const (
     "participants":[
 
     ],
-    "links": {"self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/pull-requests/1"}]}
+    "links":{
+      "self":[
+        null
+      ]
+    }
   }
 }`
 
@@ -276,366 +228,295 @@ const (
 "eventKey":"pr:modified",
 "date":"2017-09-19T09:58:11+1000",
 "actor":{
-    "name":"admin",
-    "emailAddress":"admin@example.com",
-    "id":1,
-    "displayName":"Administrator",
-    "active":true,
-    "slug":"admin",
-    "type":"NORMAL"
+	"name":"admin",
+	"emailAddress":"admin@example.com",
+	"id":1,
+	"displayName":"Administrator",
+	"active":true,
+	"slug":"admin",
+	"type":"NORMAL"
 },
 "pullRequest":{
-    "id":1,
-    "version":0,
-    "title":"a new file added",
-    "state":"OPEN",
-    "open":true,
-    "closed":false,
-    "createdDate":1505779091796,
-    "updatedDate":1505779091796,
-    "fromRef":{
-        "id":"refs/heads/a-branch",
-        "displayId":"a-branch",
-        "latestCommit":"ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
-        "repository":{
-            "slug":"repository",
-            "id":84,
-            "name":"repository",
-            "scmId":"git",
-            "state":"AVAILABLE",
-            "statusMessage":"Available",
-            "forkable":true,
-            "project":{
-                "key":"PROJ",
-                "id":84,
-                "name":"project",
-                "public":false,
-                "type":"NORMAL"
-            },
-            "public":false,
-            "links": {
-                "clone": [
-                    {
-                        "name": "ssh",
-                        "href": "ssh://git@bitbucket.example.com:7999/test/repo.git"
-                    },
-                    {
-                        "name": "http",
-                        "href": "https://bitbucket.example.com/scm/test/repo.git"
-                    }
-                ],
-                "self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/browse"}]
-            }
-        }
-    },
-    "toRef":{
-        "id":"refs/heads/master",
-        "displayId":"master",
-        "latestCommit":"178864a7d521b6f5e720b386b2c2b0ef8563e0dc",
-        "repository":{
-            "slug":"repository",
-            "id":84,
-            "name":"repository",
-            "scmId":"git",
-            "state":"AVAILABLE",
-            "statusMessage":"Available",
-            "forkable":true,
-            "project":{
-                "key":"PROJ",
-                "id":84,
-                "name":"project",
-                "public":false,
-                "type":"NORMAL"
-            },
-            "public":false,
-            "links": {
-                "clone": [
-                    {
-                        "name": "ssh",
-                        "href": "ssh://git@bitbucket.example.com:7999/test/repo.git"
-                    },
-                    {
-                        "name": "http",
-                        "href": "https://bitbucket.example.com/scm/test/repo.git"
-                    }
-                ],
-                "self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/browse"}]
-            }
-        }
-    },
-    "locked":false,
-    "author":{
-        "user":{
-            "name":"admin",
-            "emailAddress":"admin@example.com",
-            "id":1,
-            "displayName":"Administrator",
-            "active":true,
-            "slug":"admin",
-            "type":"NORMAL"
-        },
-        "role":"AUTHOR",
-        "approved":false,
-        "status":"UNAPPROVED"
-    },
-    "reviewers":[
+	"id":1,
+	"version":0,
+	"title":"a new file added",
+	"state":"OPEN",
+	"open":true,
+	"closed":false,
+	"createdDate":1505779091796,
+	"updatedDate":1505779091796,
+	"fromRef":{
+		"id":"refs/heads/a-branch",
+		"displayId":"a-branch",
+		"latestCommit":"ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+		"repository":{
+			"slug":"repository",
+			"id":84,
+			"name":"repository",
+			"scmId":"git",
+			"state":"AVAILABLE",
+			"statusMessage":"Available",
+			"forkable":true,
+			"project":{
+				"key":"PROJ",
+				"id":84,
+				"name":"project",
+				"public":false,
+				"type":"NORMAL"
+			},
+			"public":false
+		}
+	},
+	"toRef":{
+		"id":"refs/heads/master",
+		"displayId":"master",
+		"latestCommit":"178864a7d521b6f5e720b386b2c2b0ef8563e0dc",
+		"repository":{
+			"slug":"repository",
+			"id":84,
+			"name":"repository",
+			"scmId":"git",
+			"state":"AVAILABLE",
+			"statusMessage":"Available",
+			"forkable":true,
+			"project":{
+				"key":"PROJ",
+				"id":84,
+				"name":"project",
+				"public":false,
+				"type":"NORMAL"
+			},
+			"public":false
+		}
+	},
+	"locked":false,
+	"author":{
+		"user":{
+			"name":"admin",
+			"emailAddress":"admin@example.com",
+			"id":1,
+			"displayName":"Administrator",
+			"active":true,
+			"slug":"admin",
+			"type":"NORMAL"
+		},
+		"role":"AUTHOR",
+		"approved":false,
+		"status":"UNAPPROVED"
+	},
+	"reviewers":[
 
-    ],
-    "participants":[
+	],
+	"participants":[
 
-    ],
-    "links": {"self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/pull-requests/1"}]}
+	],
+	"links":{
+		"self":[
+			null
+		]
+	}
 }
 }`
 
 	samplePullRequestFromRefUpdatedData = `{
-    "eventKey":"pr:from_ref_updated",
-    "date":"2017-09-19T09:58:11+1000",
-    "actor":{
-    "name":"admin",
-    "emailAddress":"admin@example.com",
-    "id":1,
-    "displayName":"Administrator",
-    "active":true,
-    "slug":"admin",
-    "type":"NORMAL"
-    },
-    "pullRequest":{
-    "id":1,
-    "version":0,
-    "title":"a new file added",
-    "state":"OPEN",
-    "open":true,
-    "closed":false,
-    "createdDate":1505779091796,
-    "updatedDate":1505779091796,
-    "fromRef":{
-        "id":"refs/heads/a-branch",
-        "displayId":"a-branch",
-        "latestCommit":"ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
-        "repository":{
-            "slug":"repository",
-            "id":84,
-            "name":"repository",
-            "scmId":"git",
-            "state":"AVAILABLE",
-            "statusMessage":"Available",
-            "forkable":true,
-            "project":{
-                "key":"PROJ",
-                "id":84,
-                "name":"project",
-                "public":false,
-                "type":"NORMAL"
-            },
-            "public":false,
-            "links": {
-                "clone": [
-                    {
-                        "name": "ssh",
-                        "href": "ssh://git@bitbucket.example.com:7999/test/repo.git"
-                    },
-                    {
-                        "name": "http",
-                        "href": "https://bitbucket.example.com/scm/test/repo.git"
-                    }
-                ],
-                "self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/browse"}]
-            }
-        }
-    },
-    "toRef":{
-        "id":"refs/heads/master",
-        "displayId":"master",
-        "latestCommit":"178864a7d521b6f5e720b386b2c2b0ef8563e0dc",
-        "repository":{
-            "slug":"repository",
-            "id":84,
-            "name":"repository",
-            "scmId":"git",
-            "state":"AVAILABLE",
-            "statusMessage":"Available",
-            "forkable":true,
-            "project":{
-                "key":"PROJ",
-                "id":84,
-                "name":"project",
-                "public":false,
-                "type":"NORMAL"
-            },
-            "public":false,
-            "links": {
-                "clone": [
-                    {
-                        "name": "ssh",
-                        "href": "ssh://git@bitbucket.example.com:7999/test/repo.git"
-                    },
-                    {
-                        "name": "http",
-                        "href": "https://bitbucket.example.com/scm/test/repo.git"
-                    }
-                ],
-                "self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/browse"}]
-            }
-        }
-    },
-    "locked":false,
-    "author":{
-        "user":{
-            "name":"admin",
-            "emailAddress":"admin@example.com",
-            "id":1,
-            "displayName":"Administrator",
-            "active":true,
-            "slug":"admin",
-            "type":"NORMAL"
-        },
-        "role":"AUTHOR",
-        "approved":false,
-        "status":"UNAPPROVED"
-    },
-    "reviewers":[
-    
-    ],
-    "participants":[
-    
-    ],
-    "links": {"self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/pull-requests/1"}]}
-    }
+"eventKey":"pr:from_ref_updated",
+"date":"2017-09-19T09:58:11+1000",
+"actor":{
+"name":"admin",
+"emailAddress":"admin@example.com",
+"id":1,
+"displayName":"Administrator",
+"active":true,
+"slug":"admin",
+"type":"NORMAL"
+},
+"pullRequest":{
+"id":1,
+"version":0,
+"title":"a new file added",
+"state":"OPEN",
+"open":true,
+"closed":false,
+"createdDate":1505779091796,
+"updatedDate":1505779091796,
+"fromRef":{
+	"id":"refs/heads/a-branch",
+	"displayId":"a-branch",
+	"latestCommit":"ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+	"repository":{
+		"slug":"repository",
+		"id":84,
+		"name":"repository",
+		"scmId":"git",
+		"state":"AVAILABLE",
+		"statusMessage":"Available",
+		"forkable":true,
+		"project":{
+			"key":"PROJ",
+			"id":84,
+			"name":"project",
+			"public":false,
+			"type":"NORMAL"
+		},
+		"public":false
+	}
+},
+"toRef":{
+	"id":"refs/heads/master",
+	"displayId":"master",
+	"latestCommit":"178864a7d521b6f5e720b386b2c2b0ef8563e0dc",
+	"repository":{
+		"slug":"repository",
+		"id":84,
+		"name":"repository",
+		"scmId":"git",
+		"state":"AVAILABLE",
+		"statusMessage":"Available",
+		"forkable":true,
+		"project":{
+			"key":"PROJ",
+			"id":84,
+			"name":"project",
+			"public":false,
+			"type":"NORMAL"
+		},
+		"public":false
+	}
+},
+"locked":false,
+"author":{
+	"user":{
+		"name":"admin",
+		"emailAddress":"admin@example.com",
+		"id":1,
+		"displayName":"Administrator",
+		"active":true,
+		"slug":"admin",
+		"type":"NORMAL"
+	},
+	"role":"AUTHOR",
+	"approved":false,
+	"status":"UNAPPROVED"
+},
+"reviewers":[
+
+],
+"participants":[
+
+],
+"links":{
+	"self":[
+		null
+	]
+}
+}
 }`
 
 	samplePullRequestMergedData = `{
-    "eventKey": "pr:merged",
-    "date": "2017-09-19T10:39:36+1000",
-    "actor": {
-        "name": "user",
-        "emailAddress": "user@example.com",
-        "id": 2,
-        "displayName": "User",
-        "active": true,
-        "slug": "user",
-        "type": "NORMAL"
-    },
-    "pullRequest": {
-        "id": 9,
-        "version": 2,
-        "title": "Awesome feature",
-        "state": "MERGED",
-        "open": false,
-        "closed": true,
-        "createdDate": 1505781560908,
-        "updatedDate": 1505781576361,
-        "closedDate": 1505781576361,
-        "fromRef": {
-            "id": "refs/heads/admin/file-1505781548644",
-            "displayId": "admin/file-1505781548644",
-            "latestCommit": "45f9690c928915a5e1c4366d5ee1985eea03f05d",
-            "repository": {
-                "slug": "repository",
-                "id": 84,
-                "name": "repository",
-                "scmId": "git",
-                "state": "AVAILABLE",
-                "statusMessage": "Available",
-                "forkable": true,
-                "project": {
-                    "key": "PROJ",
-                    "id": 84,
-                    "name": "project",
-                    "public": false,
-                    "type": "NORMAL"
-                },
-                "public": false,
-                "links": {
-                    "clone": [
-                        {
-                            "name": "ssh",
-                            "href": "ssh://git@bitbucket.example.com:7999/test/repo.git"
-                        },
-                        {
-                            "name": "http",
-                            "href": "https://bitbucket.example.com/scm/test/repo.git"
-                        }
-                    ],
-                    "self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/browse"}]
-                }
-            }
-        },
-        "toRef": {
-            "id": "refs/heads/master",
-            "displayId": "master",
-            "latestCommit": "8d2ad38c918fa6943859fca2176c89ea98b92a21",
-            "repository": {
-                "slug": "repository",
-                "id": 84,
-                "name": "repository",
-                "scmId": "git",
-                "state": "AVAILABLE",
-                "statusMessage": "Available",
-                "forkable": true,
-                "project": {
-                    "key": "PROJ",
-                    "id": 84,
-                    "name": "project",
-                    "public": false,
-                    "type": "NORMAL"
-                },
-                "public": false,
-                "links": {
-                    "clone": [
-                        {
-                            "name": "ssh",
-                            "href": "ssh://git@bitbucket.example.com:7999/test/repo.git"
-                        },
-                        {
-                            "name": "http",
-                            "href": "https://bitbucket.example.com/scm/test/repo.git"
-                        }
-                    ],
-                    "self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/browse"}]
-                }
-            }
-        },
-        "locked": false,
-        "author": {
-            "user": {
-                "name": "admin",
-                "emailAddress": "admin@example.com",
-                "id": 1,
-                "displayName": "Administrator",
-                "active": true,
-                "slug": "admin",
-                "type": "NORMAL"
-            },
-            "role": "AUTHOR",
-            "approved": false,
-            "status": "UNAPPROVED"
-        },
-        "reviewers": [
+	"eventKey": "pr:merged",
+	"date": "2017-09-19T10:39:36+1000",
+	"actor": {
+		"name": "user",
+		"emailAddress": "user@example.com",
+		"id": 2,
+		"displayName": "User",
+		"active": true,
+		"slug": "user",
+		"type": "NORMAL"
+	},
+	"pullRequest": {
+		"id": 9,
+		"version": 2,
+		"title": "Awesome feature",
+		"state": "MERGED",
+		"open": false,
+		"closed": true,
+		"createdDate": 1505781560908,
+		"updatedDate": 1505781576361,
+		"closedDate": 1505781576361,
+		"fromRef": {
+			"id": "refs/heads/admin/file-1505781548644",
+			"displayId": "admin/file-1505781548644",
+			"latestCommit": "45f9690c928915a5e1c4366d5ee1985eea03f05d",
+			"repository": {
+				"slug": "repository",
+				"id": 84,
+				"name": "repository",
+				"scmId": "git",
+				"state": "AVAILABLE",
+				"statusMessage": "Available",
+				"forkable": true,
+				"project": {
+					"key": "PROJ",
+					"id": 84,
+					"name": "project",
+					"public": false,
+					"type": "NORMAL"
+				},
+				"public": false
+			}
+		},
+		"toRef": {
+			"id": "refs/heads/master",
+			"displayId": "master",
+			"latestCommit": "8d2ad38c918fa6943859fca2176c89ea98b92a21",
+			"repository": {
+				"slug": "repository",
+				"id": 84,
+				"name": "repository",
+				"scmId": "git",
+				"state": "AVAILABLE",
+				"statusMessage": "Available",
+				"forkable": true,
+				"project": {
+					"key": "PROJ",
+					"id": 84,
+					"name": "project",
+					"public": false,
+					"type": "NORMAL"
+				},
+				"public": false
+			}
+		},
+		"locked": false,
+		"author": {
+			"user": {
+				"name": "admin",
+				"emailAddress": "admin@example.com",
+				"id": 1,
+				"displayName": "Administrator",
+				"active": true,
+				"slug": "admin",
+				"type": "NORMAL"
+			},
+			"role": "AUTHOR",
+			"approved": false,
+			"status": "UNAPPROVED"
+		},
+		"reviewers": [
 
-        ],
-        "participants": [{
-            "user": {
-                "name": "user",
-                "emailAddress": "user@example.com",
-                "id": 2,
-                "displayName": "User",
-                "active": true,
-                "slug": "user",
-                "type": "NORMAL"
-            },
-            "role": "PARTICIPANT",
-            "approved": false,
-            "status": "UNAPPROVED"
-        }],
-        "properties": {
-            "mergeCommit": {
-                "displayId": "7e48f426f0a",
-                "id": "7e48f426f0a6e47c5b5e862c31be6ca965f82c9c"
-            }
-        },
-        "links": {"self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/pull-requests/1"}]}
-    }
+		],
+		"participants": [{
+			"user": {
+				"name": "user",
+				"emailAddress": "user@example.com",
+				"id": 2,
+				"displayName": "User",
+				"active": true,
+				"slug": "user",
+				"type": "NORMAL"
+			},
+			"role": "PARTICIPANT",
+			"approved": false,
+			"status": "UNAPPROVED"
+		}],
+		"properties": {
+			"mergeCommit": {
+				"displayId": "7e48f426f0a",
+				"id": "7e48f426f0a6e47c5b5e862c31be6ca965f82c9c"
+			}
+		}
+	}
 }`
 
 	samplePRCommentAddedData = `{
@@ -775,7 +656,7 @@ const (
                 "statusMessage": "Available"
             }
         },
-        "links": {"self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/pull-requests/1"}]},
+        "links": {"self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/pull-requests/2"}]},
         "id": 1,
         "state": "OPEN",
         "locked": false,
@@ -921,7 +802,7 @@ const (
                 "statusMessage": "Available"
             }
         },
-        "links": {"self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/pull-requests/1"}]},
+        "links": {"self": [{"href": "https://bitbucket.example.com/projects/TEST/repos/repo/pull-requests/2"}]},
         "id": 1,
         "state": "OPEN",
         "locked": false,
@@ -932,7 +813,7 @@ const (
 }`
 
 	samplePingData = `{
-    "test": true
+	"test": true
 }`
 )
 
@@ -1689,17 +1570,15 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:        "to-hash-1",
-					Branch:            "master",
-					BaseRepositoryURL: "ssh://git@bitbucket.example.com:7999/test/repo.git",
+					CommitHash: "to-hash-1",
+					Branch:     "master",
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:        "to-hash-2",
-					Branch:            "a-branch",
-					BaseRepositoryURL: "ssh://git@bitbucket.example.com:7999/test/repo.git",
+					CommitHash: "to-hash-2",
+					Branch:     "a-branch",
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1722,9 +1601,8 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					Tag:               "3.0.4",
-					CommitHash:        "2943d981c36ca9a241326a8c9520bec15edef8c5",
-					BaseRepositoryURL: "ssh://git@bitbucket.example.com:7999/test/repo.git",
+					Tag:        "3.0.4",
+					CommitHash: "2943d981c36ca9a241326a8c9520bec15edef8c5",
 				},
 				TriggeredBy: "webhook-bitbucket-server/user",
 			},
@@ -1747,17 +1625,14 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:               "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
-					CommitMessage:            "a new file added",
-					Branch:                   "a-branch",
-					BranchRepoOwner:          "PROJ",
-					BranchDest:               "master",
-					BranchDestRepoOwner:      "PROJ",
-					PullRequestID:            &intOne,
-					BaseRepositoryURL:        "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					HeadRepositoryURL:        "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					PullRequestRepositoryURL: "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					PullRequestAuthor:        "admin",
+					CommitHash:          "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+					CommitMessage:       "a new file added",
+					Branch:              "a-branch",
+					BranchRepoOwner:     "PROJ",
+					BranchDest:          "master",
+					BranchDestRepoOwner: "PROJ",
+					PullRequestID:       &intOne,
+					PullRequestAuthor:   "admin",
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1780,17 +1655,14 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:               "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
-					CommitMessage:            "a new file added",
-					Branch:                   "a-branch",
-					BranchRepoOwner:          "PROJ",
-					BranchDest:               "master",
-					BranchDestRepoOwner:      "PROJ",
-					PullRequestID:            &intOne,
-					BaseRepositoryURL:        "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					HeadRepositoryURL:        "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					PullRequestRepositoryURL: "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					PullRequestAuthor:        "admin",
+					CommitHash:          "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+					CommitMessage:       "a new file added",
+					Branch:              "a-branch",
+					BranchRepoOwner:     "PROJ",
+					BranchDest:          "master",
+					BranchDestRepoOwner: "PROJ",
+					PullRequestID:       &intOne,
+					PullRequestAuthor:   "admin",
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1813,17 +1685,14 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:               "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
-					CommitMessage:            "a new file added",
-					Branch:                   "a-branch",
-					BranchRepoOwner:          "PROJ",
-					BranchDest:               "master",
-					BranchDestRepoOwner:      "PROJ",
-					PullRequestID:            &intOne,
-					BaseRepositoryURL:        "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					HeadRepositoryURL:        "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					PullRequestRepositoryURL: "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					PullRequestAuthor:        "admin",
+					CommitHash:          "ef8755f06ee4b28c96a847a95cb8ec8ed6ddd1ca",
+					CommitMessage:       "a new file added",
+					Branch:              "a-branch",
+					BranchRepoOwner:     "PROJ",
+					BranchDest:          "master",
+					BranchDestRepoOwner: "PROJ",
+					PullRequestID:       &intOne,
+					PullRequestAuthor:   "admin",
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1860,19 +1729,16 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:               "535dd99fabbecd4594c3dc844f387413fe6b97d4",
-					CommitMessage:            "Test PR",
-					Branch:                   "test-branch",
-					BranchRepoOwner:          "TEST",
-					BranchDest:               "master",
-					BranchDestRepoOwner:      "TEST",
-					PullRequestID:            &intOne,
-					BaseRepositoryURL:        "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					HeadRepositoryURL:        "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					PullRequestRepositoryURL: "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					PullRequestAuthor:        "admin",
-					PullRequestComment:       "This is a test comment.",
-					PullRequestCommentID:     "7",
+					CommitHash:           "535dd99fabbecd4594c3dc844f387413fe6b97d4",
+					CommitMessage:        "Test PR",
+					Branch:               "test-branch",
+					BranchRepoOwner:      "TEST",
+					BranchDest:           "master",
+					BranchDestRepoOwner:  "TEST",
+					PullRequestID:        &intOne,
+					PullRequestAuthor:    "admin",
+					PullRequestComment:   "This is a test comment.",
+					PullRequestCommentID: "7",
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
@@ -1895,19 +1761,16 @@ func Test_HookProvider_TransformRequest(t *testing.T) {
 		require.Equal(t, []bitriseapi.TriggerAPIParamsModel{
 			{
 				BuildParams: bitriseapi.BuildParamsModel{
-					CommitHash:               "535dd99fabbecd4594c3dc844f387413fe6b97d4",
-					CommitMessage:            "Test PR",
-					Branch:                   "test-branch",
-					BranchRepoOwner:          "TEST",
-					BranchDest:               "master",
-					BranchDestRepoOwner:      "TEST",
-					PullRequestID:            &intOne,
-					BaseRepositoryURL:        "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					HeadRepositoryURL:        "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					PullRequestRepositoryURL: "ssh://git@bitbucket.example.com:7999/test/repo.git",
-					PullRequestAuthor:        "admin",
-					PullRequestComment:       "This is an updated test comment.",
-					PullRequestCommentID:     "7",
+					CommitHash:           "535dd99fabbecd4594c3dc844f387413fe6b97d4",
+					CommitMessage:        "Test PR",
+					Branch:               "test-branch",
+					BranchRepoOwner:      "TEST",
+					BranchDest:           "master",
+					BranchDestRepoOwner:  "TEST",
+					PullRequestID:        &intOne,
+					PullRequestAuthor:    "admin",
+					PullRequestComment:   "This is an updated test comment.",
+					PullRequestCommentID: "7",
 				},
 				TriggeredBy: "webhook-bitbucket-server/admin",
 			},
