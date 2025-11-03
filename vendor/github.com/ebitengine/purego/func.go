@@ -117,6 +117,10 @@ func RegisterFunc(fptr interface{}, cfn uintptr) {
 	if cfn == 0 {
 		panic("purego: cfn is nil")
 	}
+	if ty.NumOut() == 1 && (ty.Out(0).Kind() == reflect.Float32 || ty.Out(0).Kind() == reflect.Float64) &&
+		runtime.GOARCH != "arm64" && runtime.GOARCH != "amd64" {
+		panic("purego: float returns are not supported")
+	}
 	{
 		// this code checks how many registers and stack this function will use
 		// to avoid crashing with too many arguments
@@ -126,15 +130,29 @@ func RegisterFunc(fptr interface{}, cfn uintptr) {
 		for i := 0; i < ty.NumIn(); i++ {
 			arg := ty.In(i)
 			switch arg.Kind() {
+			case reflect.Func:
+				// This only does preliminary testing to ensure the CDecl argument
+				// is the first argument. Full testing is done when the callback is actually
+				// created in NewCallback.
+				for j := 0; j < arg.NumIn(); j++ {
+					in := arg.In(j)
+					if !in.AssignableTo(reflect.TypeOf(CDecl{})) {
+						continue
+					}
+					if j != 0 {
+						panic("purego: CDecl must be the first argument")
+					}
+				}
 			case reflect.String, reflect.Uintptr, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-				reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Ptr, reflect.UnsafePointer, reflect.Slice,
-				reflect.Func, reflect.Bool:
+				reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Ptr, reflect.UnsafePointer,
+				reflect.Slice, reflect.Bool:
 				if ints < numOfIntegerRegisters() {
 					ints++
 				} else {
 					stack++
 				}
 			case reflect.Float32, reflect.Float64:
+				const is32bit = unsafe.Sizeof(uintptr(0)) == 4
 				if is32bit {
 					panic("purego: floats only supported on 64bit platforms")
 				}
@@ -323,8 +341,7 @@ func RegisterFunc(fptr interface{}, cfn uintptr) {
 			// We take the address and then dereference it to trick go vet from creating a possible miss-use of unsafe.Pointer
 			v.SetPointer(*(*unsafe.Pointer)(unsafe.Pointer(&syscall.a1)))
 		case reflect.Ptr:
-			// It is safe to have the address of syscall.r1 not escape because it is immediately dereferenced with .Elem()
-			v = reflect.NewAt(outType, runtime_noescape(unsafe.Pointer(&syscall.a1))).Elem()
+			v = reflect.NewAt(outType, unsafe.Pointer(&syscall.a1)).Elem()
 		case reflect.Func:
 			// wrap this C function in a nicely typed Go function
 			v = reflect.New(outType)
@@ -401,8 +418,6 @@ func checkStructFieldsSupported(ty reflect.Type) {
 	}
 }
 
-const is32bit = unsafe.Sizeof(uintptr(0)) == 4
-
 func roundUpTo8(val uintptr) uintptr {
 	return (val + 7) &^ 7
 }
@@ -413,12 +428,9 @@ func numOfIntegerRegisters() int {
 		return 8
 	case "amd64":
 		return 6
-	// TODO: figure out why 386 tests are not working
-	/*case "386":
-		return 0
-	case "arm":
-		return 4*/
 	default:
-		panic("purego: unknown GOARCH (" + runtime.GOARCH + ")")
+		// since this platform isn't supported and can therefore only access
+		// integer registers it is fine to return the maxArgs
+		return maxArgs
 	}
 }
