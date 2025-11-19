@@ -2,7 +2,7 @@ module github.com/bitrise-io/bitrise-webhooks
 
 go 1.24.0
 
-toolchain go1.24.2
+toolchain go1.25.4
 
 require (
 	cloud.google.com/go/pubsub v1.42.0
@@ -14,6 +14,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.9.0
 	github.com/xanzy/go-gitlab v0.108.0
+	go.uber.org/automaxprocs v1.6.0
 	go.uber.org/zap v1.27.0
 	google.golang.org/api v0.195.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.67.0
@@ -69,7 +70,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
 	go.opentelemetry.io/otel/trace v1.28.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
