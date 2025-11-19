@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"os"
 
+	_ "go.uber.org/automaxprocs"
+
 	"github.com/bitrise-io/bitrise-webhooks/config"
 	"github.com/bitrise-io/bitrise-webhooks/internal/pubsub"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
