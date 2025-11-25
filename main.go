@@ -9,13 +9,13 @@ import (
 
 	_ "go.uber.org/automaxprocs"
 
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/bitrise-io/bitrise-webhooks/config"
 	"github.com/bitrise-io/bitrise-webhooks/internal/pubsub"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 func main() {
-	tracer.Start(tracer.WithServiceName("webhooks"))
+	tracer.Start(tracer.WithService("webhooks"))
 	defer tracer.Stop()
 	var (
 		portFlag            = flag.String("port", "", `Use port [$PORT]`)
