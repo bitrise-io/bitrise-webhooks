@@ -14,25 +14,34 @@ package obfuscate
 
 import (
 	"bytes"
+	"encoding/json"
+
+	"go.uber.org/atomic"
 
 	"github.com/DataDog/datadog-go/v5/statsd"
-	"go.uber.org/atomic"
 )
+
+// Version is an incrementing integer to identify this "version" of obfuscation logic. This is used to avoid obfuscation
+// conflicts and ensure that clients of the obfuscator can decide where obfuscation should occur.
+const Version = 1
 
 // Obfuscator quantizes and obfuscates spans. The obfuscator is not safe for
 // concurrent use.
 type Obfuscator struct {
 	opts                 *Config
+	sqlOptsStr           string          // string representation of the options, used for caching
 	es                   *jsonObfuscator // nil if disabled
+	openSearch           *jsonObfuscator // nil if disabled
 	mongo                *jsonObfuscator // nil if disabled
 	sqlExecPlan          *jsonObfuscator // nil if disabled
 	sqlExecPlanNormalize *jsonObfuscator // nil if disabled
+	ccObfuscator         *creditCard     // nil if disabled
 	// sqlLiteralEscapes reports whether we should treat escape characters literally or as escape characters.
 	// Different SQL engines behave in different ways and the tokenizer needs to be generic.
 	sqlLiteralEscapes *atomic.Bool
 	// queryCache keeps a cache of already obfuscated queries.
 	queryCache *measuredCache
-	log        Logger
+	log        FullLogger
 }
 
 // Logger is able to log certain log messages.
@@ -41,9 +50,33 @@ type Logger interface {
 	Debugf(format string, params ...interface{})
 }
 
+// FullLogger logs all log levels.
+type FullLogger interface {
+	Logger
+	Tracef(format string, params ...interface{})
+	Infof(format string, params ...interface{})
+	Warnf(format string, params ...interface{})
+	Errorf(format string, params ...interface{})
+	Criticalf(format string, params ...interface{})
+}
+
 type noopLogger struct{}
 
-func (noopLogger) Debugf(_ string, _ ...interface{}) {}
+func (noopLogger) Tracef(_ string, _ ...interface{})    {}
+func (noopLogger) Debugf(_ string, _ ...interface{})    {}
+func (noopLogger) Infof(_ string, _ ...interface{})     {}
+func (noopLogger) Warnf(_ string, _ ...interface{})     {}
+func (noopLogger) Errorf(_ string, _ ...interface{})    {}
+func (noopLogger) Criticalf(_ string, _ ...interface{}) {}
+
+type debugLogger struct {
+	noopLogger
+	debugLogger Logger
+}
+
+func (d debugLogger) Debugf(format string, params ...interface{}) {
+	d.debugLogger.Debugf(format, params...)
+}
 
 // setSQLLiteralEscapes sets whether or not escape characters should be treated literally by the SQL obfuscator.
 func (o *Obfuscator) setSQLLiteralEscapes(ok bool) {
@@ -67,33 +100,50 @@ type Config struct {
 	SQL SQLConfig
 
 	// ES holds the obfuscation configuration for ElasticSearch bodies.
-	ES JSONConfig
+	ES JSONConfig `mapstructure:"elasticsearch"`
+
+	// OpenSearch holds the obfuscation configuration for OpenSearch bodies.
+	OpenSearch JSONConfig `mapstructure:"opensearch"`
 
 	// Mongo holds the obfuscation configuration for MongoDB queries.
-	Mongo JSONConfig
+	Mongo JSONConfig `mapstructure:"mongodb"`
 
 	// SQLExecPlan holds the obfuscation configuration for SQL Exec Plans. This is strictly for safety related obfuscation,
 	// not normalization. Normalization of exec plans is configured in SQLExecPlanNormalize.
-	SQLExecPlan JSONConfig
+	SQLExecPlan JSONConfig `mapstructure:"sql_exec_plan"`
 
 	// SQLExecPlanNormalize holds the normalization configuration for SQL Exec Plans.
-	SQLExecPlanNormalize JSONConfig
+	SQLExecPlanNormalize JSONConfig `mapstructure:"sql_exec_plan_normalize"`
 
 	// HTTP holds the obfuscation settings for HTTP URLs.
-	HTTP HTTPConfig
+	HTTP HTTPConfig `mapstructure:"http"`
 
 	// Redis holds the obfuscation settings for Redis commands.
-	Redis RedisConfig
+	Redis RedisConfig `mapstructure:"redis"`
+
+	// Valkey holds the obfuscation settings for Valkey commands.
+	Valkey ValkeyConfig `mapstructure:"valkey"`
 
 	// Memcached holds the obfuscation settings for Memcached commands.
-	Memcached MemcachedConfig
+	Memcached MemcachedConfig `mapstructure:"memcached"`
+
+	// Memcached holds the obfuscation settings for obfuscation of CC numbers in meta.
+	CreditCard CreditCardsConfig `mapstructure:"credit_cards"`
 
 	// Statsd specifies the statsd client to use for reporting metrics.
 	Statsd StatsClient
 
 	// Logger specifies the logger to use when outputting messages.
+	// Prefer using FullLogger for more complete logging. FullLogger takes precedence.
 	// If unset, no logs will be outputted.
 	Logger Logger
+
+	// FullLogger specifies the logger to use when outputting messages.
+	// If unset, no logs will be outputted.
+	FullLogger FullLogger
+
+	// Cache enables the query cache for obfuscation for SQL and MongoDB queries.
+	Cache CacheConfig `mapstructure:"cache"`
 }
 
 // StatsClient implementations are able to emit stats.
@@ -107,6 +157,7 @@ type ObfuscationMode string
 
 // ObfuscationMode valid values
 const (
+	NormalizeOnly         = ObfuscationMode("normalize_only")
 	ObfuscateOnly         = ObfuscationMode("obfuscate_only")
 	ObfuscateAndNormalize = ObfuscationMode("obfuscate_and_normalize")
 )
@@ -145,12 +196,12 @@ type SQLConfig struct {
 
 	// ObfuscationMode specifies the obfuscation mode to use for go-sqllexer pkg.
 	// When specified, obfuscator will attempt to use go-sqllexer pkg to obfuscate (and normalize) SQL queries.
-	// Valid values are "obfuscate_only", "obfuscate_and_normalize"
+	// Valid values are "normalize_only", "obfuscate_only", "obfuscate_and_normalize"
 	ObfuscationMode ObfuscationMode `json:"obfuscation_mode" yaml:"obfuscation_mode"`
 
 	// RemoveSpaceBetweenParentheses specifies whether to remove spaces between parentheses.
 	// By default, spaces are inserted between parentheses during normalization.
-	// This option is only valid when ObfuscationMode is "obfuscate_and_normalize".
+	// This option is only valid when ObfuscationMode is "normalize_only" or "obfuscate_and_normalize".
 	RemoveSpaceBetweenParentheses bool `json:"remove_space_between_parentheses" yaml:"remove_space_between_parentheses"`
 
 	// KeepNull specifies whether to disable obfuscate NULL value with ?.
@@ -167,16 +218,21 @@ type SQLConfig struct {
 
 	// KeepTrailingSemicolon specifies whether to keep trailing semicolon.
 	// By default, trailing semicolon is removed during normalization.
-	// This option is only valid when ObfuscationMode is "obfuscate_only" or "obfuscate_and_normalize".
+	// This option is only valid when ObfuscationMode is "normalize_only" or "obfuscate_and_normalize".
 	KeepTrailingSemicolon bool `json:"keep_trailing_semicolon" yaml:"keep_trailing_semicolon"`
 
 	// KeepIdentifierQuotation specifies whether to keep identifier quotation, e.g. "my_table" or [my_table].
 	// By default, identifier quotation is removed during normalization.
-	// This option is only valid when ObfuscationMode is "obfuscate_only" or "obfuscate_and_normalize".
+	// This option is only valid when ObfuscationMode is "normalize_only" or "obfuscate_and_normalize".
 	KeepIdentifierQuotation bool `json:"keep_identifier_quotation" yaml:"keep_identifier_quotation"`
 
-	// Cache reports whether the obfuscator should use a LRU look-up cache for SQL obfuscations.
-	Cache bool
+	// KeepJSONPath specifies whether to keep JSON paths following JSON operators in SQL statements in obfuscation.
+	// By default, JSON paths are treated as literals and are obfuscated to ?, e.g. "data::jsonb -> 'name'" -> "data::jsonb -> ?".
+	// This option is only valid when ObfuscationMode is "normalize_only" or "obfuscate_and_normalize".
+	KeepJSONPath bool `json:"keep_json_path" yaml:"keep_json_path"`
+
+	// Cache is deprecated. Please use `apm_config.obfuscation.cache` instead.
+	Cache bool `json:"cache" yaml:"cache"`
 }
 
 // SQLMetadata holds metadata collected throughout the obfuscation of an SQL statement. It is only
@@ -214,6 +270,16 @@ type RedisConfig struct {
 	RemoveAllArgs bool `mapstructure:"remove_all_args"`
 }
 
+// ValkeyConfig holds the configuration settings for Valkey obfuscation
+type ValkeyConfig struct {
+	// Enabled specifies whether this feature should be enabled.
+	Enabled bool `mapstructure:"enabled"`
+
+	// RemoveAllArgs specifies whether all arguments to a given Valkey
+	// command should be obfuscated.
+	RemoveAllArgs bool `mapstructure:"remove_all_args"`
+}
+
 // MemcachedConfig holds the configuration settings for Memcached obfuscation
 type MemcachedConfig struct {
 	// Enabled specifies whether this feature should be enabled.
@@ -239,19 +305,60 @@ type JSONConfig struct {
 	ObfuscateSQLValues []string `mapstructure:"obfuscate_sql_values"`
 }
 
+// CreditCardsConfig holds the configuration for credit card obfuscation in
+// (Meta) tags.
+type CreditCardsConfig struct {
+	// Enabled specifies whether this feature should be enabled.
+	Enabled bool `mapstructure:"enabled"`
+
+	// Luhn specifies whether Luhn checksum validation should be enabled.
+	// https://dev.to/shiraazm/goluhn-a-simple-library-for-generating-calculating-and-verifying-luhn-numbers-588j
+	// It reduces false positives, but increases the CPU time X3.
+	Luhn bool `mapstructure:"luhn"`
+
+	// KeepValues specifies tag keys that are known to not ever contain credit cards
+	// and therefore their values can be kept.
+	KeepValues []string `mapstructure:"keep_values"`
+}
+
+// CacheConfig holds the configuration for caching obfuscated queries.
+type CacheConfig struct {
+	// Enabled specifies whether caching should be enabled.
+	Enabled bool `mapstructure:"enabled"`
+
+	// MaxSize is the maximum size of the cache in bytes.
+	MaxSize int64 `mapstructure:"max_size"`
+}
+
 // NewObfuscator creates a new obfuscator
 func NewObfuscator(cfg Config) *Obfuscator {
-	if cfg.Logger == nil {
-		cfg.Logger = noopLogger{}
+	if cfg.FullLogger == nil {
+		if cfg.Logger == nil {
+			cfg.FullLogger = noopLogger{}
+		} else {
+			cfg.FullLogger = debugLogger{debugLogger: cfg.Logger}
+		}
 	}
+	optsStr := ""
+	optsBytes, err := json.Marshal(cfg.SQL)
+	if err == nil {
+		optsStr = string(optsBytes)
+	} else {
+		cfg.FullLogger.Errorf("failed to marshal obfuscation config: %v", err)
+	}
+
 	o := Obfuscator{
 		opts:              &cfg,
-		queryCache:        newMeasuredCache(cacheOptions{On: cfg.SQL.Cache, Statsd: cfg.Statsd}),
+		sqlOptsStr:        optsStr,
+		queryCache:        newMeasuredCache(cacheOptions{On: cfg.Cache.Enabled, Statsd: cfg.Statsd, MaxSize: cfg.Cache.MaxSize}),
 		sqlLiteralEscapes: atomic.NewBool(false),
-		log:               cfg.Logger,
+		log:               cfg.FullLogger,
 	}
 	if cfg.ES.Enabled {
 		o.es = newJSONObfuscator(&cfg.ES, &o)
+	}
+	if cfg.OpenSearch.Enabled {
+		o.openSearch = newJSONObfuscator(&cfg.OpenSearch, &o)
 	}
 	if cfg.Mongo.Enabled {
 		o.mongo = newJSONObfuscator(&cfg.Mongo, &o)
@@ -262,6 +369,9 @@ func NewObfuscator(cfg Config) *Obfuscator {
 	if cfg.SQLExecPlanNormalize.Enabled {
 		o.sqlExecPlanNormalize = newJSONObfuscator(&cfg.SQLExecPlanNormalize, &o)
 	}
+	if cfg.CreditCard.Enabled {
+		o.ccObfuscator = newCCObfuscator(&cfg.CreditCard)
+	}
 	if cfg.Statsd == nil {
 		cfg.Statsd = &statsd.NoOpClient{}
 	}
@@ -270,7 +380,9 @@ func NewObfuscator(cfg Config) *Obfuscator {
 
 // Stop cleans up after a finished Obfuscator.
 func (o *Obfuscator) Stop() {
-	o.queryCache.Close()
+	if o.queryCache != nil {
+		o.queryCache.Close()
+	}
 }
 
 // compactWhitespaces compacts all whitespaces in t.

@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
-	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"net/http"
 	"os"
 
-	"github.com/DataDog/dd-trace-go/v2/contrib/gorilla/mux"
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
+
+	"github.com/DataDog/dd-trace-go/contrib/gorilla/mux/v2"
 	"github.com/bitrise-io/bitrise-webhooks/internal/pubsub"
 	"github.com/bitrise-io/bitrise-webhooks/metrics"
 	"github.com/bitrise-io/bitrise-webhooks/service"
