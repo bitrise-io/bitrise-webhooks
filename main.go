@@ -15,7 +15,10 @@ import (
 )
 
 func main() {
-	tracer.Start(tracer.WithService("webhooks"))
+	err := tracer.Start(tracer.WithService("webhooks"))
+	if err != nil {
+		log.Fatalf("Unable to start tracing: %s", err)
+	}
 	defer tracer.Stop()
 	var (
 		portFlag            = flag.String("port", "", `Use port [$PORT]`)
