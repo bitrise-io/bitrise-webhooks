@@ -14,6 +14,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	ddhttp "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
 	"github.com/bitrise-io/api-utils/logging"
 )
 
@@ -193,6 +194,8 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	client := &http.Client{
 		Timeout: 60 * time.Second,
 	}
+	ddhttp.WrapClient(client)
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return TriggerAPIResponseModel{}, false, errors.Wrapf(err, "TriggerBuild (url:%s): failed to send request", url.String())
