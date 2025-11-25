@@ -2,6 +2,7 @@ package hook
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -108,8 +109,8 @@ func respondWithResults(w http.ResponseWriter, provider *hookCommon.Provider, re
 // -------------------------
 // --- Utility functions ---
 
-func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitriseapi.TriggerAPIParamsModel) (bitriseapi.TriggerAPIResponseModel, bool, error) {
-	logger := logging.WithContext(nil)
+func triggerBuild(ctx context.Context, triggerURL *url.URL, apiToken string, triggerAPIParams bitriseapi.TriggerAPIParamsModel) (bitriseapi.TriggerAPIResponseModel, bool, error) {
+	logger := logging.WithContext(ctx)
 
 	logger.Info(" ===> trigger build", zap.String("triggerURL", triggerURL.String()))
 	isOnlyLog := config.LogOnlyMode
@@ -122,7 +123,7 @@ func triggerBuild(triggerURL *url.URL, apiToken string, triggerAPIParams bitrise
 		return bitriseapi.TriggerAPIResponseModel{}, false, errors.Wrap(err, "Failed to Trigger the Build: Invalid parameters")
 	}
 
-	responseModel, isSuccess, err := bitriseapi.TriggerBuild(triggerURL, apiToken, triggerAPIParams, isOnlyLog)
+	responseModel, isSuccess, err := bitriseapi.TriggerBuild(ctx, triggerURL, apiToken, triggerAPIParams, isOnlyLog)
 	if err != nil {
 		logger.Error(" [!] Exception: Failed to trigger build", zap.Error(err))
 		return bitriseapi.TriggerAPIResponseModel{}, false, errors.Wrap(err, "Failed to Trigger the Build")
@@ -294,11 +295,11 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			triggerBuildAndPrepareRespondWith := func() {
+			triggerBuildAndPrepareRespondWith := func(ctx context.Context) {
 				if aBuildTriggerParam.TriggeredBy == "" {
 					aBuildTriggerParam.TriggeredBy = hookCommon.DefaultTriggeredBy
 				}
-				if triggerResp, isSuccess, err := triggerBuild(triggerURL, apiToken, aBuildTriggerParam); err != nil {
+				if triggerResp, isSuccess, err := triggerBuild(ctx, triggerURL, apiToken, aBuildTriggerParam); err != nil {
 					respondWith.Errors = append(respondWith.Errors, fmt.Sprintf("Failed to Trigger Build: %s", err))
 				} else if isSuccess {
 					respondWith.SuccessTriggerResponses = append(respondWith.SuccessTriggerResponses, triggerResp)
@@ -309,11 +310,11 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 
 			if hookTransformResult.DontWaitForTriggerResponse {
 				// send it, but don't wait for response
-				go triggerBuildAndPrepareRespondWith()
+				go triggerBuildAndPrepareRespondWith(reqContext)
 				respondWith.DidNotWaitForTriggerResponse = true
 			} else {
 				// send and wait
-				triggerBuildAndPrepareRespondWith()
+				triggerBuildAndPrepareRespondWith(reqContext)
 			}
 		}
 	})
