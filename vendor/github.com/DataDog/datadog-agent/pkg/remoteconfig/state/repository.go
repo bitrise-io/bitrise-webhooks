@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 
 	"github.com/DataDog/go-tuf/data"
 )
@@ -66,7 +67,7 @@ type Update struct {
 
 // isEmpty returns whether or not all the fields of `Update` are empty
 func (u *Update) isEmpty() bool {
-	return len(u.TUFRoots) == 0 && len(u.TUFTargets) == 0 && (u.TargetFiles == nil || len(u.TargetFiles) == 0) && len(u.ClientConfigs) == 0
+	return len(u.TUFRoots) == 0 && len(u.TUFTargets) == 0 && len(u.TargetFiles) == 0 && len(u.ClientConfigs) == 0
 }
 
 // Repository is a remote config client used in a downstream process to retrieve
@@ -82,7 +83,7 @@ type Repository struct {
 	latestRootVersion      int64
 
 	// Config file storage
-	metadata map[string]Metadata
+	metadata sync.Map // map[string]Metadata
 	configs  map[string]map[string]interface{}
 }
 
@@ -106,7 +107,7 @@ func NewRepository(embeddedRoot []byte) (*Repository, error) {
 	return &Repository{
 		latestTargets:          data.NewTargets(),
 		tufRootsClient:         tufRootsClient,
-		metadata:               make(map[string]Metadata),
+		metadata:               sync.Map{},
 		configs:                configs,
 		tufVerificationEnabled: true,
 	}, nil
@@ -125,7 +126,7 @@ func NewUnverifiedRepository() (*Repository, error) {
 
 	return &Repository{
 		latestTargets:          data.NewTargets(),
-		metadata:               make(map[string]Metadata),
+		metadata:               sync.Map{},
 		configs:                configs,
 		tufVerificationEnabled: false,
 		latestRootVersion:      1, // The backend expects us to start with a root version of 1.
@@ -205,9 +206,26 @@ func (r *Repository) Update(update Update) ([]string, error) {
 		}
 
 		// 3.b and 3.c: Check if this configuration is either new or has been modified
-		storedMetadata, exists := r.metadata[path]
-		if exists && hashesEqual(targetFileMetadata.Hashes, storedMetadata.Hashes) {
-			continue
+		newConfigMetadata, err := newConfigMetadata(parsedPath, targetFileMetadata)
+		if err != nil {
+			return nil, err
+		}
+
+		storedMetadata, exists := r.metadata.Load(path)
+		if exists {
+			m, ok := storedMetadata.(Metadata)
+			changed := hashesEqual(targetFileMetadata.Hashes, m.Hashes)
+			if ok && changed && m.Version == newConfigMetadata.Version {
+				continue
+			} else if ok && changed {
+				// The version has changed, even though there are no changes to the file. Since business logic code
+				// only operates on config bodies, we don't want to trigger a callback, but we do want to report the new version
+				// as part of the RC update process so that it is visible in REDAPL. Since we're not sending this to the
+				// business logic code, we need to preserve the previous apply status.
+				newConfigMetadata.ApplyStatus = m.ApplyStatus
+				result.metadata[path] = newConfigMetadata
+				continue
+			}
 		}
 
 		// 3.d: Ensure that the raw configuration file is present in the
@@ -229,15 +247,11 @@ func (r *Repository) Update(update Update) ([]string, error) {
 		//
 		// Note: We don't have to worry about extra fields as mentioned
 		// in the RFC because the encoding/json library handles that for us.
-		m, err := newConfigMetadata(parsedPath, targetFileMetadata)
+		config, err := parseConfig(parsedPath.Product, raw, newConfigMetadata)
 		if err != nil {
 			return nil, err
 		}
-		config, err := parseConfig(parsedPath.Product, raw, m)
-		if err != nil {
-			return nil, err
-		}
-		result.metadata[path] = m
+		result.metadata[path] = newConfigMetadata
 		result.changed[parsedPath.Product][path] = config
 		result.productsUpdated[parsedPath.Product] = true
 	}
@@ -246,7 +260,7 @@ func (r *Repository) Update(update Update) ([]string, error) {
 	// TUF: Store the updated roots now that everything has validated
 	if r.tufVerificationEnabled {
 		r.tufRootsClient = tmpRootClient
-	} else if update.TUFRoots != nil && len(update.TUFRoots) > 0 {
+	} else if len(update.TUFRoots) > 0 {
 		v, err := extractRootVersion(update.TUFRoots[len(update.TUFRoots)-1])
 		if err != nil {
 			return nil, err
@@ -283,9 +297,11 @@ func (r *Repository) Update(update Update) ([]string, error) {
 // Note: it is the responsibility of the caller to ensure that no new Update() call was made between
 // the first Update() call and the call to UpdateApplyStatus() so as to keep the repository state accurate.
 func (r *Repository) UpdateApplyStatus(cfgPath string, status ApplyStatus) {
-	if m, ok := r.metadata[cfgPath]; ok {
-		m.ApplyStatus = status
-		r.metadata[cfgPath] = m
+	if val, ok := r.metadata.Load(cfgPath); ok {
+		if m, ok := val.(Metadata); ok {
+			m.ApplyStatus = status
+			r.metadata.Store(cfgPath, m)
+		}
 	}
 }
 
@@ -311,12 +327,33 @@ func (r *Repository) applyUpdateResult(_ Update, result updateResult) {
 		}
 	}
 	for path, metadata := range result.metadata {
-		r.metadata[path] = metadata
+		r.metadata.Store(path, metadata)
+		// Also update the embedded Metadata in the stored config object, if present
+		if parsedPath, err := parseConfigPath(path); err == nil {
+			if productConfigs, ok := r.configs[parsedPath.Product]; ok {
+				if existing, exists := productConfigs[path]; exists {
+					switch c := existing.(type) {
+					case RawConfig:
+						c.Metadata = metadata
+						productConfigs[path] = c
+					case ASMFeaturesConfig:
+						c.Metadata = metadata
+						productConfigs[path] = c
+					case ConfigASMDD:
+						c.Metadata = metadata
+						productConfigs[path] = c
+					case ASMDataConfig:
+						c.Metadata = metadata
+						productConfigs[path] = c
+					}
+				}
+			}
+		}
 	}
 
 	// 5.b Clean up the cache of any removed configs
 	for _, path := range result.removed {
-		delete(r.metadata, path)
+		r.metadata.Delete(path)
 		for _, configs := range r.configs {
 			delete(configs, path)
 		}
@@ -329,10 +366,17 @@ func (r *Repository) CurrentState() (RepositoryState, error) {
 	var configs []ConfigState
 	var cached []CachedFile
 
-	for path, metadata := range r.metadata {
-		configs = append(configs, configStateFromMetadata(metadata))
-		cached = append(cached, cachedFileFromMetadata(path, metadata))
-	}
+	r.metadata.Range(func(path, value any) bool {
+		metadata, ok := value.(Metadata)
+		if ok {
+			configs = append(configs, configStateFromMetadata(metadata))
+			cached = append(cached, cachedFileFromMetadata(path.(string), metadata))
+		} else {
+			// Log the error but continue processing the rest of the configs
+			log.Printf("Failed to convert metadata for %s", path)
+		}
+		return true
+	})
 
 	var latestRootVersion int64
 	if r.tufVerificationEnabled {
