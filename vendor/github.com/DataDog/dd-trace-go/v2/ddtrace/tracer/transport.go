@@ -66,8 +66,9 @@ const (
 	traceCountHeader         = "X-Datadog-Trace-Count"       // header containing the number of traces in the payload
 	obfuscationVersionHeader = "Datadog-Obfuscation-Version" // header containing the version of obfuscation used, if any
 
-	tracesAPIPath = "/v0.4/traces"
-	statsAPIPath  = "/v0.6/stats"
+	tracesAPIPath   = "/v0.4/traces"
+	tracesAPIPathV1 = "/v1.0/traces"
+	statsAPIPath    = "/v0.6/stats"
 )
 
 // transport is an interface for communicating data to the agent.
@@ -162,7 +163,7 @@ func (t *httpTransport) sendStats(p *pb.ClientStatsPayload, tracerObfuscationVer
 func (t *httpTransport) send(p payload) (body io.ReadCloser, err error) {
 	req, err := http.NewRequest("POST", t.traceURL, p)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create http request: %s", err.Error())
+		return nil, fmt.Errorf("cannot create http request: %s", err)
 	}
 	stats := p.stats()
 	req.ContentLength = int64(stats.size)

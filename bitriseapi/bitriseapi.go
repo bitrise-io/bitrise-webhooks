@@ -2,6 +2,7 @@ package bitriseapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"go.uber.org/zap"
 
 	"github.com/pkg/errors"
@@ -158,8 +160,8 @@ func BuildTriggerURL(apiRootURL *url.URL, appSlug string) (*url.URL, error) {
 // Returns an error in case it can't send the request, or the response is not a HTTP success response.
 //
 // If the response is an HTTP success response then the whole response body will be returned, and error will be nil.
-func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) (TriggerAPIResponseModel, bool, error) {
-	logger := logging.WithContext(nil)
+func TriggerBuild(ctx context.Context, url *url.URL, apiToken string, params TriggerAPIParamsModel, isOnlyLog bool) (TriggerAPIResponseModel, bool, error) {
+	logger := logging.WithContext(ctx)
 
 	if err := params.Validate(); err != nil {
 		return TriggerAPIResponseModel{}, false, errors.Wrapf(err, "TriggerBuild (url:%s): build trigger parameter invalid", url.String())
@@ -182,6 +184,10 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 		}, true, nil
 	}
 
+	span, _ := tracer.StartSpanFromContext(ctx, "trigger build")
+	defer span.Finish()
+
+	// Do not pass original request context: let the build trigger request have its own timeout
 	req, err := http.NewRequest("POST", url.String(), bytes.NewBuffer(jsonStr))
 	if err != nil {
 		return TriggerAPIResponseModel{}, false, errors.Wrapf(err, "TriggerBuild (url:%s): failed to create request", url.String())
@@ -190,9 +196,15 @@ func TriggerBuild(url *url.URL, apiToken string, params TriggerAPIParamsModel, i
 	req.Header.Set("Api-Token", apiToken)
 	req.Header.Set("X-Bitrise-Event", "hook")
 
+	err = tracer.Inject(span.Context(), tracer.HTTPHeadersCarrier(req.Header))
+	if err != nil {
+		logger.Warn("Failed to propagate tracing context", zap.Error(err))
+	}
+
 	client := &http.Client{
 		Timeout: 60 * time.Second,
 	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return TriggerAPIResponseModel{}, false, errors.Wrapf(err, "TriggerBuild (url:%s): failed to send request", url.String())

@@ -102,7 +102,7 @@ func TestTriggerBuild(t *testing.T) {
 			BuildParams: BuildParamsModel{},
 		}
 
-		apiResponse, isSuccess, err := TriggerBuild(url, "api-token", triggerParams, true)
+		apiResponse, isSuccess, err := TriggerBuild(nil, url, "api-token", triggerParams, true)
 		require.Equal(t, false, isSuccess)
 		require.EqualError(t, err, "TriggerBuild (url:https://app.bitrise.io/app/app-slug/build/start.json): build trigger parameter invalid: Missing Branch, Tag, WorkflowID and PullRequestComment parameters - at least one of these is required")
 		require.Equal(t, TriggerAPIResponseModel{}, apiResponse)
@@ -117,7 +117,7 @@ func TestTriggerBuild(t *testing.T) {
 			TriggeredBy: "webhook",
 		}
 
-		apiResponse, isSuccess, err := TriggerBuild(url, "api-token", triggerParams, true)
+		apiResponse, isSuccess, err := TriggerBuild(nil, url, "api-token", triggerParams, true)
 		require.Equal(t, true, isSuccess)
 		require.NoError(t, err)
 		require.Equal(t, TriggerAPIResponseModel{
@@ -135,7 +135,7 @@ func TestTriggerBuild(t *testing.T) {
 			TriggeredBy: "webhook",
 		}
 
-		apiResponse, isSuccess, err := TriggerBuild(url, "api-token", triggerParams, true)
+		apiResponse, isSuccess, err := TriggerBuild(nil, url, "api-token", triggerParams, true)
 		require.Equal(t, true, isSuccess)
 		require.NoError(t, err)
 		require.Equal(t, TriggerAPIResponseModel{
@@ -153,7 +153,7 @@ func TestTriggerBuild(t *testing.T) {
 			TriggeredBy: "webhook",
 		}
 
-		apiResponse, isSuccess, err := TriggerBuild(url, "api-token", triggerParams, true)
+		apiResponse, isSuccess, err := TriggerBuild(nil, url, "api-token", triggerParams, true)
 		require.Equal(t, true, isSuccess)
 		require.NoError(t, err)
 		require.Equal(t, TriggerAPIResponseModel{

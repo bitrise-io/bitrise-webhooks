@@ -3,6 +3,14 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016 Datadog, Inc.
 
+<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer/span.go
+package tracer
+
+const (
+	keySamplingPriority = "_sampling_priority_v1"
+	keyOrigin           = "_dd.origin"
+	// keyHostname can be used to override the agent's hostname detection when using `WithHostname`. Not to be confused with keyTracerHostname
+========
 //go:generate go run github.com/tinylib/msgp -unexported -marshal=false -o=span_msgp.go -tests=false
 
 package tracer
@@ -198,6 +206,11 @@ func (s *Span) SetTag(key string, value interface{}) {
 			noDebugStack: s.noDebugStack,
 		})
 		return
+	case ext.ErrorNoStackTrace:
+		s.setTagError(value, errorConfig{
+			noDebugStack: true,
+		})
+		return
 	case ext.Component:
 		integration, ok := value.(string)
 		if ok {
@@ -302,6 +315,12 @@ func (s *Span) setSamplingPriority(priority int, sampler samplernames.SamplerNam
 	s.setSamplingPriorityLocked(priority, sampler)
 }
 
+func (s *Span) setProcessTags(pTags string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.setMeta(keyProcessTags, pTags)
+}
+
 // root returns the root span of the span's trace. The return value shouldn't be
 // nil as long as the root span is valid and not finished.
 func (s *Span) Root() *Span {
@@ -397,6 +416,21 @@ func (s *Span) setSamplingPriorityLocked(priority int, sampler samplernames.Samp
 	s.context.setSamplingPriority(priority, sampler)
 }
 
+// forceSetSamplingPriorityLocked updates the sampling priority.
+// If the trace is locked, the sampling priority is forced to the given value.
+//
+// This function is should only be used when applying a manual keep or drop decision.
+func (s *Span) forceSetSamplingPriorityLocked(priority int, sampler samplernames.SamplerName) {
+	// We don't lock spans when flushing, so we could have a data race when
+	// modifying a span as it's being flushed. This protects us against that
+	// race, since spans are marked `finished` before we flush them.
+	if s.finished {
+		return
+	}
+	s.setMetric(keySamplingPriority, float64(priority))
+	s.context.forceSetSamplingPriority(priority, sampler)
+}
+
 // setTagError sets the error tag. It accounts for various valid scenarios.
 // This method is not safe for concurrent use.
 func (s *Span) setTagError(value interface{}, cfg errorConfig) {
@@ -428,9 +462,13 @@ func (s *Span) setTagError(value interface{}, cfg errorConfig) {
 	case error:
 		// if anyone sets an error value as the tag, be nice here
 		// and provide all the benefits.
+		// TODO: once Error Tracking fix is resolved, update relevant tags here. See #4095
 		setError(true)
 		s.setMeta(ext.ErrorMsg, v.Error())
 		s.setMeta(ext.ErrorType, reflect.TypeOf(v).String())
+		if cfg.noDebugStack {
+			return
+		}
 		switch err := v.(type) {
 		case xerrors.Formatter:
 			s.setMeta(ext.ErrorDetails, fmt.Sprintf("%+v", v))
@@ -439,15 +477,12 @@ func (s *Span) setTagError(value interface{}, cfg errorConfig) {
 			s.setMeta(ext.ErrorDetails, fmt.Sprintf("%+v", v))
 		case *errortrace.TracerError:
 			// instrumentation/errortrace approach
-			s.setMeta(ext.ErrorDetails, fmt.Sprintf("%+v", v))
-			if !cfg.noDebugStack {
-				s.setMeta(ext.ErrorStack, err.Format())
-			}
+			s.setMeta(ext.ErrorStack, fmt.Sprintf("%+v", v))
+			s.setMeta(ext.ErrorHandlingStack, err.Format())
 			return
 		}
-		if !cfg.noDebugStack {
-			s.setMeta(ext.ErrorStack, takeStacktrace(cfg.stackFrames, cfg.stackSkip))
-		}
+		stack := takeStacktrace(cfg.stackFrames, cfg.stackSkip)
+		s.setMeta(ext.ErrorStack, stack)
 	case nil:
 		// no error
 		setError(false)
@@ -538,11 +573,11 @@ func (s *Span) setTagBool(key string, v bool) {
 		}
 	case ext.ManualDrop:
 		if v {
-			s.setSamplingPriorityLocked(ext.PriorityUserReject, samplernames.Manual)
+			s.forceSetSamplingPriorityLocked(ext.PriorityUserReject, samplernames.Manual)
 		}
 	case ext.ManualKeep:
 		if v {
-			s.setSamplingPriorityLocked(ext.PriorityUserKeep, samplernames.Manual)
+			s.forceSetSamplingPriorityLocked(ext.PriorityUserKeep, samplernames.Manual)
 		}
 	default:
 		if v {
@@ -959,18 +994,20 @@ const (
 	keySamplingPriority     = "_sampling_priority_v1"
 	keySamplingPriorityRate = "_dd.agent_psr"
 	keyDecisionMaker        = "_dd.p.dm"
-	keyServiceHash          = "_dd.dm.service_hash"
 	keyOrigin               = "_dd.origin"
 	keyReparentID           = "_dd.parent_id"
 	// keyHostname can be used to override the agent's hostname detection when using `WithHostname`.
+>>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/tracer/span.go
 	// which is set via auto-detection.
-	keyHostname                = "_dd.hostname"
-	keyRulesSamplerAppliedRate = "_dd.rule_psr"
-	keyRulesSamplerLimiterRate = "_dd.limit_psr"
-	keyMeasured                = "_dd.measured"
+	keyHostname = "_dd.hostname"
+	keyMeasured = "_dd.measured"
 	// keyTopLevel is the key of top level metric indicating if a span is top level.
 	// A top level span is a local root (parent span of the local trace) or the first span of each service.
 	keyTopLevel = "_dd.top_level"
+<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer/span.go
+	// keyTraceID128 is the lowercase, hex encoded upper 64 bits of a 128-bit trace id, if present.
+	keyTraceID128 = "_dd.p.tid"
+========
 	// keyPropagationError holds any error from propagated trace tags (if any)
 	keyPropagationError = "_dd.propagation_error"
 	// keySpanSamplingMechanism specifies the sampling mechanism by which an individual span was sampled
@@ -1014,8 +1051,8 @@ const (
 	keyUserLogin     = "usr.login"
 	keyUserEmail     = "usr.email"
 	keyUserName      = "usr.name"
-	keyUserOrg       = "usr.org"
 	keyUserRole      = "usr.role"
 	keyUserScope     = "usr.scope"
 	keyUserSessionID = "usr.session_id"
+>>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/tracer/span.go
 )

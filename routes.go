@@ -1,21 +1,22 @@
 package main
 
 import (
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"net/http"
 	"os"
 
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
+	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
+
+	"github.com/DataDog/dd-trace-go/contrib/gorilla/mux/v2"
 	"github.com/bitrise-io/bitrise-webhooks/internal/pubsub"
 	"github.com/bitrise-io/bitrise-webhooks/metrics"
 	"github.com/bitrise-io/bitrise-webhooks/service"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook"
 	"github.com/bitrise-io/bitrise-webhooks/service/root"
-	"gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 )
 
 func setupRoutes(pubsubClient *pubsub.Client) {
-	r := mux.NewRouter(mux.WithServiceName("webhooks"))
+	r := mux.NewRouter(mux.WithService("webhooks"))
 	r.Use(dropTraceMiddleware())
 
 	//

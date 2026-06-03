@@ -9,8 +9,11 @@ package ext
 
 const (
 	// TargetHost sets the target host address.
+<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext/tags.go
+========
 	// Legacy: Kept for backwards compatibility. Use NetworkDestinationName for hostname
 	// and NetworkDestinationIP for IP addresses
+>>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/ext/tags.go
 	TargetHost = "out.host"
 
 	// NetworkDestinationName is the remote hostname or similar where the outbound connection is being made to.
@@ -23,7 +26,10 @@ const (
 	NetworkClientIP = "network.client.ip"
 
 	// TargetPort sets the target host port.
+<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext/tags.go
+========
 	// Legacy: Kept for backwards compatability. Use NetworkDestinationPort instead.
+>>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/ext/tags.go
 	TargetPort = "out.port"
 
 	// TargetDB sets the target db.
@@ -61,6 +67,9 @@ const (
 	// See https://docs.datadoghq.com/tracing/trace_collection/tracing_naming_convention/#http-requests
 	HTTPRequestHeaders = "http.request.headers"
 
+	// HTTPEndpoint sets the HTTP endpoint tag.
+	HTTPEndpoint = "http.endpoint"
+
 	// SpanName is a pseudo-key for setting a span's operation name by means of
 	// a tag. It is mostly here to facilitate vendor-agnostic frameworks like Opentracing
 	// and OpenCensus.
@@ -87,11 +96,18 @@ const (
 	// ErrorType specifies the error type.
 	ErrorType = "error.type"
 
-	// ErrorStack specifies the stack dump.
+	// ErrorStack specifies the stack dump when the error is thrown.
 	ErrorStack = "error.stack"
 
+	// ErrorHandlingStack specifies the stack dump when the error is captured.
+	ErrorHandlingStack = "error.handling_stack"
+
 	// ErrorDetails holds details about an error which implements a formatter.
+	// Deprecated: Use ErrorStack instead. This tag is not supported by Error Tracking.
 	ErrorDetails = "error.details"
+
+	// ErrorNoStackTrace is a tag that specifies that the error stack trace should not be captured.
+	ErrorNoStackTrace = "error.no_stack_trace"
 
 	// Environment specifies the environment to use with a trace.
 	Environment = "env"
