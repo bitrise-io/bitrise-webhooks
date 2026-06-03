@@ -9,16 +9,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
-<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer/rules_sampler.go
-	v2 "github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
-	"gopkg.in/DataDog/dd-trace-go.v1/internal/log"
-
-========
->>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/tracer/rules_sampler.go
 	"golang.org/x/time/rate"
 
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
@@ -27,8 +24,6 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/internal/samplernames"
 )
 
-<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer/rules_sampler.go
-========
 // rulesSampler holds instances of trace sampler and single span sampler, that are configured with the given set of rules.
 type rulesSampler struct {
 	// traceRulesSampler samples trace spans based on a user-defined set of rules and might impact sampling decision of the trace.
@@ -75,7 +70,6 @@ func (r *rulesSampler) HasSpanRules() bool { return r.spans.enabled() }
 
 func (r *rulesSampler) TraceRateLimit() (float64, bool) { return r.traces.limit() }
 
->>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/tracer/rules_sampler.go
 type provenance int32
 
 const (
@@ -156,8 +150,6 @@ type SamplingRule struct {
 	globRule *jsonRule
 }
 
-<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer/rules_sampler.go
-========
 // Poor-man's comparison of two regex for equality without resorting to fancy symbolic computation.
 // The result is false negative: whenever the function returns true, we know the two regex must be
 // equal. The reverse is not true. Two regex can be equivalent while reported as not.
@@ -231,9 +223,8 @@ func (sr *SamplingRule) match(s *Span) bool {
 	return true
 }
 
->>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/tracer/rules_sampler.go
 // SamplingRuleType represents a type of sampling rule spans are matched against.
-type SamplingRuleType = v2.SamplingRuleType
+type SamplingRuleType int
 
 const (
 	SamplingRuleUndefined SamplingRuleType = 0
@@ -241,27 +232,16 @@ const (
 	// SamplingRuleTrace specifies a sampling rule that applies to the entire trace if any spans satisfy the criteria.
 	// If a sampling rule is of type SamplingRuleTrace, such rule determines the sampling rate to apply
 	// to trace spans. If a span matches that rule, it will impact the trace sampling decision.
-	SamplingRuleTrace = v2.SamplingRuleTrace
+	SamplingRuleTrace = iota
 
 	// SamplingRuleSpan specifies a sampling rule that applies to a single span without affecting the entire trace.
 	// If a sampling rule is of type SamplingRuleSingleSpan, such rule determines the sampling rate to apply
 	// to individual spans. If a span matches a rule, it will NOT impact the trace sampling decision.
 	// In the case that a trace is dropped and thus not sent to the Agent, spans kept on account
 	// of matching SamplingRuleSingleSpan rules must be conveyed separately.
-	SamplingRuleSpan = v2.SamplingRuleSpan
+	SamplingRuleSpan
 )
 
-<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer/rules_sampler.go
-// ServiceRule returns a SamplingRule that applies the provided sampling rate
-// to spans that match the service name provided.
-func ServiceRule(service string, rate float64) SamplingRule {
-	return SamplingRule{
-		Service:  globMatch(service),
-		ruleType: SamplingRuleTrace,
-		Rate:     rate,
-		globRule: &jsonRule{Service: service},
-	}
-========
 func (sr SamplingRuleType) String() string {
 	switch sr {
 	case SamplingRuleTrace:
@@ -281,7 +261,6 @@ type Rule struct {
 	Tags         map[string]string // map of string to glob pattern
 	Rate         float64
 	MaxPerSecond float64
->>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/tracer/rules_sampler.go
 }
 
 // TraceSamplingRules creates a sampling rule that applies to the entire trace if any spans satisfy the criteria.
@@ -354,8 +333,6 @@ func SpanSamplingRules(rules ...Rule) []SamplingRule {
 	return samplingRules
 }
 
-<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer/rules_sampler.go
-========
 // traceRulesSampler allows a user-defined list of rules to apply to traces.
 // These rules can match based on the span's Service, Name or both.
 // When making a sampling decision, the rules are checked in order until
@@ -610,13 +587,49 @@ func (rs *singleSpanRulesSampler) apply(span *Span) bool {
 	return false
 }
 
->>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/tracer/rules_sampler.go
 // rateLimiter is a wrapper on top of golang.org/x/time/rate which implements a rate limiter but also
 // returns the effective rate of allowance.
 type rateLimiter struct {
 	limiter *rate.Limiter
 
-	prevTime time.Time // time at which prevAllowed and prevSeen were set
+	mu          sync.Mutex // guards below fields
+	prevTime    time.Time  // time at which prevAllowed and prevSeen were set
+	allowed     float64    // number of spans allowed in the current period
+	seen        float64    // number of spans seen in the current period
+	prevAllowed float64    // number of spans allowed in the previous period
+	prevSeen    float64    // number of spans seen in the previous period
+}
+
+// allowOne returns the rate limiter's decision to allow the span to be sampled, and the
+// effective rate at the time it is called. The effective rate is computed by averaging the rate
+// for the previous second with the current rate
+func (r *rateLimiter) allowOne(now time.Time) (bool, float64) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if d := now.Sub(r.prevTime); d >= time.Second {
+		// enough time has passed to reset the counters
+		if d.Truncate(time.Second) == time.Second && r.seen > 0 {
+			// exactly one second, so update prev
+			r.prevAllowed = r.allowed
+			r.prevSeen = r.seen
+		} else {
+			// more than one second, so reset previous rate
+			r.prevAllowed = 0
+			r.prevSeen = 0
+		}
+		r.prevTime = now
+		r.allowed = 0
+		r.seen = 0
+	}
+
+	r.seen++
+	var sampled bool
+	if r.limiter.AllowN(now, 1) {
+		r.allowed++
+		sampled = true
+	}
+	er := (r.prevAllowed + r.allowed) / (r.prevSeen + r.seen)
+	return sampled, er
 }
 
 // newSingleSpanRateLimiter returns a rate limiter which restricts the number of single spans sampled per second.
@@ -647,8 +660,6 @@ func globMatch(pattern string) *regexp.Regexp {
 	return regexp.MustCompile(fmt.Sprintf("(?i)^%s$", pattern))
 }
 
-<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer/rules_sampler.go
-========
 // samplingRulesFromEnv parses sampling rules from
 // the DD_TRACE_SAMPLING_RULES, DD_TRACE_SAMPLING_RULES_FILE
 // DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE environment variables.
@@ -699,7 +710,6 @@ func samplingRulesFromEnv() (trace, span []SamplingRule, err error) {
 	return trace, span, err
 }
 
->>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/tracer/rules_sampler.go
 func (sr *SamplingRule) UnmarshalJSON(b []byte) error {
 	if len(b) == 0 {
 		return nil

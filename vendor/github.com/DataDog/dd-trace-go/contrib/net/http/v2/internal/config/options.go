@@ -3,15 +3,6 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016 Datadog, Inc.
 
-<<<<<<<< HEAD:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/ext/system.go
-package ext
-
-// Standard system metadata names
-const (
-	// The pid of the traced process
-	Pid = "process_id"
-)
-========
 package config
 
 import (
@@ -24,4 +15,3 @@ func WithResourceNamer(namer func(req *http.Request) string) OptionFn {
 		cfg.ResourceNamer = namer
 	}
 }
->>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/contrib/net/http/v2/internal/config/options.go

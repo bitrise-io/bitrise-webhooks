@@ -9,11 +9,8 @@ package ext
 
 const (
 	// TargetHost sets the target host address.
-<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext/tags.go
-========
 	// Legacy: Kept for backwards compatibility. Use NetworkDestinationName for hostname
 	// and NetworkDestinationIP for IP addresses
->>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/ext/tags.go
 	TargetHost = "out.host"
 
 	// NetworkDestinationName is the remote hostname or similar where the outbound connection is being made to.
@@ -26,10 +23,7 @@ const (
 	NetworkClientIP = "network.client.ip"
 
 	// TargetPort sets the target host port.
-<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext/tags.go
-========
 	// Legacy: Kept for backwards compatability. Use NetworkDestinationPort instead.
->>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/ext/tags.go
 	TargetPort = "out.port"
 
 	// TargetDB sets the target db.

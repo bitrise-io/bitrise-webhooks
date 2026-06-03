@@ -125,6 +125,8 @@ func newSubscriptionFlowController(fc FlowControlSettings) flowController {
 // as if it were equal to maxSize.
 func (f *flowController) acquire(ctx context.Context, size int) error {
 	switch f.limitBehavior {
+	case FlowControlIgnore:
+		return nil
 	case FlowControlBlock:
 		if f.semCount != nil {
 			if err := f.semCount.Acquire(ctx, 1); err != nil {
@@ -154,7 +156,6 @@ func (f *flowController) acquire(ctx context.Context, size int) error {
 				return ErrFlowControllerMaxOutstandingBytes
 			}
 		}
-	case FlowControlIgnore:
 	}
 
 	if f.semCount != nil {
@@ -171,19 +172,19 @@ func (f *flowController) acquire(ctx context.Context, size int) error {
 
 // release notes that one message of size bytes is no longer outstanding.
 func (f *flowController) release(ctx context.Context, size int) {
+	if f.limitBehavior == FlowControlIgnore {
+		return
+	}
+
 	if f.semCount != nil {
 		outstandingMessages := atomic.AddInt64(&f.countRemaining, -1)
 		f.recordOutstandingMessages(ctx, outstandingMessages)
-		if f.limitBehavior != FlowControlIgnore {
-			f.semCount.Release(1)
-		}
+		f.semCount.Release(1)
 	}
 	if f.semSize != nil {
 		outstandingBytes := atomic.AddInt64(&f.bytesRemaining, -1*f.bound(size))
 		f.recordOutstandingBytes(ctx, outstandingBytes)
-		if f.limitBehavior != FlowControlIgnore {
-			f.semSize.Release(f.bound(size))
-		}
+		f.semSize.Release(f.bound(size))
 	}
 }
 
@@ -194,16 +195,10 @@ func (f *flowController) bound(size int) int64 {
 	return int64(size)
 }
 
-// count returns the number of outstanding messages availalble.
+// count returns the number of outstanding messages.
 // if maxCount is 0, this will always return 0.
 func (f *flowController) count() int {
 	return int(atomic.LoadInt64(&f.countRemaining))
-}
-
-// size returns the size of outstanding messages.
-// if maxSize is 0, this will always return 0.
-func (f *flowController) size() int {
-	return int(atomic.LoadInt64(&f.bytesRemaining))
 }
 
 func (f *flowController) recordOutstandingMessages(ctx context.Context, n int64) {
@@ -212,7 +207,6 @@ func (f *flowController) recordOutstandingMessages(ctx context.Context, n int64)
 		return
 	}
 
-	// Otherwise record this as subscriber outstanding messages.
 	recordStat(ctx, OutstandingMessages, n)
 }
 
@@ -222,6 +216,5 @@ func (f *flowController) recordOutstandingBytes(ctx context.Context, n int64) {
 		return
 	}
 
-	// Otherwise record this as subscriber outstanding bytes.
 	recordStat(ctx, OutstandingBytes, n)
 }

@@ -6,40 +6,19 @@
 package tracer
 
 import (
-<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer/tracer.go
-========
 	gocontext "context"
 	"encoding/binary"
 	"fmt"
 	"log/slog"
 	"math"
->>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/tracer/tracer.go
 	"os"
+	"runtime/pprof"
+	rt "runtime/trace"
+	"strconv"
+	"sync"
+	"sync/atomic"
+	"time"
 
-<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer/tracer.go
-	v2 "github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/internal"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/mocktracer"
-	"gopkg.in/DataDog/dd-trace-go.v1/internal/globalconfig"
-	"gopkg.in/DataDog/dd-trace-go.v1/internal/log"
-)
-
-// Start starts the tracer with the given set of options. It will stop and replace
-// any running tracer, meaning that calling it several times will result in a restart
-// of the tracer by replacing the current instance with a new one.
-func Start(opts ...StartOption) {
-	// Workaround to make sure our v1 shim behaves like the previous v1 tracer.
-	if os.Getenv("DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED") == "" {
-		os.Setenv("DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED", "false")
-	}
-	// Workaround to force globalconfig to be present in the binary.
-	// The condition makes no sense, but it makes sure that the compiler don't optimize it away.
-	if !log.DebugEnabled() {
-		log.Debug("%s", globalconfig.RuntimeID())
-	}
-	v2.Start(opts...)
-========
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/internal/tracerstats"
 	globalinternal "github.com/DataDog/dd-trace-go/v2/internal"
@@ -319,14 +298,10 @@ func storeConfig(c *config) {
 	if err != nil {
 		log.Error("failed to store the configuration: %s", err.Error())
 	}
->>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/tracer/tracer.go
 }
 
 // Stop stops the started tracer. Subsequent calls are valid but become no-op.
 func Stop() {
-<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer/tracer.go
-	v2.Stop()
-========
 	startStopMu.Lock()
 	defer startStopMu.Unlock()
 
@@ -334,7 +309,6 @@ func Stop() {
 	setGlobalTracer(&NoopTracer{})
 	globalinternal.SetTracerInitialized(false)
 	log.Flush()
->>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/tracer/tracer.go
 }
 
 // StartSpan starts a new span with the given operation name and set of options.
@@ -362,16 +336,6 @@ func Inject(ctx *SpanContext, carrier interface{}) error {
 // bit of information gets monitored. In case of distributed traces,
 // the user id can be propagated across traces using the WithPropagation() option.
 // See https://docs.datadoghq.com/security_platform/application_security/setup_and_configure/?tab=set_user#add-user-information-to-traces
-<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer/tracer.go
-func SetUser(s Span, id string, opts ...UserMonitoringOption) {
-	if sp, ok := s.(internal.SpanV2Adapter); ok {
-		v2.SetUser(sp.Span, id, opts...)
-		return
-	}
-	if sp, ok := s.(mocktracer.MockspanV2Adapter); ok {
-		v2.SetUser(sp.Span.Unwrap(), id, opts...)
-	}
-========
 func SetUser(s *Span, id string, opts ...UserMonitoringOption) {
 	if s == nil {
 		return
@@ -522,7 +486,6 @@ func newTracer(opts ...StartOption) (*tracer, error) {
 	}()
 	t.stats.Start()
 	return t, nil
->>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/tracer/tracer.go
 }
 
 // Flush flushes any buffered traces. Flush is in effect only if a tracer
@@ -536,10 +499,6 @@ func newTracer(opts ...StartOption) (*tracer, error) {
 // whereas the invocation can make use of Flush to ensure any created spans
 // reach the agent.
 func Flush() {
-<<<<<<<< HEAD:vendor/gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer/tracer.go
-	v2.Flush()
-}
-========
 	if t := getGlobalTracer(); t != nil {
 		t.Flush()
 	}
@@ -1104,4 +1063,3 @@ func startExecutionTracerTask(ctx gocontext.Context, span *Span) (gocontext.Cont
 }
 
 func noopTaskEnd() {}
->>>>>>>> origin/master:vendor/github.com/DataDog/dd-trace-go/v2/ddtrace/tracer/tracer.go

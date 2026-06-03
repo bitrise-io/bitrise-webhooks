@@ -1,10 +1,6 @@
-MIT License
+The MIT License (MIT)
 
-<<<<<<<< HEAD:vendor/github.com/json-iterator/go/LICENSE
-Copyright (c) 2016 json-iterator
-========
 Copyright (c) 2015 Klaus Post
->>>>>>>> origin/master:vendor/github.com/klauspost/cpuid/v2/LICENSE
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

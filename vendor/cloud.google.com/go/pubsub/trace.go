@@ -20,7 +20,6 @@ import (
 	"log"
 	"sync"
 
-	pb "cloud.google.com/go/pubsub/apiv1/pubsubpb"
 	"cloud.google.com/go/pubsub/internal"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
@@ -274,42 +273,33 @@ func tracer() trace.Tracer {
 
 var _ propagation.TextMapCarrier = (*messageCarrier)(nil)
 
-// messageCarrier injects and extracts traces from pubsub.Message attributes.
+// messageCarrier injects and extracts traces from a pubsub.Message.
 type messageCarrier struct {
-	attributes map[string]string
+	msg *Message
 }
 
 const googclientPrefix string = "googclient_"
 
 // newMessageCarrier creates a new PubsubMessageCarrier.
 func newMessageCarrier(msg *Message) messageCarrier {
-	return messageCarrier{attributes: msg.Attributes}
-}
-
-// NewMessageCarrierFromPB creates a propagation.TextMapCarrier that can be used to extract the trace
-// context from a protobuf PubsubMessage.
-//
-// Example:
-// ctx = propagation.TraceContext{}.Extract(ctx, pubsub.NewMessageCarrierFromPB(msg))
-func NewMessageCarrierFromPB(msg *pb.PubsubMessage) propagation.TextMapCarrier {
-	return messageCarrier{attributes: msg.Attributes}
+	return messageCarrier{msg: msg}
 }
 
 // Get retrieves a single value for a given key.
 func (c messageCarrier) Get(key string) string {
-	return c.attributes[googclientPrefix+key]
+	return c.msg.Attributes[googclientPrefix+key]
 }
 
 // Set sets an attribute.
 func (c messageCarrier) Set(key, val string) {
-	c.attributes[googclientPrefix+key] = val
+	c.msg.Attributes[googclientPrefix+key] = val
 }
 
 // Keys returns a slice of all keys in the carrier.
 func (c messageCarrier) Keys() []string {
 	i := 0
-	out := make([]string, len(c.attributes))
-	for k := range c.attributes {
+	out := make([]string, len(c.msg.Attributes))
+	for k := range c.msg.Attributes {
 		out[i] = k
 		i++
 	}
@@ -360,11 +350,14 @@ const (
 	resultExpired = "expired"
 
 	// custom pubsub specific attributes
-	gcpProjectIDAttribute  = "gcp.project_id"
-	pubsubPrefix           = "messaging.gcp_pubsub."
-	eosAttribute           = pubsubPrefix + "exactly_once_delivery"
-	resultAttribute        = pubsubPrefix + "result"
-	receiptModackAttribute = pubsubPrefix + "is_receipt_modack"
+	gcpProjectIDAttribute    = "gcp.project_id"
+	pubsubPrefix             = "messaging.gcp_pubsub."
+	orderingAttribute        = pubsubPrefix + "message.ordering_key"
+	deliveryAttemptAttribute = pubsubPrefix + "message.delivery_attempt"
+	eosAttribute             = pubsubPrefix + "exactly_once_delivery"
+	ackIDAttribute           = pubsubPrefix + "message.ack_id"
+	resultAttribute          = pubsubPrefix + "result"
+	receiptModackAttribute   = pubsubPrefix + "is_receipt_modack"
 )
 
 func startSpan(ctx context.Context, spanType, resourceID string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
@@ -380,7 +373,7 @@ func getPublishSpanAttributes(project, dst string, msg *Message, attrs ...attrib
 		trace.WithAttributes(
 			semconv.MessagingMessageID(msg.ID),
 			semconv.MessagingMessageBodySize(len(msg.Data)),
-			semconv.MessagingGCPPubsubMessageOrderingKey(msg.OrderingKey),
+			attribute.String(orderingAttribute, msg.OrderingKey),
 		),
 		trace.WithAttributes(attrs...),
 		trace.WithSpanKind(trace.SpanKindProducer),
@@ -394,13 +387,13 @@ func getSubscriberOpts(project, dst string, msg *Message, attrs ...attribute.Key
 		trace.WithAttributes(
 			semconv.MessagingMessageID(msg.ID),
 			semconv.MessagingMessageBodySize(len(msg.Data)),
-			semconv.MessagingGCPPubsubMessageOrderingKey(msg.OrderingKey),
+			attribute.String(orderingAttribute, msg.OrderingKey),
 		),
 		trace.WithAttributes(attrs...),
 		trace.WithSpanKind(trace.SpanKindConsumer),
 	}
 	if msg.DeliveryAttempt != nil {
-		opts = append(opts, trace.WithAttributes(semconv.MessagingGCPPubsubMessageDeliveryAttempt(*msg.DeliveryAttempt)))
+		opts = append(opts, trace.WithAttributes(attribute.Int(deliveryAttemptAttribute, *msg.DeliveryAttempt)))
 	}
 	opts = append(opts, getCommonOptions(project, dst)...)
 	return opts
