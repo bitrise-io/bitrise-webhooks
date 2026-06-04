@@ -422,7 +422,7 @@ github.com/tklauser/go-sysconf
 # github.com/tklauser/numcpus v0.10.0
 ## explicit; go 1.23.0
 github.com/tklauser/numcpus
-# github.com/xanzy/go-gitlab v0.108.0
+# github.com/xanzy/go-gitlab v0.115.0
 ## explicit; go 1.19
 github.com/xanzy/go-gitlab
 # github.com/yusufpapurcu/wmi v1.2.4
