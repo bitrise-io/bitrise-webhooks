@@ -19,8 +19,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DataDog/dd-trace-go/v2/instrumentation/errortrace"
 	"github.com/cenkalti/backoff/v5"
+
+	"github.com/DataDog/dd-trace-go/v2/instrumentation/errortrace"
 
 	"github.com/DataDog/dd-trace-go/v2/internal"
 	"github.com/DataDog/dd-trace-go/v2/internal/llmobs/config"
@@ -240,7 +241,6 @@ func (c *Transport) request(ctx context.Context, method, path, subdomain string,
 			if readErr != nil {
 				return requestResult{}, fmt.Errorf("failed to read response body: %w", readErr)
 			}
-			log.Debug("llmobs: got success response: %s", string(b))
 			return requestResult{statusCode: code, body: b}, nil
 		}
 		if isRetriableStatus(code) {

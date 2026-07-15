@@ -15,6 +15,8 @@ import (
 	"strings"
 
 	"github.com/DataDog/datadog-agent/pkg/remoteconfig/state"
+	"github.com/DataDog/go-libddwaf/v4"
+
 	"github.com/DataDog/dd-trace-go/v2/internal/appsec/config"
 	"github.com/DataDog/dd-trace-go/v2/internal/env"
 	"github.com/DataDog/dd-trace-go/v2/internal/log"
@@ -22,7 +24,6 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/internal/remoteconfig"
 	"github.com/DataDog/dd-trace-go/v2/internal/telemetry"
 	telemetrylog "github.com/DataDog/dd-trace-go/v2/internal/telemetry/log"
-	"github.com/DataDog/go-libddwaf/v4"
 )
 
 // onRCRulesUpdate is the RC callback called when security rules related RC updates are available
@@ -63,7 +64,7 @@ func (a *appsec) onRCRulesUpdate(updates map[string]remoteconfig.ProductUpdate) 
 				cfg := UpdatedConfig{Product: product}
 				if err := json.Unmarshal(data, &cfg.Content); err != nil {
 					log.Error("appsec: unmarshaling remote config update for %s (%q): %s", product, path, err.Error())
-					statuses[product] = state.ApplyStatus{State: state.ApplyStateError, Error: err.Error()}
+					statuses[path] = state.ApplyStatus{State: state.ApplyStateError, Error: err.Error()}
 					continue
 				}
 				addOrUpdates[path] = cfg
@@ -306,7 +307,8 @@ func (a *appsec) enableRemoteActivation() error {
 		return errors.New("no valid remote configuration client")
 	}
 	log.Debug("appsec: Remote Config: subscribing to ASM_FEATURES updates...")
-	return remoteconfig.Subscribe(state.ProductASMFeatures, a.handleASMFeatures, remoteconfig.ASMActivation)
+	_, err := remoteconfig.Subscribe(state.ProductASMFeatures, a.handleASMFeatures, remoteconfig.ASMActivation)
+	return err
 }
 
 var baseCapabilities = [...]remoteconfig.Capability{

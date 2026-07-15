@@ -180,10 +180,30 @@ var (
 	}
 )
 
+// trieNode represents a node in the keyword trie.
+type trieNode struct {
+	children         [27]*trieNode // 0-25 for A-Z, 26 for underscore
+	isEnd            bool
+	tokenType        TokenType
+	isTableIndicator bool
+}
+
+// trieIndex returns the array index for a character (0-25 for A-Z, 26 for underscore).
+// Returns -1 for invalid characters.
+func trieIndex(ch rune) int {
+	if ch >= 'A' && ch <= 'Z' {
+		return int(ch - 'A')
+	}
+	if ch == '_' {
+		return 26
+	}
+	return -1
+}
+
 // buildCombinedTrie combines all types of SQL keywords into a single trie
 // This trie is used for efficient case-insensitive keyword matching during lexing
 func buildCombinedTrie() *trieNode {
-	root := &trieNode{children: make(map[rune]*trieNode)}
+	root := &trieNode{}
 
 	// Add all types of keywords
 	addToTrie(root, commands, COMMAND, false)
@@ -204,11 +224,16 @@ func addToTrie(root *trieNode, words []string, tokenType TokenType, isTableIndic
 		node := root
 		// Convert to uppercase for case-insensitive matching
 		for _, ch := range strings.ToUpper(word) {
-			if next, exists := node.children[ch]; exists {
+			idx := trieIndex(ch)
+			if idx < 0 {
+				// Skip characters that aren't valid trie indices
+				continue
+			}
+			if next := node.children[idx]; next != nil {
 				node = next
 			} else {
-				next = &trieNode{children: make(map[rune]*trieNode)}
-				node.children[ch] = next
+				next := &trieNode{}
+				node.children[idx] = next
 				node = next
 			}
 		}
