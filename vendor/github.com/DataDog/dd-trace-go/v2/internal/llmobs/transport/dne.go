@@ -124,6 +124,12 @@ type RequestAttributesExperimentCreate struct {
 	Config         map[string]any `json:"config,omitempty"`
 	DatasetVersion int            `json:"dataset_version,omitempty"`
 	EnsureUnique   bool           `json:"ensure_unique,omitempty"`
+	RunCount       int            `json:"run_count,omitempty"`
+}
+
+type RequestAttributesExperimentUpdate struct {
+	Status string `json:"status,omitempty"`
+	Error  string `json:"error,omitempty"`
 }
 
 type RequestAttributesExperimentPushEvents struct {
@@ -156,6 +162,7 @@ type (
 	CreateProjectRequest = Request[RequestAttributesProjectCreate]
 
 	CreateExperimentRequest     = Request[RequestAttributesExperimentCreate]
+	UpdateExperimentRequest     = Request[RequestAttributesExperimentUpdate]
 	PushExperimentEventsRequest = Request[RequestAttributesExperimentPushEvents]
 )
 
@@ -171,7 +178,7 @@ type ResponseMeta struct {
 
 type ResponseList[T any] struct {
 	Data []ResponseData[T] `json:"data"`
-	Meta ResponseMeta      `json:"meta,omitempty"`
+	Meta ResponseMeta      `json:"meta"`
 }
 
 type ResponseData[T any] struct {
@@ -441,14 +448,15 @@ func (c *Transport) CreateExperiment(
 	expConfig map[string]any,
 	tags []string,
 	description string,
+	runs int,
 ) (*ExperimentView, error) {
 	path := endpointPrefixDNE + "/experiments"
 	method := http.MethodPost
 
 	if expConfig == nil {
-		expConfig = map[string]interface{}{}
+		expConfig = map[string]any{}
 	}
-	meta := map[string]interface{}{"tags": tags}
+	meta := map[string]any{"tags": tags}
 	body := CreateExperimentRequest{
 		Data: RequestData[RequestAttributesExperimentCreate]{
 			Type: resourceTypeExperiments,
@@ -461,6 +469,7 @@ func (c *Transport) CreateExperiment(
 				Config:         expConfig,
 				DatasetVersion: datasetVersion,
 				EnsureUnique:   true,
+				RunCount:       runs,
 			},
 		},
 	}
@@ -481,6 +490,29 @@ func (c *Transport) CreateExperiment(
 	exp.ID = resp.Data.ID
 
 	return &exp, nil
+}
+
+func (c *Transport) UpdateExperimentStatus(ctx context.Context, id, status, errSummary string) error {
+	path := fmt.Sprintf("%s/experiments/%s", endpointPrefixDNE, url.PathEscape(id))
+
+	body := UpdateExperimentRequest{
+		Data: RequestData[RequestAttributesExperimentUpdate]{
+			Type: resourceTypeExperiments,
+			Attributes: RequestAttributesExperimentUpdate{
+				Status: status,
+				Error:  errSummary,
+			},
+		},
+	}
+
+	result, err := c.jsonRequest(ctx, http.MethodPatch, path, subdomainDNE, body, defaultTimeout)
+	if err != nil {
+		return err
+	}
+	if result.statusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status %d: %s", result.statusCode, string(result.body))
+	}
+	return nil
 }
 
 func (c *Transport) PushExperimentEvents(

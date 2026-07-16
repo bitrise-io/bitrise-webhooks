@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/DataDog/dd-trace-go/v2/internal/bazel"
 	"github.com/DataDog/dd-trace-go/v2/internal/civisibility/constants"
 	"github.com/DataDog/dd-trace-go/v2/internal/civisibility/utils/telemetry"
 	"github.com/DataDog/dd-trace-go/v2/internal/log"
@@ -87,6 +88,15 @@ var (
 
 	// isAShallowCloneRepositoryValue is a boolean flag indicating whether the repository is a shallow clone.
 	isAShallowCloneRepositoryValue bool
+
+	// safeDirectoryOnce is a sync.Once instance used to ensure that the safe directory is only resolved once.
+	safeDirectoryOnce sync.Once
+
+	// safeDirectoryValue holds the cached repository root path for safe.directory config.
+	safeDirectoryValue string
+
+	// errGitCLIDisabledInPayloadFilesMode reports that payload-file mode must avoid invoking the Git CLI.
+	errGitCLIDisabledInPayloadFilesMode = errors.New("git CLI is disabled in payload-file mode")
 )
 
 // branchMetrics holds metrics for evaluating base branch candidates
@@ -108,7 +118,38 @@ func isGitFound() bool {
 	return isGitFoundValue
 }
 
+// getSafeDirectoryConfig returns the repository root path to be used with git's safe.directory config.
+// This is cached to avoid repeated filesystem lookups.
+// Using -c safe.directory=<path> instead of modifying global config avoids config pollution
+// and provides better security (only affects the single command execution).
+func getSafeDirectoryConfig() string {
+	safeDirectoryOnce.Do(func() {
+		currentDir, err := os.Getwd()
+		if err != nil {
+			log.Debug("civisibility.git: error getting current working directory for safe.directory")
+			return
+		}
+
+		gitDir, err := getParentGitFolder(currentDir)
+		if err != nil || gitDir == "" {
+			log.Debug("civisibility.git: could not find git folder for safe.directory")
+			return
+		}
+
+		// Use the repo root (parent of .git) for safe.directory
+		if before, ok := strings.CutSuffix(gitDir, string(filepath.Separator)+".git"); ok {
+			safeDirectoryValue = before
+		} else {
+			safeDirectoryValue = gitDir
+		}
+		log.Debug("civisibility.git: using safe.directory config: %s", safeDirectoryValue)
+	})
+	return safeDirectoryValue
+}
+
 // execGit executes a Git command with the given arguments.
+// It automatically includes -c safe.directory=<repo_root> to handle repositories
+// with different ownership (common in CI environments) without modifying global config.
 func execGit(commandType telemetry.CommandType, args ...string) (val []byte, err error) {
 	startTime := time.Now()
 	if commandType != telemetry.NotSpecifiedCommandsType {
@@ -142,17 +183,27 @@ func execGit(commandType telemetry.CommandType, args ...string) (val []byte, err
 		defer func() {
 			durationInMs := time.Since(startTime).Milliseconds()
 			if err != nil {
-				log.Debug("civisibility.git.command [%s][%s][%dms]: git %s", commandType, err.Error(), durationInMs, strings.Join(args, " "))
+				log.Debug("civisibility.git.command [%s][%s][%dms]: git %s\n%s", commandType, err.Error(), durationInMs, strings.Join(args, " "), string(val))
 			} else {
-				log.Debug("civisibility.git.command [%s][%dms]: git %s", commandType, durationInMs, strings.Join(args, " "))
+				log.Debug("civisibility.git.command [%s][%dms]: git %s\n%s", commandType, durationInMs, strings.Join(args, " "), string(val))
 			}
 		}()
+	}
+	if bazel.IsGitCLIDisabled() {
+		log.Debug("civisibility.git: skipping git command in payload-file mode: git %s", strings.Join(args, " "))
+		return nil, errGitCLIDisabledInPayloadFilesMode
 	}
 	if !isGitFound() {
 		return nil, errors.New("git executable not found")
 	}
 	gitCommandMutex.Lock()
 	defer gitCommandMutex.Unlock()
+
+	// Prepend safe.directory config if we have a known repo root
+	if safeDir := getSafeDirectoryConfig(); safeDir != "" {
+		args = append([]string{"-c", "safe.directory=" + safeDir}, args...)
+	}
+
 	return exec.Command("git", args...).CombinedOutput()
 }
 
@@ -164,6 +215,7 @@ func execGitString(commandType telemetry.CommandType, args ...string) (string, e
 }
 
 // execGitStringWithInput executes a Git command with the given input and arguments and returns the output as a string.
+// It automatically includes -c safe.directory=<repo_root> to handle repositories with different ownership.
 func execGitStringWithInput(commandType telemetry.CommandType, input string, args ...string) (val string, err error) {
 	startTime := time.Now()
 	if commandType != telemetry.NotSpecifiedCommandsType {
@@ -197,14 +249,24 @@ func execGitStringWithInput(commandType telemetry.CommandType, input string, arg
 		defer func() {
 			durationInMs := time.Since(startTime).Milliseconds()
 			if err != nil {
-				log.Debug("civisibility.git.command [%s][%s][%dms]: git %s", commandType, err.Error(), durationInMs, strings.Join(args, " "))
+				log.Debug("civisibility.git.command(input) [%s][%s][%dms]: git %s\n%s", commandType, err.Error(), durationInMs, strings.Join(args, " "), val)
 			} else {
-				log.Debug("civisibility.git.command [%s][%dms]: git %s", commandType, durationInMs, strings.Join(args, " "))
+				log.Debug("civisibility.git.command(input) [%s][%dms]: git %s\n%s", commandType, durationInMs, strings.Join(args, " "), val)
 			}
 		}()
 	}
+	if bazel.IsGitCLIDisabled() {
+		log.Debug("civisibility.git: skipping git command with stdin in payload-file mode: git %s", strings.Join(args, " "))
+		return "", errGitCLIDisabledInPayloadFilesMode
+	}
 	gitCommandMutex.Lock()
 	defer gitCommandMutex.Unlock()
+
+	// Prepend safe.directory config if we have a known repo root
+	if safeDir := getSafeDirectoryConfig(); safeDir != "" {
+		args = append([]string{"-c", "safe.directory=" + safeDir}, args...)
+	}
+
 	cmd := exec.Command("git", args...)
 	cmd.Stdin = strings.NewReader(input)
 	out, err := cmd.CombinedOutput()
@@ -252,20 +314,6 @@ func getLocalGitData() (localGitData, error) {
 
 	if !isGitFound() {
 		return gitData, errors.New("git executable not found")
-	}
-
-	// Ensure we have permissions to read the git directory
-	if currentDir, err := os.Getwd(); err == nil {
-		if gitDir, err := getParentGitFolder(currentDir); err == nil && gitDir != "" {
-			log.Debug("civisibility.git: setting permissions to git folder: %s", gitDir)
-			if out, err := execGitString(telemetry.GitAddPermissionCommandType, "config", "--global", "--add", "safe.directory", gitDir); err != nil {
-				log.Debug("civisibility.git: error while setting permissions to git folder: %s\n out: %s\n error: %s", gitDir, out, err.Error())
-			}
-		} else {
-			log.Debug("civisibility.git: error getting the parent git folder.")
-		}
-	} else {
-		log.Debug("civisibility.git: error getting the current working directory.")
 	}
 
 	// Extract the absolute path to the Git directory
@@ -643,23 +691,43 @@ func CreatePackFiles(commitsToInclude []string, commitsToExclude []string) []str
 	}
 
 	// create the objects shas string
-	var objectsShasString string
+	var objectsShasString strings.Builder
 	for _, objectSha := range objectsShas {
-		objectsShasString += objectSha + "\n"
+		objectsShasString.WriteString(objectSha + "\n")
 	}
 
-	// get a temporary path to store the pack files
-	temporaryPath, err := os.MkdirTemp("", "pack-objects")
-	if err != nil {
-		log.Warn("civisibility: error creating temporary directory: %s", err.Error())
-		return nil
+	workingDirectory := func() string {
+		wd, err := os.Getwd()
+		if err != nil {
+			return "."
+		}
+		return wd
 	}
 
-	// git pack-objects --compression=9 --max-pack-size={MaxPackFileSizeInMb}m "{temporaryPath}"
-	out, err := execGitStringWithInput(telemetry.PackObjectsCommandsType, objectsShasString,
-		"pack-objects", "--compression=9", "--max-pack-size="+strconv.Itoa(MaxPackFileSizeInMb)+"m", temporaryPath+"/")
+	var temporaryPath string
+	var out string
+	var err error
+
+	// Git can throw a cross device error if the temporal folder is in a different drive than the .git folder (eg. symbolic link)
+	// to handle this edge case, we first try with a temp folder and if we fail then we try in the working directory folder.
+	for _, folder := range []string{"", workingDirectory()} {
+		// get a temporary path to store the pack files
+		temporaryPath, err = os.MkdirTemp(folder, ".dd-pack-objects")
+		if err != nil {
+			log.Warn("civisibility: error creating temporary directory %s: %s", folder, err.Error())
+			continue
+		}
+
+		// git pack-objects --compression=9 --max-pack-size={MaxPackFileSizeInMb}m "{temporaryPath}"
+		out, err = execGitStringWithInput(telemetry.PackObjectsCommandsType, objectsShasString.String(),
+			"pack-objects", "--compression=9", "--max-pack-size="+strconv.Itoa(MaxPackFileSizeInMb)+"m", temporaryPath+"/")
+		if err == nil {
+			break
+		}
+	}
+
 	if err != nil {
-		log.Warn("civisibility: error creating pack files: %s", err.Error())
+		log.Warn("civisibility: error creating pack files in %s: %s", temporaryPath, err.Error())
 		return nil
 	}
 
@@ -883,8 +951,8 @@ func isMainLikeBranch(branchName, remoteName string) bool {
 // removeRemotePrefix removes the remote prefix from a branch name
 func removeRemotePrefix(branchName, remoteName string) string {
 	prefix := remoteName + "/"
-	if strings.HasPrefix(branchName, prefix) {
-		return strings.TrimPrefix(branchName, prefix)
+	if after, ok := strings.CutPrefix(branchName, prefix); ok {
+		return after
 	}
 	return branchName
 }
@@ -920,8 +988,8 @@ func getRemoteBranches(remoteName string) ([]string, error) {
 
 	var branches []string
 	if remoteOut != "" {
-		remoteBranches := strings.Split(strings.TrimSpace(remoteOut), "\n")
-		for _, branch := range remoteBranches {
+		remoteBranches := strings.SplitSeq(strings.TrimSpace(remoteOut), "\n")
+		for branch := range remoteBranches {
 			if strings.TrimSpace(branch) != "" {
 				branches = append(branches, strings.TrimSpace(branch))
 			}

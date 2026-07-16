@@ -7,6 +7,7 @@ package llmobs
 
 import (
 	"encoding/json"
+	"maps"
 	"sync"
 	"time"
 
@@ -30,6 +31,8 @@ type StartSpanConfig struct {
 	MLApp string
 	// StartTime sets a custom start time for the span. If zero, uses current time.
 	StartTime time.Time
+	// Name of the tracing integration.
+	Integration string
 }
 
 // FinishSpanConfig contains configuration options for finishing an LLMObs span.
@@ -77,18 +80,34 @@ type EvaluationConfig struct {
 
 // Prompt represents a prompt template used with LLM spans.
 type Prompt struct {
-	// Template is the prompt template string.
-	Template string `json:"template,omitempty"`
-	// ID is the unique identifier for the prompt.
+	// ID is the unique identifier for the prompt within the ML app.
 	ID string `json:"id,omitempty"`
 	// Version is the version of the prompt.
 	Version string `json:"version,omitempty"`
+	// Label is the deployment label (e.g., "production", "staging").
+	Label string `json:"label,omitempty"`
+	// Template is the prompt template string.
+	// Mutually exclusive with ChatTemplate; if both are set, Template is dropped and ChatTemplate is used.
+	Template string `json:"template,omitempty"`
+	// ChatTemplate is a list of messages forming the prompt.
+	// Mutually exclusive with Template; if both are set, Template is dropped and ChatTemplate is used.
+	ChatTemplate []LLMMessage `json:"chat_template,omitempty"`
 	// Variables contains the variables used in the prompt template.
 	Variables map[string]string `json:"variables,omitempty"`
+	// Tags contains custom tags for the prompt.
+	Tags map[string]string `json:"tags,omitempty"`
 	// RAGContextVariables specifies which variables contain RAG context.
-	RAGContextVariables []string `json:"rag_context_variables,omitempty"`
+	RAGContextVariables []string `json:"_dd_context_variable_keys,omitempty"`
 	// RAGQueryVariables specifies which variables contain RAG queries.
-	RAGQueryVariables []string `json:"rag_query_variables,omitempty"`
+	RAGQueryVariables []string `json:"_dd_query_variable_keys,omitempty"`
+}
+
+// promptPayload is the JSON encoding shape for Prompt.
+// It exists as a separate type so that fields like MLApp, which are set internally
+// from the span context, cannot be set directly by users on the public Prompt type.
+type promptPayload struct {
+	Prompt
+	MLApp string `json:"ml_app,omitempty"`
 }
 
 // ToolDefinition represents a tool definition for LLM spans.
@@ -188,6 +207,9 @@ type SpanAnnotations struct {
 	Prompt *Prompt
 	// ToolDefinitions are the tool definitions for LLM spans.
 	ToolDefinitions []ToolDefinition
+
+	// Intent is a description of a reason for calling an MCP tool on tool spans
+	Intent string
 
 	// AgentManifest is the agent manifest for agent spans.
 	AgentManifest string
@@ -346,6 +368,13 @@ func (s *Span) Annotate(a SpanAnnotations) {
 			if a.Prompt.RAGQueryVariables == nil {
 				a.Prompt.RAGQueryVariables = []string{"question"}
 			}
+			if a.Prompt.ID == "" {
+				a.Prompt.ID = s.mlApp + "_unnamed-prompt"
+			}
+			if a.Prompt.Template != "" && len(a.Prompt.ChatTemplate) > 0 {
+				log.Warn("llmobs: both Template and ChatTemplate were provided in the prompt; Template will be dropped in favour of ChatTemplate")
+				a.Prompt.Template = ""
+			}
 			s.llmCtx.prompt = a.Prompt
 		}
 	}
@@ -363,6 +392,14 @@ func (s *Span) Annotate(a SpanAnnotations) {
 			log.Warn("llmobs: agent manifest can only be annotated on agent spans, ignoring")
 		} else {
 			s.llmCtx.agentManifest = a.AgentManifest
+		}
+	}
+
+	if a.Intent != "" {
+		if s.spanKind != SpanKindTool {
+			log.Warn("llmobs: intent can only be annotated on tool spans, ignoring")
+		} else {
+			s.llmCtx.intent = a.Intent
 		}
 	}
 
@@ -514,8 +551,6 @@ func updateMapKeys[K comparable, V any](src map[K]V, updates map[K]V) map[K]V {
 	if src == nil {
 		src = make(map[K]V, len(updates))
 	}
-	for k, v := range updates {
-		src[k] = v
-	}
+	maps.Copy(src, updates)
 	return src
 }

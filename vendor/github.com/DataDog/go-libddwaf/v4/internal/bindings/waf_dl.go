@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016-present Datadog, Inc.
 
-//go:build (linux || darwin) && (amd64 || arm64) && !go1.26 && !datadog.no_waf && (cgo || appsec)
+//go:build (linux || darwin) && (amd64 || arm64) && !go1.27 && !datadog.no_waf && (cgo || appsec)
 
 package bindings
 
@@ -12,10 +12,11 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"unsafe"
 
+	"github.com/DataDog/go-libddwaf/v4/internal/ffi"
 	"github.com/DataDog/go-libddwaf/v4/internal/lib"
 	"github.com/DataDog/go-libddwaf/v4/internal/log"
-	"github.com/DataDog/go-libddwaf/v4/internal/unsafe"
 	"github.com/ebitengine/purego"
 )
 
@@ -81,7 +82,7 @@ func (waf *WAFLib) Close() error {
 
 // GetVersion returned string is a static string so we do not need to free it
 func (waf *WAFLib) GetVersion() string {
-	return unsafe.Gostring(unsafe.Cast[byte](waf.syscall(waf.getVersion)))
+	return ffi.Gostring(ffi.Cast[byte](waf.syscall(waf.getVersion)))
 }
 
 // BuilderInit initializes a new WAF builder with the provided configuration,
@@ -91,7 +92,7 @@ func (waf *WAFLib) BuilderInit(cfg *WAFConfig) WAFBuilder {
 	defer pinner.Unpin()
 	pinner.Pin(cfg)
 
-	return WAFBuilder(waf.syscall(waf.builderInit, unsafe.PtrToUintptr(cfg)))
+	return WAFBuilder(waf.syscall(waf.builderInit, uintptr(unsafe.Pointer(cfg))))
 }
 
 // BuilderAddOrUpdateConfig adds or updates a configuration based on the
@@ -105,10 +106,10 @@ func (waf *WAFLib) BuilderAddOrUpdateConfig(builder WAFBuilder, path string, con
 
 	res := waf.syscall(waf.builderAddOrUpdateConfig,
 		uintptr(builder),
-		unsafe.PtrToUintptr(unsafe.Cstring(&pinner, path)),
+		uintptr(unsafe.Pointer(ffi.Cstring(&pinner, path))),
 		uintptr(len(path)),
-		unsafe.PtrToUintptr(config),
-		unsafe.PtrToUintptr(diags),
+		uintptr(unsafe.Pointer(config)),
+		uintptr(unsafe.Pointer(diags)),
 	)
 	return byte(res) != 0
 }
@@ -121,7 +122,7 @@ func (waf *WAFLib) BuilderRemoveConfig(builder WAFBuilder, path string) bool {
 
 	return byte(waf.syscall(waf.builderRemoveConfig,
 		uintptr(builder),
-		unsafe.PtrToUintptr(unsafe.Cstring(&pinner, path)),
+		uintptr(unsafe.Pointer(ffi.Cstring(&pinner, path))),
 		uintptr(len(path)),
 	)) != 0
 }
@@ -138,21 +139,25 @@ func (waf *WAFLib) BuilderGetConfigPaths(builder WAFBuilder, filter string) []st
 	var paths WAFObject
 	var pinner runtime.Pinner
 	defer pinner.Unpin()
-	pinner.Pin(&filter)
 	pinner.Pin(&paths)
+
+	filterData := ffi.StringData(filter)
+	if filterData != nil {
+		pinner.Pin(unsafe.Pointer(filterData))
+	}
 
 	count := waf.syscall(waf.builderGetConfigPaths,
 		uintptr(builder),
-		unsafe.PtrToUintptr(&paths),
-		unsafe.PtrToUintptr(unsafe.StringData(filter)),
+		uintptr(unsafe.Pointer(&paths)),
+		uintptr(unsafe.Pointer(filterData)),
 		uintptr(len(filter)),
 	)
 	defer waf.ObjectFree(&paths)
 
 	list := make([]string, 0, count)
 	for i := range uint64(count) {
-		obj := unsafe.CastWithOffset[WAFObject](paths.Value, i)
-		path := unsafe.GostringSized(unsafe.Cast[byte](obj.Value), obj.NbEntries)
+		obj := ffi.CastWithOffset[WAFObject](paths.Value, i)
+		path := ffi.GostringSized(ffi.Cast[byte](obj.Value), obj.NbEntries)
 		list = append(list, path)
 	}
 	return list
@@ -188,7 +193,7 @@ func (waf *WAFLib) knownX(handle WAFHandle, symbol uintptr) []string {
 	defer pinner.Unpin()
 	pinner.Pin(&nbAddresses)
 
-	arrayVoidC := waf.syscall(symbol, uintptr(handle), unsafe.PtrToUintptr(&nbAddresses))
+	arrayVoidC := waf.syscall(symbol, uintptr(handle), uintptr(unsafe.Pointer(&nbAddresses)))
 	if arrayVoidC == 0 {
 		return nil
 	}
@@ -200,7 +205,7 @@ func (waf *WAFLib) knownX(handle WAFHandle, symbol uintptr) []string {
 	// These C strings are static strings so we do not need to free them
 	addresses := make([]string, int(nbAddresses))
 	for i := 0; i < int(nbAddresses); i++ {
-		addresses[i] = unsafe.Gostring(*unsafe.CastWithOffset[*byte](arrayVoidC, uint64(i)))
+		addresses[i] = ffi.Gostring(*ffi.CastWithOffset[*byte](arrayVoidC, uint64(i)))
 	}
 
 	return addresses
@@ -219,7 +224,7 @@ func (waf *WAFLib) ObjectFree(obj *WAFObject) {
 	defer pinner.Unpin()
 	pinner.Pin(obj)
 
-	waf.syscall(waf.objectFree, unsafe.PtrToUintptr(obj))
+	waf.syscall(waf.objectFree, uintptr(unsafe.Pointer(obj)))
 }
 
 func (waf *WAFLib) Run(context WAFContext, persistentData, ephemeralData *WAFObject, result *WAFObject, timeout uint64) WAFReturnCode {
@@ -230,7 +235,7 @@ func (waf *WAFLib) Run(context WAFContext, persistentData, ephemeralData *WAFObj
 	pinner.Pin(ephemeralData)
 	pinner.Pin(result)
 
-	return WAFReturnCode(waf.syscall(waf.run, uintptr(context), unsafe.PtrToUintptr(persistentData), unsafe.PtrToUintptr(ephemeralData), unsafe.PtrToUintptr(result), uintptr(timeout)))
+	return WAFReturnCode(waf.syscall(waf.run, uintptr(context), uintptr(unsafe.Pointer(persistentData)), uintptr(unsafe.Pointer(ephemeralData)), uintptr(unsafe.Pointer(result)), uintptr(timeout)))
 }
 
 func (waf *WAFLib) Handle() uintptr {
@@ -244,10 +249,14 @@ func (waf *WAFLib) ObjectFromJSON(json []byte) (WAFObject, bool) {
 	)
 
 	defer pinner.Unpin()
-	pinner.Pin(&json)
 	pinner.Pin(&obj)
 
-	success := waf.syscall(waf.objectFromJSON, unsafe.PtrToUintptr(&obj), unsafe.SliceToUintptr(json), uintptr(len(json))) != 0
+	jsonData := ffi.SliceData(json)
+	if jsonData != nil {
+		pinner.Pin(unsafe.Pointer(jsonData))
+	}
+
+	success := waf.syscall(waf.objectFromJSON, uintptr(unsafe.Pointer(&obj)), uintptr(unsafe.Pointer(jsonData)), uintptr(len(json))) != 0
 	return obj, success
 }
 
@@ -258,6 +267,8 @@ func (waf *WAFLib) ObjectFromJSON(json []byte) (WAFObject, bool) {
 //	1st - The return value is a pointer or a int of any type
 //	2nd - The return value is a float
 //	3rd - The value of `errno` at the end of the call
+//
+//go:uintptrescapes
 func (waf *WAFLib) syscall(fn uintptr, args ...uintptr) uintptr {
 	ret, _, _ := purego.SyscallN(fn, args...)
 	return ret

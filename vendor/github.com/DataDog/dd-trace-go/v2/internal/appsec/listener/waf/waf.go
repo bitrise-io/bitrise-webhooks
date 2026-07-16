@@ -11,6 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/DataDog/go-libddwaf/v4"
+	"github.com/DataDog/go-libddwaf/v4/timer"
+
 	"github.com/DataDog/dd-trace-go/v2/appsec/events"
 	"github.com/DataDog/dd-trace-go/v2/instrumentation/appsec/dyngo"
 	"github.com/DataDog/dd-trace-go/v2/instrumentation/appsec/emitter/waf/actions"
@@ -24,8 +27,6 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/internal/stacktrace"
 	"github.com/DataDog/dd-trace-go/v2/internal/telemetry"
 	telemetrylog "github.com/DataDog/dd-trace-go/v2/internal/telemetry/log"
-	"github.com/DataDog/go-libddwaf/v4"
-	"github.com/DataDog/go-libddwaf/v4/timer"
 )
 
 type Feature struct {
@@ -143,6 +144,7 @@ func (waf *Feature) onFinish(op *waf.ContextOperation, _ waf.ContextRes) {
 	timerStats := ctx.Timer.Stats()
 	metrics := op.GetMetricsInstance()
 	AddWAFMonitoringTags(op, metrics, waf.rulesVersion, truncations, timerStats)
+	addDownwardRequestTag(op, int(metrics.SumDownstreamRequestsCalls.Load()))
 	metrics.Submit(truncations, timerStats)
 
 	if wafEvents := op.Events(); len(wafEvents) > 0 {
