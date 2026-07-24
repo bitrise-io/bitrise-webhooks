@@ -10,6 +10,7 @@ import (
 
 	internal "github.com/DataDog/dd-trace-go/contrib/net/http/v2/internal/config"
 	"github.com/DataDog/dd-trace-go/contrib/net/http/v2/internal/pattern"
+
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/DataDog/dd-trace-go/v2/instrumentation/appsec/emitter/httpsec"
@@ -82,8 +83,9 @@ func (mux *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	copy(so, mux.cfg.SpanOpts)
 	so = append(so, httptrace.HeaderTagsFromRequest(r, mux.cfg.HeaderTags))
 	TraceAndServe(mux.ServeMux, w, r, &httptrace.ServeConfig{
-		Framework:     "net/http",
 		Service:       mux.cfg.ServiceName,
+		ServiceSource: mux.cfg.ServiceSource,
+		Framework:     "net/http",
 		Resource:      resource,
 		SpanOpts:      so,
 		Route:         route,

@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	internal "github.com/DataDog/dd-trace-go/contrib/net/http/v2/internal/config"
+
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/DataDog/dd-trace-go/v2/instrumentation"
@@ -39,6 +40,7 @@ func WithIgnoreRequest(f func(*http.Request) bool) OptionFn {
 func WithService(name string) OptionFn {
 	return func(cfg *internal.CommonConfig) {
 		cfg.ServiceName = name
+		cfg.ServiceSource = instrumentation.ServiceSourceWithServiceOption
 	}
 }
 
@@ -124,6 +126,7 @@ func newRoundTripperConfig() *internal.RoundTripperConfig {
 	}
 	sharedCfg := internal.CommonConfig{
 		ServiceName:   instr.ServiceName(instrumentation.ComponentClient, nil),
+		ServiceSource: string(instrumentation.PackageNetHTTP),
 		AnalyticsRate: instr.GlobalAnalyticsRate(),
 		ResourceNamer: defaultResourceNamer,
 		IgnoreRequest: func(_ *http.Request) bool { return false },
