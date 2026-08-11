@@ -367,8 +367,6 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 	}
 
 	if stack := pullRequest.PullRequestInfo.Stack; stack != nil {
-		// Only the stack data is forwarded, BranchDest is left pointing at the parent pull request's
-		// branch. Deciding whether to build against the stack base instead is the monolith's job.
 		result.BuildParams.PullRequestStackNumber = stack.Number
 		result.BuildParams.PullRequestStackSize = stack.Size
 		result.BuildParams.PullRequestStackPosition = stack.Position
