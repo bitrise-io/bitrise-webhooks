@@ -9,7 +9,7 @@ require (
 	github.com/DataDog/dd-trace-go/contrib/gorilla/mux/v2 v2.4.0
 	github.com/DataDog/dd-trace-go/v2 v2.8.1
 	github.com/bitrise-io/api-utils v0.0.0-20211025122143-6499571b8433
-	github.com/bitrise-io/envman v0.0.0-20240730123632-8066eeb61599
+	github.com/bitrise-io/envman/v2 v2.6.2
 	github.com/go-playground/webhooks/v6 v6.4.0
 	github.com/google/go-github/v77 v77.0.0
 	github.com/gorilla/mux v1.8.1
