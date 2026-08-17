@@ -6,8 +6,10 @@
 package tracer
 
 import (
+	"bufio"
 	"cmp"
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -44,6 +46,7 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/internal/namingschema"
 	"github.com/DataDog/dd-trace-go/v2/internal/normalizer"
 	"github.com/DataDog/dd-trace-go/v2/internal/orchestrion"
+	"github.com/DataDog/dd-trace-go/v2/internal/processtags"
 	"github.com/DataDog/dd-trace-go/v2/internal/stableconfig"
 	"github.com/DataDog/dd-trace-go/v2/internal/telemetry"
 	"github.com/DataDog/dd-trace-go/v2/internal/version"
@@ -128,9 +131,6 @@ var (
 
 	// defaultStatsdPort specifies the default port to use for connecting to the statsd server.
 	defaultStatsdPort = "8125"
-
-	// defaultMaxTagsHeaderLen specifies the default maximum length of the X-Datadog-Tags header value.
-	defaultMaxTagsHeaderLen = 512
 )
 
 // Supported trace protocols.
@@ -218,9 +218,6 @@ type config struct {
 	// enableHostnameDetection specifies whether the tracer should enable hostname detection.
 	enableHostnameDetection bool
 
-	// spanAttributeSchemaVersion holds the selected DD_TRACE_SPAN_ATTRIBUTE_SCHEMA version.
-	spanAttributeSchemaVersion int
-
 	// orchestrionCfg holds Orchestrion (aka auto-instrumentation) configuration.
 	// Only used for telemetry currently.
 	orchestrionCfg orchestrionConfig
@@ -267,9 +264,6 @@ type (
 
 // StartOption represents a function that can be provided as a parameter to Start.
 type StartOption func(*config)
-
-// maxPropagatedTagsLength limits the size of DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH to prevent HTTP 413 responses.
-const maxPropagatedTagsLength = 512
 
 // newConfig renders the tracer configuration based on defaults, environment variables
 // and passed user opts.
@@ -339,7 +333,6 @@ func newConfig(opts ...StartOption) (*config, error) {
 	c.dynamicInstrumentationEnabled.setOrigin(origin)
 
 	namingschema.LoadFromEnv()
-	c.spanAttributeSchemaVersion = int(namingschema.GetVersion())
 
 	// LLM Observability config
 	c.llmobs = llmobsconfig.Config{
@@ -385,6 +378,7 @@ func newConfig(opts ...StartOption) (*config, error) {
 			}
 		}
 	}
+	svcIsUserDefined := true
 	if c.internalConfig.ServiceName() == "" {
 		if v, ok := globalTags["service"]; ok {
 			if s, ok := v.(string); ok {
@@ -395,28 +389,20 @@ func newConfig(opts ...StartOption) (*config, error) {
 			// There is not an explicit service set, default to binary name.
 			// In this case, don't set a global service name so the contribs continue using their defaults.
 			c.internalConfig.SetServiceName(filepath.Base(os.Args[0]), internalconfig.OriginDefault, internalconfig.ProductTracer)
+			svcIsUserDefined = false
 		}
 	} else {
 		globalconfig.SetServiceName(c.internalConfig.ServiceName())
 	}
+	processtags.SetServiceNameTag(c.internalConfig.ServiceName(), svcIsUserDefined)
 	if c.ddTransport == nil {
 		agentURL := c.internalConfig.AgentURL().String()
 		traceURL, headers := resolveTraceTransport(c.internalConfig)
 		c.ddTransport = newHTTPTransport(traceURL, agentURL+statsAPIPath, c.httpClient, headers)
 	}
 	if c.propagator == nil {
-		envKey := "DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH"
-		maxLen := internal.IntEnv(envKey, defaultMaxTagsHeaderLen)
-		if maxLen < 0 {
-			log.Warn("Invalid value %d for %s. Setting to 0.", maxLen, envKey)
-			maxLen = 0
-		}
-		if maxLen > maxPropagatedTagsLength {
-			log.Warn("Invalid value %d for %s. Maximum allowed is %d. Setting to %d.", maxLen, envKey, maxPropagatedTagsLength, maxPropagatedTagsLength)
-			maxLen = maxPropagatedTagsLength
-		}
 		c.propagator = NewPropagator(&PropagatorConfig{
-			MaxTagsHeaderLen: maxLen,
+			MaxTagsHeaderLen: c.internalConfig.MaxTagsHeaderLen(),
 		})
 	}
 	if c.logger != nil {
@@ -441,9 +427,10 @@ func newConfig(opts ...StartOption) (*config, error) {
 	af := loadAgentFeatures(agentDisabled, agentURL, c.httpClient)
 	c.agent.store(af)
 	// If the agent doesn't support the v1 protocol, downgrade to v0.4
-	if c.internalConfig.TraceProtocol() == traceProtocolV1 && !af.v1ProtocolAvailable {
+	// Also downgrade if CSS is disabled, as v1 is not compatible without CSS.
+	if c.internalConfig.TraceProtocol() == traceProtocolV04 || !af.v1ProtocolAvailable || !c.internalConfig.StatsComputationEnabled() {
 		c.internalConfig.SetTraceProtocol(traceProtocolV04, internalconfig.OriginCalculated)
-		if t, ok := c.ddTransport.(*httpTransport); ok {
+		if t, ok := c.ddTransport.(*httpTransport); ok && t.traceURL == agentURL.String()+tracesAPIPathV1 {
 			t.traceURL = agentURL.String() + tracesAPIPath
 		}
 	}
@@ -474,7 +461,7 @@ func newConfig(opts ...StartOption) (*config, error) {
 		Service:    c.internalConfig.ServiceName(),
 		Version:    c.internalConfig.Version(),
 		AgentURL:   c.internalConfig.AgentURL(),
-		APIKey:     env.Get("DD_API_KEY"),
+		APIKey:     c.internalConfig.APIKey(),
 		APPKey:     env.Get("DD_APP_KEY"),
 		HTTPClient: c.httpClient,
 		Site:       env.Get("DD_SITE"),
@@ -852,6 +839,9 @@ func statsTags(c *config) []string {
 			tags = append(tags, k+":"+vstr)
 		}
 	}
+	tags = append(tags, processtags.GlobalTags().Slice()...)
+	// globalconfig.StatsTags is shared with contrib statsd clients. Process
+	// tags are shared too; keep only tracer_version and service tracer-only.
 	globalconfig.SetStatsTags(tags)
 	tags = append(tags, "tracer_version:"+version.Tag)
 	if v := c.internalConfig.ServiceName(); v != "" {
@@ -1475,6 +1465,7 @@ func WithLLMObsAgentlessEnabled(agentlessEnabled bool) StartOption {
 type dummyTransport struct {
 	mu         locking.RWMutex
 	traces     spanLists                // +checklocks:mu
+	traceIDs   []uint64                 // +checklocks:mu
 	stats      []*pb.ClientStatsPayload // +checklocks:mu
 	obfVersion int                      // +checklocks:mu
 }
@@ -1510,12 +1501,14 @@ func (t *dummyTransport) ObfuscationVersion() int {
 }
 
 func (t *dummyTransport) send(p payload) (io.ReadCloser, error) {
-	traces, err := decode(p)
+	defer p.Close()
+	traces, ids, err := decode(p)
 	if err != nil {
 		return nil, err
 	}
 	t.mu.Lock()
 	t.traces = append(t.traces, traces...)
+	t.traceIDs = append(t.traceIDs, ids...)
 	t.mu.Unlock()
 	ok := io.NopCloser(strings.NewReader("OK"))
 	return ok, nil
@@ -1525,15 +1518,62 @@ func (t *dummyTransport) endpoint() string {
 	return "http://localhost:9/v0.4/traces"
 }
 
-func decode(p payloadReader) (spanLists, error) {
-	var traces spanLists
-	err := msgp.Decode(p, &traces)
-	return traces, err
+func decode(p payloadReader) (spanLists, []uint64, error) {
+	br := bufio.NewReader(p)
+	head, err := br.Peek(1)
+	if err == io.EOF || len(head) == 0 {
+		return spanLists{}, nil, nil
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	switch first := head[0]; {
+	case first == msgpackArray16 || first == msgpackArray32 || first&0xf0 == msgpackArrayFix:
+		var traces spanLists
+		if err := msgp.Decode(br, &traces); err != nil {
+			return nil, nil, err
+		}
+		ids := make([]uint64, 0, len(traces))
+		for _, t := range traces {
+			var id uint64
+			if len(t) == 0 || t[0] == nil {
+				continue
+			}
+			span := t[0]
+			span.mu.Lock()
+			id = span.traceID
+			span.mu.Unlock()
+			ids = append(ids, id)
+		}
+		return traces, ids, nil
+	case first == msgpackMap16 || first == msgpackMap32 || first&0xf0 == msgpackMapFix:
+		buf, err := io.ReadAll(br)
+		if err != nil {
+			return nil, nil, err
+		}
+		payload := newPayloadV1()
+		payload.buf = buf
+		if _, err := payload.decodeBuffer(); err != nil {
+			return nil, nil, err
+		}
+		ids := make([]uint64, 0, len(payload.chunks))
+		for _, c := range payload.chunks {
+			var id uint64
+			if len(c.traceID) >= 16 {
+				id = binary.BigEndian.Uint64(c.traceID[8:16])
+			}
+			ids = append(ids, id)
+		}
+		return payload.traces(), ids, nil
+	default:
+		return nil, nil, fmt.Errorf("decode: unrecognized msgpack prefix byte 0x%02x", first)
+	}
 }
 
 func (t *dummyTransport) Reset() {
 	t.mu.Lock()
 	t.traces = t.traces[:0]
+	t.traceIDs = t.traceIDs[:0]
 	t.mu.Unlock()
 }
 
@@ -1544,6 +1584,14 @@ func (t *dummyTransport) Traces() spanLists {
 	traces := t.traces
 	t.traces = spanLists{}
 	return traces
+}
+
+func (t *dummyTransport) TraceIDs() []uint64 {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	ids := t.traceIDs
+	t.traceIDs = nil
+	return ids
 }
 
 // setHeaderTags sets the global header tags.
