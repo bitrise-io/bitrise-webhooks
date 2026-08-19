@@ -5,7 +5,8 @@ go 1.25.8
 toolchain go1.26.5
 
 require (
-	cloud.google.com/go/pubsub v1.51.0
+	cloud.google.com/go/pubsub v1.50.2
+	cloud.google.com/go/pubsub/v2 v2.6.1
 	github.com/DataDog/dd-trace-go/contrib/gorilla/mux/v2 v2.9.1
 	github.com/DataDog/dd-trace-go/v2 v2.9.1
 	github.com/bitrise-io/api-utils v0.0.0-20211025122143-6499571b8433
@@ -27,7 +28,6 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.11.0 // indirect
-	cloud.google.com/go/pubsub/v2 v2.6.1 // indirect
 	github.com/DataDog/datadog-agent/comp/core/tagger/origindetection v0.77.0 // indirect
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.77.0 // indirect
 	github.com/DataDog/datadog-agent/pkg/opentelemetry-mapping-go/otlp/attributes v0.77.0 // indirect
