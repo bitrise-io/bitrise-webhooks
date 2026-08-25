@@ -74,6 +74,19 @@ type LabelInfoModel struct {
 	Name string `json:"name"`
 }
 
+// StackInfoModel describes a GitHub stacked pull request's membership in its stack.
+// GitHub sends `null` for standalone pull requests.
+type StackInfoModel struct {
+	// stack identifier, scoped to the repository
+	Number int `json:"number"`
+	// number of pull requests in the stack
+	Size int `json:"size"`
+	// 1-based position of this pull request in the stack, 1 is the bottom
+	Position int `json:"position"`
+	// the branch the whole stack targets, every pull request in the stack ends up merged into it
+	BaseBranchInfo BranchInfoModel `json:"base"`
+}
+
 // PullRequestInfoModel ...
 type PullRequestInfoModel struct {
 	// source branch for the pull request
@@ -88,6 +101,8 @@ type PullRequestInfoModel struct {
 	DiffURL        string           `json:"diff_url"`
 	User           UserModel        `json:"user"`
 	Labels         []LabelInfoModel `json:"labels"`
+	// stack membership, nil if the pull request is not part of a stack
+	Stack *StackInfoModel `json:"stack"`
 }
 
 // PullRequestChangeFromItemModel ...
@@ -349,6 +364,14 @@ func transformPullRequestEvent(pullRequest PullRequestEventModel) hookCommon.Tra
 
 	if pullRequest.Label != nil {
 		result.BuildParams.PullRequestLabelsAdded = []string{pullRequest.Label.Name}
+	}
+
+	if stack := pullRequest.PullRequestInfo.Stack; stack != nil {
+		result.BuildParams.PullRequestStackNumber = stack.Number
+		result.BuildParams.PullRequestStackSize = stack.Size
+		result.BuildParams.PullRequestStackPosition = stack.Position
+		result.BuildParams.PullRequestStackBaseBranch = stack.BaseBranchInfo.Ref
+		result.BuildParams.PullRequestStackBaseCommitHash = stack.BaseBranchInfo.CommitHash
 	}
 
 	return hookCommon.TransformResultModel{
