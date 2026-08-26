@@ -47,7 +47,7 @@ import (
 
 	"github.com/bitrise-io/bitrise-webhooks/bitriseapi"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
-	"github.com/bitrise-io/envman/envman"
+	"github.com/bitrise-io/envman/v2/envman"
 	"go.uber.org/zap"
 )
 

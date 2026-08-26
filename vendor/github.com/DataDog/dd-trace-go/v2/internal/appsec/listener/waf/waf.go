@@ -11,6 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/DataDog/go-libddwaf/v4"
+	"github.com/DataDog/go-libddwaf/v4/timer"
+
 	"github.com/DataDog/dd-trace-go/v2/appsec/events"
 	"github.com/DataDog/dd-trace-go/v2/instrumentation/appsec/dyngo"
 	"github.com/DataDog/dd-trace-go/v2/instrumentation/appsec/emitter/waf/actions"
@@ -21,16 +24,15 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/internal/appsec/limiter"
 	"github.com/DataDog/dd-trace-go/v2/internal/appsec/listener"
 	"github.com/DataDog/dd-trace-go/v2/internal/log"
+	"github.com/DataDog/dd-trace-go/v2/internal/remoteconfig"
 	"github.com/DataDog/dd-trace-go/v2/internal/stacktrace"
 	"github.com/DataDog/dd-trace-go/v2/internal/telemetry"
 	telemetrylog "github.com/DataDog/dd-trace-go/v2/internal/telemetry/log"
-	"github.com/DataDog/go-libddwaf/v4"
-	"github.com/DataDog/go-libddwaf/v4/timer"
 )
 
 type Feature struct {
 	timeout         time.Duration
-	limiter         *limiter.TokenTicker
+	limiter         limiter.Limiter
 	handle          *libddwaf.Handle
 	supportedAddrs  config.AddressSet
 	rulesVersion    string
@@ -52,7 +54,10 @@ func NewWAFFeature(cfg *config.Config, rootOp dyngo.Operation) (listener.Feature
 			return nil, fmt.Errorf("error while loading libddwaf: %w", err)
 		}
 		// 2. If there is an error and the loading is ok: log as an informative error where appsec can be used
-		logger := telemetrylog.With(telemetry.WithTags([]string{"product:appsec"}))
+		logger := telemetrylog.With(
+			telemetry.WithTags([]string{"product:appsec", "log_type:" + waf.ExceptionTypeWAF}),
+			telemetry.WithStacktrace(),
+		)
 		logger.Warn("appsec: non-critical error while loading libddwaf", slog.Any("error", telemetrylog.NewSafeError(err)))
 	}
 
@@ -71,13 +76,10 @@ func NewWAFFeature(cfg *config.Config, rootOp dyngo.Operation) (listener.Feature
 
 	cfg.SupportedAddresses = config.NewAddressSet(newHandle.Addresses())
 
-	tokenTicker := limiter.NewTokenTicker(cfg.TraceRateLimit, cfg.TraceRateLimit)
-	tokenTicker.Start()
-
 	feature := &Feature{
 		handle:              newHandle,
 		timeout:             cfg.WAFTimeout,
-		limiter:             tokenTicker,
+		limiter:             limiter.NewTokenTicker(cfg.TraceRateLimit, cfg.TraceRateLimit),
 		supportedAddrs:      cfg.SupportedAddresses,
 		telemetryMetrics:    telemetryMetrics,
 		metaStructAvailable: cfg.MetaStructAvailable,
@@ -92,7 +94,7 @@ func NewWAFFeature(cfg *config.Config, rootOp dyngo.Operation) (listener.Feature
 
 func (waf *Feature) onStart(op *waf.ContextOperation, _ waf.ContextArgs) {
 	waf.reportRulesTags.Do(func() {
-		AddRulesMonitoringTags(op)
+		AddRulesMonitoringTags(op, remoteconfig.ClientID())
 	})
 
 	ctx, err := waf.handle.NewContext(timer.WithBudget(waf.timeout), timer.WithComponents(addresses.Scopes[:]...))
@@ -111,8 +113,7 @@ func (waf *Feature) onStart(op *waf.ContextOperation, _ waf.ContextArgs) {
 	waf.SetupActionHandlers(op)
 }
 
-func (*Feature) SetupActionHandlers(op *waf.ContextOperation) {
-	// Set the blocking tag on the operation when a blocking event is received
+func (f *Feature) SetupActionHandlers(op *waf.ContextOperation) {
 	dyngo.OnData(op, func(*events.BlockingSecurityEvent) {
 		log.Debug("appsec: blocking event detected")
 		op.SetTag(blockedRequestTag, true)
@@ -143,6 +144,7 @@ func (waf *Feature) onFinish(op *waf.ContextOperation, _ waf.ContextRes) {
 	timerStats := ctx.Timer.Stats()
 	metrics := op.GetMetricsInstance()
 	AddWAFMonitoringTags(op, metrics, waf.rulesVersion, truncations, timerStats)
+	addDownwardRequestTag(op, int(metrics.SumDownstreamRequestsCalls.Load()))
 	metrics.Submit(truncations, timerStats)
 
 	if wafEvents := op.Events(); len(wafEvents) > 0 {
@@ -165,6 +167,5 @@ func (*Feature) String() string {
 }
 
 func (waf *Feature) Stop() {
-	waf.limiter.Stop()
 	waf.handle.Close()
 }

@@ -1,6 +1,7 @@
 package github
 
 import (
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -667,13 +668,89 @@ const (
     "id": 517812
   }
 }`
+
+	sampleStackedPullRequestData = `{
+  "action": "opened",
+  "number": 12,
+  "pull_request": {
+    "title": "Part 2: wire up the handler",
+    "body": "second PR of the stack",
+    "draft": false,
+    "merged": false,
+    "diff_url": "https://github.com/bitrise-io/webhook-test/pull/12.diff",
+    "user": { "login": "test-author" },
+    "head": {
+      "ref": "feature/part-2",
+      "sha": "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+      "repo": {
+        "private": false,
+        "ssh_url": "git@github.com:bitrise-io/webhook-test.git",
+        "clone_url": "https://github.com/bitrise-io/webhook-test.git",
+        "owner": { "login": "bitrise-io" }
+      }
+    },
+    "base": {
+      "ref": "feature/part-1",
+      "sha": "3c86b996d8014000a93f3c202fc0963e81e56c4c",
+      "repo": {
+        "private": false,
+        "ssh_url": "git@github.com:bitrise-io/webhook-test.git",
+        "clone_url": "https://github.com/bitrise-io/webhook-test.git",
+        "owner": { "login": "bitrise-io" }
+      }
+    },
+    "stack": {
+      "number": 7,
+      "size": 2,
+      "position": 2,
+      "base": {
+        "ref": "main",
+        "sha": "1f2e3d4c5b6a798877665544332211aabbccddee"
+      }
+    }
+  },
+  "sender": { "login": "test-author" }
+}`
+
+	sampleNullStackPullRequestData = `{
+  "action": "opened",
+  "number": 13,
+  "pull_request": {
+    "title": "A standalone PR",
+    "draft": false,
+    "merged": false,
+    "user": { "login": "test-author" },
+    "head": {
+      "ref": "feature/standalone",
+      "sha": "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+      "repo": {
+        "private": false,
+        "clone_url": "https://github.com/bitrise-io/webhook-test.git",
+        "owner": { "login": "bitrise-io" }
+      }
+    },
+    "base": {
+      "ref": "main",
+      "sha": "3c86b996d8014000a93f3c202fc0963e81e56c4c",
+      "repo": {
+        "private": false,
+        "clone_url": "https://github.com/bitrise-io/webhook-test.git",
+        "owner": { "login": "bitrise-io" }
+      }
+    },
+    "stack": null
+  },
+  "sender": { "login": "test-author" }
+}`
 )
 
-var boolFalse = false
-var boolTrue = true
-var intOne = 1
-var intFour = 4
-var intTwelve = 12
+var (
+	boolFalse = false
+	boolTrue  = true
+	intOne    = 1
+	intFour   = 4
+	intTwelve = 12
+)
 
 func Test_detectContentTypeAndEventID(t *testing.T) {
 	t.Log("Push event - should handle")
@@ -1725,9 +1802,7 @@ func Test_isAcceptPullRequestAction(t *testing.T) {
 
 	t.Log("Don't accept")
 	{
-		for _, anAction := range []string{"",
-			"a", "not-an-action",
-			"assigned", "unassigned", "unlabeled", "closed"} {
+		for _, anAction := range []string{"", "a", "not-an-action", "assigned", "unassigned", "unlabeled", "closed", "stacked"} {
 			t.Log(" * " + anAction)
 			require.Equal(t, false, isAcceptPullRequestAction(anAction))
 		}
@@ -2192,5 +2267,125 @@ func Test_transformPullRequestEvent_readyState(t *testing.T) {
 			require.Equal(t, 1, len(got.TriggerAPIParams))
 			require.Equal(t, tt.wantReadyState, got.TriggerAPIParams[0].BuildParams.PullRequestReadyState)
 		})
+	}
+}
+
+func Test_transformPullRequestEvent_stack(t *testing.T) {
+	stackedPullRequest := func(stack *StackInfoModel) PullRequestEventModel {
+		return PullRequestEventModel{
+			Action:        "opened",
+			PullRequestID: 12,
+			PullRequestInfo: PullRequestInfoModel{
+				Title: "PR test",
+				HeadBranchInfo: BranchInfoModel{
+					Ref:        "feature/part-2",
+					CommitHash: "83b86e5f286f546dc5a4a58db66ceef44460c85e",
+				},
+				BaseBranchInfo: BranchInfoModel{
+					Ref:        "feature/part-1",
+					CommitHash: "3c86b996d8014000a93f3c202fc0963e81e56c4c",
+				},
+				Stack: stack,
+			},
+		}
+	}
+
+	t.Log("Stacked PR - stack data is forwarded, BranchDest still points at the parent PR")
+	{
+		pullRequest := stackedPullRequest(&StackInfoModel{
+			Number:   7,
+			Size:     2,
+			Position: 2,
+			BaseBranchInfo: BranchInfoModel{
+				Ref:        "main",
+				CommitHash: "1f2e3d4c5b6a798877665544332211aabbccddee",
+			},
+		})
+
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.NoError(t, hookTransformResult.Error)
+		require.Equal(t, 1, len(hookTransformResult.TriggerAPIParams))
+
+		buildParams := hookTransformResult.TriggerAPIParams[0].BuildParams
+		require.Equal(t, 7, buildParams.PullRequestStackNumber)
+		require.Equal(t, 2, buildParams.PullRequestStackSize)
+		require.Equal(t, 2, buildParams.PullRequestStackPosition)
+		require.Equal(t, "main", buildParams.PullRequestStackBaseBranch)
+		require.Equal(t, "1f2e3d4c5b6a798877665544332211aabbccddee", buildParams.PullRequestStackBaseCommitHash)
+
+		// the monolith is the one that decides whether to build against the stack base
+		require.Equal(t, "feature/part-1", buildParams.BranchDest)
+		require.Equal(t, "feature/part-2", buildParams.Branch)
+	}
+
+	t.Log("Standalone PR - no stack data")
+	{
+		hookTransformResult := transformPullRequestEvent(stackedPullRequest(nil))
+		require.NoError(t, hookTransformResult.Error)
+		require.Equal(t, 1, len(hookTransformResult.TriggerAPIParams))
+
+		buildParams := hookTransformResult.TriggerAPIParams[0].BuildParams
+		require.Equal(t, 0, buildParams.PullRequestStackNumber)
+		require.Equal(t, 0, buildParams.PullRequestStackSize)
+		require.Equal(t, 0, buildParams.PullRequestStackPosition)
+		require.Equal(t, "", buildParams.PullRequestStackBaseBranch)
+		require.Equal(t, "", buildParams.PullRequestStackBaseCommitHash)
+	}
+
+	t.Log("'stacked' action - skipped, the stack data arrives on the other actions anyway")
+	{
+		pullRequest := stackedPullRequest(&StackInfoModel{Number: 7, Size: 2, Position: 2})
+		pullRequest.Action = "stacked"
+
+		hookTransformResult := transformPullRequestEvent(pullRequest)
+		require.True(t, hookTransformResult.ShouldSkip)
+		require.EqualError(t, hookTransformResult.Error, "pull Request action doesn't require a build: stacked")
+	}
+}
+
+func Test_HookProvider_TransformRequest_stackedPullRequest(t *testing.T) {
+	provider := HookProvider{}
+
+	t.Log("Stacked PR opened - stack object is decoded")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type":   {"application/json"},
+				"X-Github-Event": {"pull_request"},
+			},
+			Body: io.NopCloser(strings.NewReader(sampleStackedPullRequestData)),
+		}
+
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.False(t, hookTransformResult.ShouldSkip)
+		require.Equal(t, 1, len(hookTransformResult.TriggerAPIParams))
+
+		buildParams := hookTransformResult.TriggerAPIParams[0].BuildParams
+		require.Equal(t, 7, buildParams.PullRequestStackNumber)
+		require.Equal(t, 2, buildParams.PullRequestStackSize)
+		require.Equal(t, 2, buildParams.PullRequestStackPosition)
+		require.Equal(t, "main", buildParams.PullRequestStackBaseBranch)
+		require.Equal(t, "1f2e3d4c5b6a798877665544332211aabbccddee", buildParams.PullRequestStackBaseCommitHash)
+		require.Equal(t, "feature/part-1", buildParams.BranchDest)
+	}
+
+	t.Log("Standalone PR - null stack object is decoded as no stack")
+	{
+		request := http.Request{
+			Header: http.Header{
+				"Content-Type":   {"application/json"},
+				"X-Github-Event": {"pull_request"},
+			},
+			Body: io.NopCloser(strings.NewReader(sampleNullStackPullRequestData)),
+		}
+
+		hookTransformResult := provider.TransformRequest(&request)
+		require.NoError(t, hookTransformResult.Error)
+		require.Equal(t, 1, len(hookTransformResult.TriggerAPIParams))
+
+		buildParams := hookTransformResult.TriggerAPIParams[0].BuildParams
+		require.Equal(t, 0, buildParams.PullRequestStackNumber)
+		require.Equal(t, "", buildParams.PullRequestStackBaseBranch)
 	}
 }

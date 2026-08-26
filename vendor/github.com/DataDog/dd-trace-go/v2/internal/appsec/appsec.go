@@ -6,6 +6,7 @@
 package appsec
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -17,6 +18,7 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/internal/appsec/config"
 	"github.com/DataDog/dd-trace-go/v2/internal/appsec/listener"
 	"github.com/DataDog/dd-trace-go/v2/internal/log"
+	"github.com/DataDog/dd-trace-go/v2/internal/remoteconfig"
 	"github.com/DataDog/dd-trace-go/v2/internal/telemetry"
 	telemetrylog "github.com/DataDog/dd-trace-go/v2/internal/telemetry/log"
 )
@@ -98,8 +100,13 @@ func Start(opts ...config.StartOption) {
 		// AppSec is not enforced by the env var and can be enabled through remote config
 		log.Debug("appsec: %s is not set, appsec won't start until activated through remote configuration", config.EnvEnabled)
 		if err := appsec.enableRemoteActivation(); err != nil {
-			// ASM is not enabled and can't be enabled through remote configuration. Nothing more can be done.
-			logUnexpectedStartError(err)
+			if errors.Is(err, remoteconfig.ErrClientNotStarted) {
+				// RC is explicitly disabled, so AppSec can't be remotely activated. This is expected.
+				log.Debug("appsec: remote activation is not available because the remote config client is not started")
+			} else {
+				// ASM is not enabled and can't be enabled through remote configuration. Nothing more can be done.
+				logUnexpectedStartError(err)
+			}
 			appsec.stopRC()
 			return
 		}
@@ -121,7 +128,8 @@ func Start(opts ...config.StartOption) {
 func logUnexpectedStartError(err error) {
 	log.Error("appsec: could not start because of an unexpected error: %s\nNo security activities will be collected. Please contact support at https://docs.datadoghq.com/help/ for help.", err.Error())
 
-	telemetrylog.Error("appsec: could not start because of an unexpected error", slog.Any("error", telemetrylog.NewSafeError(err)))
+	logger := telemetrylog.With(telemetry.WithTags([]string{"product:appsec"}))
+	logger.Error("appsec: could not start because of an unexpected error", slog.Any("error", telemetrylog.NewSafeError(err)))
 	telemetry.ProductStartError(telemetry.NamespaceAppSec, err)
 }
 

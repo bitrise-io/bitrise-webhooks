@@ -258,9 +258,9 @@ func unwrapWafResult(ret bindings.WAFReturnCode, result *bindings.WAFObject) (Re
 	for _, entry := range entries {
 		switch key := entry.MapKey(); key {
 		case "timeout":
-			timeout, err := entry.BoolValue()
-			if err != nil {
-				return Result{}, 0, fmt.Errorf("failed to decode timeout: %w", err)
+			timeout, decodeErr := entry.BoolValue()
+			if decodeErr != nil {
+				return Result{}, 0, fmt.Errorf("failed to decode timeout: %w", decodeErr)
 			}
 			if timeout {
 				err = waferrors.ErrTimeout
@@ -313,7 +313,7 @@ func unwrapWafResult(ret bindings.WAFReturnCode, result *bindings.WAFObject) (Re
 		}
 	}
 
-	return res, duration, goRunError(ret)
+	return res, duration, goRunError(ret, err)
 }
 
 // Close disposes of the underlying `ddwaf_context` and releases the associated

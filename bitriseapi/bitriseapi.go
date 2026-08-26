@@ -99,6 +99,18 @@ type BuildParamsModel struct {
 	PullRequestComment string `json:"pull_request_comment,omitempty"`
 	// newly added pull request comment's ID
 	PullRequestCommentID string `json:"pull_request_comment_id,omitempty"`
+	// identifier of the stack the pull request belongs to, scoped to the repository.
+	// All PullRequestStack* fields are only set for stacked pull requests, and are empty otherwise.
+	PullRequestStackNumber int `json:"pull_request_stack_number,omitempty"`
+	// number of pull requests in the stack
+	PullRequestStackSize int `json:"pull_request_stack_size,omitempty"`
+	// 1-based position of the pull request in the stack, 1 is the bottom
+	PullRequestStackPosition int `json:"pull_request_stack_position,omitempty"`
+	// the branch the whole stack targets. Every pull request in the stack ends up merged into this
+	// branch, so this is the effective build target, not BranchDest which points to the parent PR's branch.
+	PullRequestStackBaseBranch string `json:"pull_request_stack_base_branch,omitempty"`
+	// git commit hash of the stack's base branch
+	PullRequestStackBaseCommitHash string `json:"pull_request_stack_base_commit_hash,omitempty"`
 }
 
 // TriggerAPIParamsModel ...

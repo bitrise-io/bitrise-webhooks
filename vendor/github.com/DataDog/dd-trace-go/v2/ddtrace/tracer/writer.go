@@ -12,13 +12,17 @@ import (
 	"io"
 	"math"
 	"os"
+	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	globalinternal "github.com/DataDog/dd-trace-go/v2/internal"
+	"github.com/DataDog/dd-trace-go/v2/internal/globalconfig"
+	"github.com/DataDog/dd-trace-go/v2/internal/locking"
 	"github.com/DataDog/dd-trace-go/v2/internal/log"
+	"github.com/DataDog/dd-trace-go/v2/internal/version"
 )
 
 type traceWriter interface {
@@ -37,10 +41,10 @@ type agentTraceWriter struct {
 	config *config
 
 	// mu synchronizes access to payload operations
-	mu sync.Mutex
+	mu locking.Mutex
 
 	// payload encodes and buffers traces in msgpack format
-	payload payload
+	payload payload // +checklocks:mu
 
 	// climit limits the number of concurrent outgoing connections
 	climit chan struct{}
@@ -55,7 +59,7 @@ type agentTraceWriter struct {
 	// statsd is used to send metrics
 	statsd globalinternal.StatsdClient
 
-	tracesQueued uint32
+	tracesQueued uint32 // +checkatomic
 }
 
 func newAgentTraceWriter(c *config, s *prioritySampler, statsdClient globalinternal.StatsdClient) *agentTraceWriter {
@@ -98,7 +102,30 @@ func (h *agentTraceWriter) stop() {
 
 // newPayload returns a new payload based on the trace protocol.
 func (h *agentTraceWriter) newPayload() payload {
-	return newPayload(h.config.traceProtocol)
+	payload := newPayload(h.config.internalConfig.TraceProtocol())
+	if payload.protocol() == traceProtocolV04 {
+		return payload
+	}
+	// pre-allocate payloadV1 with field values
+	payloadV1 := payload.(*safePayload).p.(*payloadV1)
+	payloadV1.SetLanguageName("go")
+	payloadV1.SetLanguageVersion(runtime.Version())
+	payloadV1.SetTracerVersion(version.Tag)
+	payloadV1.SetRuntimeID(globalconfig.RuntimeID())
+	if v := h.config.internalConfig.Env(); v != "" {
+		payloadV1.SetEnv(v)
+	}
+	if v := h.config.internalConfig.Hostname(); v != "" {
+		payloadV1.SetHostname(v)
+	}
+	if v := h.config.internalConfig.Version(); v != "" {
+		payloadV1.SetAppVersion(v)
+	}
+	if cid := globalinternal.ContainerID(); cid != "" {
+		payloadV1.SetContainerID(cid)
+	}
+
+	return payload
 }
 
 // flush will push any currently buffered traces to the server.
@@ -122,8 +149,11 @@ func (h *agentTraceWriter) flush() {
 			// may still be kept by faulty transport implementations or the
 			// standard library. See dd-trace-go#976
 			h.statsd.Count("datadog.tracer.queue.enqueued.traces", int64(atomic.SwapUint32(&h.tracesQueued, 0)), nil, 1)
-			p.clear()
-
+			if p.protocol() == traceProtocolV1 {
+				p.(*safePayload).p.(*payloadV1).handoff(pv1StateFlushDone)
+			} else {
+				p.clear()
+			}
 			<-h.climit
 			h.statsd.Timing("datadog.tracer.flush_duration", time.Since(start), nil, 1)
 			h.wg.Done()
@@ -134,7 +164,7 @@ func (h *agentTraceWriter) flush() {
 		for attempt := 0; attempt <= h.config.sendRetries; attempt++ {
 			log.Debug("Attempt to send payload: size: %d traces: %d\n", stats.size, stats.itemCount)
 			var rc io.ReadCloser
-			rc, err = h.config.transport.send(p)
+			rc, err = h.config.ddTransport.send(p)
 			if err == nil {
 				log.Debug("sent traces after %d attempts", attempt+1)
 				h.statsd.Count("datadog.tracer.flush_bytes", int64(stats.size), nil, 1)
@@ -149,7 +179,7 @@ func (h *agentTraceWriter) flush() {
 				log.Error("failure sending traces (attempt %d of %d): %v", attempt+1, h.config.sendRetries+1, err.Error())
 			}
 			p.reset()
-			time.Sleep(h.config.retryInterval)
+			time.Sleep(h.config.internalConfig.RetryInterval())
 		}
 		h.statsd.Count("datadog.tracer.traces_dropped", int64(stats.itemCount), []string{"reason:send_failed"}, 1)
 		log.Error("lost %d traces: %v", stats.itemCount, err.Error())
@@ -223,6 +253,7 @@ func encodeFloat(p []byte, f float64) []byte {
 	return p
 }
 
+// +checklocksignore — Post-finish: serializes finished span for log transport.
 func (h *logTraceWriter) encodeSpan(s *Span) {
 	var scratch [maxFloatLength]byte
 	h.buf.WriteString(`{"trace_id":"`)
@@ -239,11 +270,11 @@ func (h *logTraceWriter) encodeSpan(s *Span) {
 	h.buf.Write(strconv.AppendInt(scratch[:0], int64(s.error), 10))
 	h.buf.WriteString(`,"meta":{`)
 	first := true
-	for k, v := range s.meta {
+	for k, v := range s.meta.All() {
 		if first {
 			first = false
 		} else {
-			h.buf.WriteString(`,`)
+			h.buf.WriteString(",")
 		}
 		h.marshalString(k)
 		h.buf.WriteString(":")

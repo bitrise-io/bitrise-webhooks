@@ -26,6 +26,10 @@ var (
 
 	// metricsHandleSwappablePointers contains all the swappableMetricHandle, used to replay actions done before the actual MetricHandle is set
 	metricsHandleSwappablePointers = xsync.NewMapOf[metricKey, *swappableMetricHandle](xsync.WithPresize(knownmetrics.Size()))
+
+	// startAppFlushWg tracks the goroutine launched by StartApp so StopApp can
+	// wait for it to finish before proceeding with the shutdown flush.
+	startAppFlushWg sync.WaitGroup
 )
 
 // GlobalClient returns the global telemetry client.
@@ -44,13 +48,26 @@ func StartApp(client Client) {
 		return
 	}
 
-	if GlobalClient() != nil || SwapClient(client) != nil {
+	if GlobalClient() != nil {
 		log.Debug("telemetry: StartApp called multiple times, ignoring")
 		return
 	}
 
 	client.AppStart()
-	go client.Flush()
+	// Increment the WaitGroup before SwapClient makes the client visible so
+	// StopApp cannot observe a zero counter and return before the flush goroutine runs.
+	startAppFlushWg.Add(1)
+	if SwapClient(client) != nil {
+		// A concurrent StartApp call already set the client; undo the Add.
+		startAppFlushWg.Done()
+		log.Debug("telemetry: StartApp called multiple times, ignoring")
+		return
+	}
+
+	go func() {
+		defer startAppFlushWg.Done()
+		client.Flush()
+	}()
 }
 
 // SwapClient swaps the global client with the given client and Flush the old (*client).
@@ -99,17 +116,24 @@ func MockClient(client Client) func() {
 func StopApp() {
 	if client := globalClient.Swap(nil); client != nil && *client != nil {
 		(*client).AppStop()
+		startAppFlushWg.Wait()
 		(*client).Flush()
 		(*client).Close()
 	}
 }
 
-var telemetryClientDisabled = !globalinternal.BoolEnv("DD_INSTRUMENTATION_TELEMETRY_ENABLED", true)
+var (
+	telemetryClientEnabled bool
+	telemetryEnabledOnce   sync.Once
+)
 
 // Disabled returns whether instrumentation telemetry is disabled
 // according to the DD_INSTRUMENTATION_TELEMETRY_ENABLED env var
 func Disabled() bool {
-	return telemetryClientDisabled
+	telemetryEnabledOnce.Do(func() {
+		telemetryClientEnabled = globalinternal.BoolEnv("DD_INSTRUMENTATION_TELEMETRY_ENABLED", true)
+	})
+	return telemetryClientEnabled == false
 }
 
 // Count creates a new metric handle for the given parameters that can be used to submit values.
@@ -187,6 +211,15 @@ func RegisterAppConfig(key string, value any, origin Origin) {
 func RegisterAppConfigs(kvs ...Configuration) {
 	globalClientCall(func(client Client) {
 		client.RegisterAppConfigs(kvs...)
+	})
+}
+
+// RegisterAppEndpoint reports a new REST endpoint exposed by the application.
+// This can be called multiple times and endpoints will be accumulated
+// additively by the backend.
+func RegisterAppEndpoint(opName string, resName string, attrs AppEndpointAttributes) {
+	globalClientCall(func(client Client) {
+		client.RegisterAppEndpoint(opName, resName, attrs)
 	})
 }
 

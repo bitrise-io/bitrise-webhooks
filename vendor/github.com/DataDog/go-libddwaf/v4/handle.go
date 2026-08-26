@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"runtime"
 	"sync/atomic"
+	"unsafe"
 
 	"github.com/DataDog/go-libddwaf/v4/internal/bindings"
-	"github.com/DataDog/go-libddwaf/v4/internal/unsafe"
+	"github.com/DataDog/go-libddwaf/v4/internal/ffi"
 	"github.com/DataDog/go-libddwaf/v4/timer"
 	"github.com/DataDog/go-libddwaf/v4/waferrors"
 )
@@ -144,15 +145,18 @@ func newConfig(pinner *runtime.Pinner, keyObfuscatorRegex string, valueObfuscato
 			MaxStringLength:   bindings.MaxStringLength,
 		},
 		Obfuscator: bindings.WAFConfigObfuscator{
-			KeyRegex:   unsafe.PtrToUintptr(unsafe.Cstring(pinner, keyObfuscatorRegex)),
-			ValueRegex: unsafe.PtrToUintptr(unsafe.Cstring(pinner, valueObfuscatorRegex)),
+			KeyRegex:   uintptr(unsafe.Pointer(ffi.Cstring(pinner, keyObfuscatorRegex))),
+			ValueRegex: uintptr(unsafe.Pointer(ffi.Cstring(pinner, valueObfuscatorRegex))),
 		},
 		// Prevent libddwaf from freeing our Go-memory-allocated ddwaf_objects
 		FreeFn: 0,
 	}
 }
 
-func goRunError(rc bindings.WAFReturnCode) error {
+// goRunError returns decodes a [bindings.WAFReturnCode] and returns the
+// corresponding [waferrors] constant. If no error is matched ([bindings.WAFOK]
+// or [bindings.WAFMatch]), the value of [err] is returned instead.
+func goRunError(rc bindings.WAFReturnCode, err error) error {
 	switch rc {
 	case bindings.WAFErrInternal:
 		return waferrors.ErrInternal
@@ -162,7 +166,7 @@ func goRunError(rc bindings.WAFReturnCode) error {
 		return waferrors.ErrInvalidArgument
 	case bindings.WAFOK, bindings.WAFMatch:
 		// No error...
-		return nil
+		return err
 	default:
 		return fmt.Errorf("unknown waf return code %d", int(rc))
 	}
