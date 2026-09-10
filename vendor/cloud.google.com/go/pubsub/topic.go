@@ -1266,7 +1266,6 @@ func (t *Topic) Publish(ctx context.Context, msg *Message) *PublishResult {
 	}
 
 	if err := t.scheduler.Add(msg.OrderingKey, bmsg, msgSize); err != nil {
-		t.flowController.release(ctx, msgSize)
 		t.scheduler.Pause(msg.OrderingKey)
 		ipubsub.SetPublishResult(r, "", err)
 		spanRecordError(createSpan, err)
