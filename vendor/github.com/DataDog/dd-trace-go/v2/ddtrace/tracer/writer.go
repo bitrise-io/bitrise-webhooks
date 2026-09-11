@@ -69,10 +69,32 @@ func newAgentTraceWriter(c *config, s *prioritySampler, statsdClient globalinter
 		prioritySampling: s,
 		statsd:           statsdClient,
 	}
-	tw.payload = tw.newPayload()
+	tw.payload = tw.newPayload(c.effectiveTraceProtocol(), 0)
 	return tw
 }
 
+// add pushes trace into h.payload without checking whether h.payload's
+// protocol still matches effectiveTraceProtocol(). That check (plus sealing a
+// non-empty mismatched payload for immediate async send) was added by #5167
+// and reverted here (issue #5258 diagnostic): direct benchmarking found it
+// added no measurable steady-state cost, but the sealed-payload path itself
+// cost 6-12x a normal add() call when a transition was actually in flight,
+// and #5167's own re-evaluation machinery (protocolState, rotateStalePayload,
+// effectiveTraceProtocol) is left fully intact — flush() still reads it fresh
+// on every call and unconditionally rebuilds h.payload for the current
+// protocol regardless of what oldp's protocol was, so a real protocol change
+// still gets picked up correctly, just at the next flush instead of
+// immediately. The trade-off: a payload that is mid-buffering when a
+// transition happens can keep absorbing spans (which will go out under
+// whatever protocol h.payload started with) until that next flush, instead
+// of being sealed and resent immediately. A transition that lands on an
+// already-in-flight v1.0 payload after the agent has genuinely stopped
+// accepting it is not silently corrupted — the existing errV1TracesNotSupported
+// handling in sendAsync (downgradeAfterRejectedSend) still drops and reports
+// it via reason:v1_rejected. See the two TestEmptyPayload.../
+// TestNonEmptyPayload... tests in trace_protocol_runtime_test.go for the
+// exact contract this leaves, and datadog.tracer.trace_protocol_changed for
+// the production frequency data (issue #5258) that motivated this trade-off.
 func (h *agentTraceWriter) add(trace []*Span) {
 	h.mu.Lock()
 	stats, err := h.payload.push(trace)
@@ -100,46 +122,111 @@ func (h *agentTraceWriter) stop() {
 	h.wg.Wait()
 }
 
-// newPayload returns a new payload based on the trace protocol.
-func (h *agentTraceWriter) newPayload() payload {
-	payload := newPayload(h.config.internalConfig.TraceProtocol())
+func (h *agentTraceWriter) wait() { h.wg.Wait() }
+
+// newPayload returns a new payload for protocol. hint, when positive,
+// pre-sizes the buffer to the previous flush cycle's actual encoded size,
+// eliminating the doubling ramp-up at the cost of one upfront allocation.
+// The hint is a lagging heuristic: under-prediction falls back to organic growth;
+// over-prediction wastes one cycle of transient memory and self-corrects. Pass 0
+// on cold start (no prior cycle data).
+func (h *agentTraceWriter) newPayload(protocol float64, hint int) payload {
+	payload := newPayload(protocol)
 	if payload.protocol() == traceProtocolV04 {
+		if hint > 0 {
+			payload.grow(hint)
+		}
 		return payload
 	}
 	// pre-allocate payloadV1 with field values
-	payloadV1 := payload.(*safePayload).p.(*payloadV1)
-	payloadV1.SetLanguageName("go")
-	payloadV1.SetLanguageVersion(runtime.Version())
-	payloadV1.SetTracerVersion(version.Tag)
-	payloadV1.SetRuntimeID(globalconfig.RuntimeID())
+	pv1 := payload.(*safePayload).p.(*payloadV1)
+	pv1.SetLanguageName("go")
+	pv1.SetLanguageVersion(runtime.Version())
+	pv1.SetTracerVersion(version.Tag)
+	pv1.SetRuntimeID(globalconfig.RuntimeID())
 	if v := h.config.internalConfig.Env(); v != "" {
-		payloadV1.SetEnv(v)
+		pv1.SetEnv(v)
 	}
 	if v := h.config.internalConfig.Hostname(); v != "" {
-		payloadV1.SetHostname(v)
+		pv1.SetHostname(v)
 	}
 	if v := h.config.internalConfig.Version(); v != "" {
-		payloadV1.SetAppVersion(v)
+		pv1.SetAppVersion(v)
 	}
 	if cid := globalinternal.ContainerID(); cid != "" {
-		payloadV1.SetContainerID(cid)
+		pv1.SetContainerID(cid)
+	}
+	if hint > 0 {
+		pv1.sizeHint = hint
 	}
 
 	return payload
 }
 
+// rotateStalePayload replaces h.payload with a freshly protocol-matched one if
+// it is still empty but was built for a protocol the agent no longer (or not
+// yet) accepts. An empty payload holds no encoded bytes, so it can adopt the
+// current protocol for free. Both add and flush must call this before relying
+// on h.payload's protocol: add is the first point a trace can land in an idle
+// payload, and flush is the only place that otherwise re-reads the protocol —
+// without either call, a writer that saw no traffic across an agent-info poll
+// would hold a stale payload indefinitely after the agent's advertised
+// protocol changed. A non-empty stale payload is not this function's job: add
+// seals that case itself (in the same critical section, so there is no gap
+// between the mismatch check and the push) since a non-empty payload cannot
+// switch protocol for free. The discarded payload was never handed to the
+// transport, so it is simply dropped rather than recycled through the
+// payloadV1 pool:
+// handoff(pv1StateFlushDone) alone would not return it (the two-party handoff
+// also needs the transport's bit), and forcing both bits risks a double pool
+// return.
+// +checklocks:h.mu
+func (h *agentTraceWriter) rotateStalePayload(protocol float64) {
+	if h.payload.itemCount() == 0 && h.payload.protocol() != protocol {
+		h.payload = h.newPayload(protocol, 0)
+	}
+}
+
 // flush will push any currently buffered traces to the server.
 func (h *agentTraceWriter) flush() {
 	h.mu.Lock()
+	// Read under the lock, same reasoning as add(): a read taken before
+	// h.mu.Lock() could go stale relative to a concurrent add()/flush() that
+	// raced ahead and already updated h.payload for a newer protocol.
+	protocol := h.config.effectiveTraceProtocol()
 	oldp := h.payload
 	// Check after acquiring lock
 	if oldp.itemCount() == 0 {
+		h.rotateStalePayload(protocol)
 		h.mu.Unlock()
 		return
 	}
-	h.payload = h.newPayload()
+	h.payload = h.newPayload(protocol, min(oldp.size(), int(payloadMaxLimit)))
 	h.mu.Unlock()
 
+	h.sendAsync(oldp)
+}
+
+// retirePayload runs the cleanup a payload needs once it's done being sent:
+// v1 payloads hand off to their pool via the two-party bit, v0.4 payloads are
+// just cleared. Shared by sendAsync's deferred cleanup and by
+// downgradeAfterRejectedSend's caller, which retires the original v1 payload
+// early — before that deferred cleanup runs — because it replaces it with a
+// re-encoded v0.4 payload for the rest of the send loop.
+func (h *agentTraceWriter) retirePayload(p payload) {
+	if p.protocol() == traceProtocolV1 {
+		p.(*safePayload).p.(*payloadV1).handoff(pv1StateFlushDone)
+	} else {
+		p.clear()
+	}
+}
+
+// sendAsync spawns a goroutine that sends p to the agent and retires it
+// through the same lifecycle as a normal flush. Callers must not hold h.mu:
+// acquiring h.climit can block on the concurrent-connection limit, and doing
+// that while holding h.mu would stall every other add()/flush() call system-
+// wide, not just the ones actually contending for a connection slot.
+func (h *agentTraceWriter) sendAsync(p payload) {
 	h.climit <- struct{}{}
 	h.wg.Add(1)
 	go func(p payload) {
@@ -149,11 +236,11 @@ func (h *agentTraceWriter) flush() {
 			// may still be kept by faulty transport implementations or the
 			// standard library. See dd-trace-go#976
 			h.statsd.Count("datadog.tracer.queue.enqueued.traces", int64(atomic.SwapUint32(&h.tracesQueued, 0)), nil, 1)
-			if p.protocol() == traceProtocolV1 {
-				p.(*safePayload).p.(*payloadV1).handoff(pv1StateFlushDone)
-			} else {
-				p.clear()
-			}
+			// Must branch on p.protocol(), never on config: the effective protocol
+			// can change between the newPayload call that created p and this
+			// deferred cleanup (e.g. an agent-info poll landing mid-flush), so only
+			// the payload's own, immutable protocol is a reliable guide here.
+			h.retirePayload(p)
 			<-h.climit
 			h.statsd.Timing("datadog.tracer.flush_duration", time.Since(start), nil, 1)
 			h.wg.Done()
@@ -161,7 +248,9 @@ func (h *agentTraceWriter) flush() {
 
 		stats := p.stats()
 		var err error
-		for attempt := 0; attempt <= h.config.sendRetries; attempt++ {
+		sendRetries := h.config.internalConfig.SendRetries()
+		retryInterval := h.config.internalConfig.RetryInterval()
+		for attempt := 0; attempt <= sendRetries; attempt++ {
 			log.Debug("Attempt to send payload: size: %d traces: %d\n", stats.size, stats.itemCount)
 			var rc io.ReadCloser
 			rc, err = h.config.ddTransport.send(p)
@@ -175,15 +264,74 @@ func (h *agentTraceWriter) flush() {
 				return
 			}
 
-			if attempt+1%5 == 0 {
-				log.Error("failure sending traces (attempt %d of %d): %v", attempt+1, h.config.sendRetries+1, err.Error())
+			if errors.Is(err, errV1TracesNotSupported) {
+				// Authoritative: this specific backend just rejected v1 outright,
+				// unlike an /info poll, which only samples one backend behind a
+				// possibly load-balanced address. Downgrade immediately rather than
+				// retrying the same bytes against an endpoint that will keep
+				// rejecting them; the payload is dropped rather than redelivered.
+				// Under concurrent flush traffic, every other payload already
+				// committed to v1 (in flight or queued behind h.climit) independently
+				// discovers the same rejection and drops itself the same way, so a
+				// real rollback can cost up to concurrentConnectionLimit payloads,
+				// not just this one (see doc.go).
+				h.downgradeAfterRejectedSend()
+				h.statsd.Count("datadog.tracer.traces_dropped", int64(stats.itemCount), []string{"reason:v1_rejected"}, 1)
+				log.Error("agent rejected a v1 trace payload; dropping %d traces and downgrading to v0.4", stats.itemCount)
+				return
+			}
+
+			if (attempt+1)%5 == 0 {
+				log.Error("failure sending traces (attempt %d of %d): %v", attempt+1, sendRetries+1, err.Error())
 			}
 			p.reset()
-			time.Sleep(h.config.internalConfig.RetryInterval())
+			time.Sleep(retryInterval)
 		}
 		h.statsd.Count("datadog.tracer.traces_dropped", int64(stats.itemCount), []string{"reason:send_failed"}, 1)
 		log.Error("lost %d traces: %v", stats.itemCount, err.Error())
-	}(oldp)
+	}(p)
+}
+
+// downgradeAfterRejectedSend records that an agent backend just rejected a v1
+// send outright — conclusive evidence, on the same footing as a negative
+// /info poll (see (*tracer).refreshAgentFeatures). advanceTraceProtocolState
+// is monotone, so this can only move the state to protoV04 and never back.
+//
+// The log/metric below are gated on ReportEffectiveTraceProtocol's own return
+// value, not on advanceTraceProtocolState's: those are two separate,
+// independently-racing CAS operations (protocolState vs
+// effectiveTraceProtocolBits), so a caller winning the first is no guarantee
+// it also wins the second. A concurrent /info poll observing the same
+// transition can win ReportEffectiveTraceProtocol first; gating on the wrong
+// CAS would then double-emit for one logical transition. This mirrors
+// refreshAgentFeatures's tail exactly. One accepted trade-off: since emission
+// now follows whichever caller wins the shared telemetry dedup, a genuine
+// rejection can occasionally lose its "reason:send_rejected" tag to a
+// concurrent poll's plainer report — the transition is still only ever
+// reported once, just not always attributed to this path.
+func (h *agentTraceWriter) downgradeAfterRejectedSend() {
+	h.config.advanceTraceProtocolState(protoV04)
+	// This registers the downgrade (state, telemetry, log) only -- it does not
+	// also rotate h.payload. An earlier version of this diagnostic build
+	// (issue #5258) added a compensating rotation here so the very next trace
+	// wouldn't land in a payload built moments ago for the still-believed-good
+	// v1 protocol, but Codex review on #5263 correctly flagged that the
+	// rotation and this state flip aren't atomic with add(): a concurrent
+	// add() can populate that payload between the two, making it non-empty --
+	// rotateStalePayload only replaces an empty one -- so the compensating
+	// rotation could silently do nothing under exactly the concurrent traffic
+	// it was meant to help with. Fixing that race properly means serializing
+	// this with add() under h.mu, which reintroduces the per-add() cost this
+	// revert exists to remove. Simpler and consistent with removing add()'s
+	// own check entirely: don't special-case this path either. flush()'s
+	// existing, unconditional rebuild-for-current-protocol on every call is
+	// the only recovery mechanism now, same as any other post-transition
+	// staleness this diagnostic build accepts -- see add()'s doc comment.
+	if !h.config.internalConfig.ReportEffectiveTraceProtocol(h.config.effectiveTraceProtocol()) {
+		return
+	}
+	h.statsd.Incr("datadog.tracer.trace_protocol_changed", []string{"to:0.4", "reason:send_rejected"}, 1)
+	log.Info("agent rejected a v1 trace payload; downgrading to v0.4")
 }
 
 // logWriter specifies the output target of the logTraceWriter; replaced in tests.

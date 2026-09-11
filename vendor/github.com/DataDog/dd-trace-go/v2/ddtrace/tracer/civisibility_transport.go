@@ -73,8 +73,8 @@ func newCiVisibilityTransport(config *config) *ciVisibilityTransport {
 		defaultHeaders["Datadog-Entity-ID"] = eid
 	}
 
-	// Determine if agentless mode is enabled through an environment variable.
-	agentlessEnabled := internal.BoolEnv(constants.CIVisibilityAgentlessEnabledEnvironmentVariable, false)
+	// Determine if agentless mode is enabled (sourced from internal/config).
+	agentlessEnabled := config.internalConfig.CIVisibilityAgentless()
 
 	testCycleURL := ""
 	if agentlessEnabled {
@@ -215,11 +215,12 @@ func (t *ciVisibilityTransport) sendStats(*pb.ClientStatsPayload, int) error {
 	return nil
 }
 
-// endpoint returns the URL path of the test cycle endpoint.
+// endpoint returns the URL path of the test cycle endpoint. CI Visibility does
+// not use the Datadog trace protocol, so the protocol argument is ignored.
 //
 // Returns:
 //
 //	The URL path as a string.
-func (t *ciVisibilityTransport) endpoint() string {
+func (t *ciVisibilityTransport) endpoint(float64) string {
 	return t.testCycleURLPath
 }
