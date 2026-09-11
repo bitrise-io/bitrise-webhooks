@@ -19,7 +19,8 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/DataDog/dd-trace-go/v2/instrumentation"
-	"github.com/DataDog/dd-trace-go/v2/internal/appsec/listener/httpsec"
+	appsechttpsec "github.com/DataDog/dd-trace-go/v2/instrumentation/appsec/httpsec"
+	listenerhttpsec "github.com/DataDog/dd-trace-go/v2/internal/appsec/listener/httpsec"
 	"github.com/DataDog/dd-trace-go/v2/internal/log"
 	"github.com/DataDog/dd-trace-go/v2/internal/telemetry"
 )
@@ -40,6 +41,18 @@ type inferredSpanCreatedCtxKey struct{}
 
 type FinishSpanFunc = func(status int, errorFn func(int) bool, opts ...tracer.FinishOption)
 
+// requestSpanTagsSizeHint pre-sizes the tag map built for every request span.
+// SpanType, HTTPMethod, HTTPURL, HTTPUserAgent, and "_dd.measured" are always
+// set (5), "http.host" is set when present (6), and AppSec header tags, IP
+// tags, and baggage tags add a variable amount on top — this only needs to
+// cover the common case to avoid the first few map growths, not be exact.
+//
+// The value must be at least 9: the runtime rounds any map hint of 8 or less
+// down to a single 8-slot group, so make(map, 8) is identical to make(map) and
+// reserves nothing. 9 is the smallest hint that reserves a second group, so
+// spans that end up with 9+ tags (IP/AppSec/baggage) skip a growth and rehash.
+const requestSpanTagsSizeHint = 9
+
 // StartRequestSpan starts a server-side HTTP request span with the standard list of HTTP request span tags
 // (http.method, http.url, http.useragent). Any further span start option can be added with opts.
 func StartRequestSpan(r *http.Request, opts ...tracer.StartSpanOption) (*tracer.Span, context.Context, FinishSpanFunc) {
@@ -55,7 +68,7 @@ func StartRequestSpan(r *http.Request, opts ...tracer.StartSpanOption) (*tracer.
 
 	var ipTags map[string]string
 	if cfg.traceClientIP {
-		ipTags, _ = httpsec.ClientIPTags(r.Header, true, r.RemoteAddr)
+		ipTags, _ = listenerhttpsec.ClientIPTags(r.Header, true, r.RemoteAddr)
 	}
 
 	var inferredProxySpan *tracer.Span
@@ -100,7 +113,7 @@ func StartRequestSpan(r *http.Request, opts ...tracer.StartSpanOption) (*tracer.
 	nopts = append(nopts,
 		func(ssCfg *tracer.StartSpanConfig) {
 			if ssCfg.Tags == nil {
-				ssCfg.Tags = make(map[string]any)
+				ssCfg.Tags = make(map[string]any, requestSpanTagsSizeHint)
 			}
 			ssCfg.Tags[ext.SpanType] = ext.SpanTypeWeb
 			ssCfg.Tags[ext.HTTPMethod] = r.Method
@@ -110,6 +123,7 @@ func StartRequestSpan(r *http.Request, opts ...tracer.StartSpanOption) (*tracer.
 			if r.Host != "" {
 				ssCfg.Tags["http.host"] = r.Host
 			}
+			appsechttpsec.SetSecurityTestingHeaderTags(ssCfg.Tags, r.Header)
 
 			if inferredProxySpan != nil {
 				tracer.ChildOf(inferredProxySpan.Context())(ssCfg)
@@ -223,7 +237,7 @@ func urlFromRequest(r *http.Request, queryString bool, isClient bool) string {
 		scheme = "https"
 	}
 	if r.Host != "" {
-		url = strings.Join([]string{scheme, "://", r.Host, path}, "")
+		url = scheme + "://" + r.Host + path
 	} else {
 		url = path
 	}
@@ -235,15 +249,17 @@ func urlFromRequest(r *http.Request, queryString bool, isClient bool) string {
 			// When an allowlist is configured, only keep the specified parameter keys.
 			// This avoids running the expensive obfuscation regex entirely.
 			query = filterQueryStringByAllowlist(query, allowlist)
+		} else if cfg.useDefaultObfuscator {
+			query = obfuscateQueryStringDefault(query)
 		} else if cfg.queryStringRegexp != nil {
 			query = cfg.queryStringRegexp.ReplaceAllLiteralString(query, "<redacted>")
 		}
 		if query != "" {
-			url = strings.Join([]string{url, query}, "?")
+			url = url + "?" + query
 		}
 	}
 	if frag := r.URL.EscapedFragment(); frag != "" {
-		url = strings.Join([]string{url, frag}, "#")
+		url = url + "#" + frag
 	}
 	return url
 }
