@@ -395,7 +395,7 @@ func (s *Lexer) scanIdentifier(ch rune) *Token {
 	}
 
 	// If we found a complete keyword and next char is whitespace
-	if node.isEnd && (isPunctuation(ch) || isSpace(ch) || isEOF(ch)) {
+	if node.isEnd && (isPunctuation(ch) || isSpace(ch) || isMultiLineComment(ch, s.lookAhead(1)) || isEOF(ch)) {
 		s.cursor = pos + 1 // Include the last matched character
 		s.isTableIndicator = node.isTableIndicator
 		return s.emit(node.tokenType)
