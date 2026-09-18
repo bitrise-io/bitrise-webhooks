@@ -5,7 +5,6 @@ go 1.25.8
 toolchain go1.26.5
 
 require (
-	cloud.google.com/go/pubsub v1.50.2
 	cloud.google.com/go/pubsub/v2 v2.7.0
 	github.com/DataDog/dd-trace-go/contrib/gorilla/mux/v2 v2.9.1
 	github.com/DataDog/dd-trace-go/v2 v2.9.1
