@@ -558,7 +558,7 @@ go.uber.org/zap/zapcore
 # go.yaml.in/yaml/v3 v3.0.4
 ## explicit; go 1.16
 go.yaml.in/yaml/v3
-# golang.org/x/crypto v0.54.0
+# golang.org/x/crypto v0.55.0
 ## explicit; go 1.25.0
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/chacha20poly1305
@@ -570,10 +570,10 @@ golang.org/x/crypto/internal/poly1305
 # golang.org/x/exp v0.0.0-20260209203927-2842357ff358
 ## explicit; go 1.24.0
 golang.org/x/exp/constraints
-# golang.org/x/mod v0.37.0
+# golang.org/x/mod v0.38.0
 ## explicit; go 1.25.0
 golang.org/x/mod/semver
-# golang.org/x/net v0.57.0
+# golang.org/x/net v0.58.0
 ## explicit; go 1.25.0
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
@@ -605,7 +605,7 @@ golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/text v0.40.0
+# golang.org/x/text v0.41.0
 ## explicit; go 1.25.0
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
@@ -646,7 +646,7 @@ google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.83.1
+# google.golang.org/grpc v1.83.2
 ## explicit; go 1.25.0
 google.golang.org/grpc
 google.golang.org/grpc/attributes
