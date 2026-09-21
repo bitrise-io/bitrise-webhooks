@@ -10,11 +10,18 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/DataDog/dd-trace-go/v2/internal"
+	configtelemetry "github.com/DataDog/dd-trace-go/v2/internal/config/configtelemetry"
 	"github.com/DataDog/dd-trace-go/v2/internal/log"
+	"github.com/DataDog/dd-trace-go/v2/internal/telemetry"
 )
+
+// DefaultSocketDSDPath is the UDS socket path probed during DogStatsD
+// auto-discovery. Exported as a var only for test overrides.
+var DefaultSocketDSDPath = "/var/run/datadog/dsd.socket"
 
 const (
 	// DefaultRateLimit specifies the default rate limit per second for traces.
@@ -23,6 +30,20 @@ const (
 
 	// DefaultMaxTagsHeaderLen is the default value for DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH.
 	DefaultMaxTagsHeaderLen = 512
+	// defaultStatsAdditionalTagsCardinalityLimit is the default per-bucket cap for additional metric tag cardinality.
+	defaultStatsAdditionalTagsCardinalityLimit = 100
+	// maxAdditionalTagKeys is the maximum number of configured additional metric tag keys.
+	maxAdditionalTagKeys = 6
+	// defaultStatsWholeKeyCardinalityLimit is the default whole-key cardinality cap per bucket.
+	defaultStatsWholeKeyCardinalityLimit = 2048
+	// defaultStatsResourceCardinalityLimit is the default per-field cap for resource cardinality.
+	defaultStatsResourceCardinalityLimit = 1024
+	// defaultStatsHTTPEndpointCardinalityLimit is the default per-field cap for http_endpoint cardinality.
+	defaultStatsHTTPEndpointCardinalityLimit = 512
+	// defaultStatsPeerTagsCardinalityLimit is the default per-field cap for peer_tags cardinality.
+	defaultStatsPeerTagsCardinalityLimit = 512
+	// defaultStatsOriginCardinalityLimit is the default per-field cap for origin cardinality.
+	defaultStatsOriginCardinalityLimit = 20
 	// MaxPropagatedTagsLength is the upper bound on DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH.
 	MaxPropagatedTagsLength = 512
 	// TraceMaxSize is the maximum number of spans we keep in memory for a
@@ -42,6 +63,8 @@ const (
 	URLSchemeUnix  = "unix"
 	URLSchemeHTTP  = "http"
 	URLSchemeHTTPS = "https"
+
+	DefaultStatsdPort = "8125"
 
 	// Trace API paths appended to the agent URL for each protocol.
 	TracesPathV04 = "/v0.4/traces"
@@ -69,6 +92,48 @@ func validateRateLimit(rate float64) bool {
 		return false
 	}
 	return true
+}
+
+func validateAgentTimeout(timeout int) bool {
+	if timeout < 0 {
+		log.Warn("ignoring DD_TRACE_AGENT_TIMEOUT: negative value %d", timeout)
+		return false
+	}
+	return true
+}
+
+func validateSendRetries(retries int) bool {
+	if retries < 0 {
+		log.Warn("ignoring DD_TRACE_SEND_RETRIES: negative value %d", retries)
+		return false
+	}
+	return true
+}
+
+func capAdditionalTagKeys(tags []string) []string {
+	if len(tags) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(tags))
+	unique := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		tag = strings.TrimSpace(tag)
+		if tag == "" {
+			continue
+		}
+		if _, ok := seen[tag]; ok {
+			continue
+		}
+		seen[tag] = struct{}{}
+		unique = append(unique, tag)
+	}
+	if len(unique) > maxAdditionalTagKeys {
+		dropped := unique[maxAdditionalTagKeys:]
+		log.Warn("DD_TRACE_STATS_ADDITIONAL_TAGS is limited to %d keys; dropping configured tag keys: %s", maxAdditionalTagKeys, strings.Join(dropped, ","))
+		unique = unique[:maxAdditionalTagKeys]
+	}
+	slices.Sort(unique)
+	return unique
 }
 
 // parseSpanAttributeSchema parses the DD_TRACE_SPAN_ATTRIBUTE_SCHEMA value.
@@ -122,6 +187,17 @@ func resolveTraceProtocol(v string) float64 {
 		return TraceProtocolV1
 	}
 	return TraceProtocolV04
+}
+
+// TraceProtocolVersionString is the inverse of resolveTraceProtocol: it renders
+// a protocol float64 back into the wire-version string reported to config
+// telemetry, so DD_TRACE_AGENT_PROTOCOL_VERSION is always reported with a
+// consistent type regardless of which source set it.
+func TraceProtocolVersionString(v float64) string {
+	if v == TraceProtocolV1 {
+		return TraceProtocolVersionStringV1
+	}
+	return TraceProtocolVersionStringV04
 }
 
 // resolveAgentURL computes the final agent URL from the three env-var strings
@@ -179,6 +255,59 @@ func detectUDSURL() *url.URL {
 	}
 }
 
+// initialDogstatsdURL builds the resolved DogStatsD URL from env inputs.
+// Precedence: addr (DD_DOGSTATSD_URL) > host/port (DD_DOGSTATSD_HOST/PORT) >
+// UDS auto-discovery > agentHost:DefaultStatsdPort. The returned URL is
+// always complete: host+port for TCP, or unix scheme + path for UDS.
+func initialDogstatsdURL(addr, host, port, agentHost, socketPath string) *url.URL {
+	if addr != "" {
+		return parseDogstatsdAddr(addr)
+	}
+	if host != "" || port != "" {
+		if host == "" {
+			host = agentHost
+		}
+		if host == "" {
+			host = internal.DefaultAgentHostname
+		}
+		if port == "" {
+			port = DefaultStatsdPort
+		}
+		return &url.URL{Host: net.JoinHostPort(host, port)}
+	}
+	if _, err := os.Stat(socketPath); err == nil {
+		return &url.URL{Scheme: URLSchemeUnix, Path: socketPath}
+	}
+	host = agentHost
+	if host == "" {
+		host = internal.DefaultAgentHostname
+	}
+	return &url.URL{Host: net.JoinHostPort(host, DefaultStatsdPort)}
+}
+
+// parseDogstatsdAddr accepts "host:port" or "unix:///path/to/socket".
+func parseDogstatsdAddr(addr string) *url.URL {
+	if strings.HasPrefix(addr, "unix://") {
+		if u, err := url.Parse(addr); err == nil {
+			return u
+		} else {
+			log.Warn("Failed to parse DogStatsD unix address %q: %s", addr, err)
+		}
+	}
+	return &url.URL{Host: addr}
+}
+
+// formatDogstatsdAddr renders the URL for NewStatsdClient.
+func formatDogstatsdAddr(u *url.URL) string {
+	if u == nil {
+		return ""
+	}
+	if u.Scheme == URLSchemeUnix {
+		return "unix://" + u.Path
+	}
+	return u.Host
+}
+
 // resolveOTLPTraceURL resolves the OTLP trace endpoint from OTEL_EXPORTER_OTLP_TRACES_ENDPOINT if set, else agentURL host + default OTLP port 4318 + /v1/traces.
 // When the user-provided endpoint is set, it is validated: it must be a parseable URL with an http or https scheme.
 // If validation fails, the default endpoint is used instead.
@@ -210,4 +339,28 @@ func buildOTLPHeaders(headers map[string]string) map[string]string {
 	}
 	headers["Content-Type"] = OTLPContentTypeHeader
 	return headers
+}
+
+// parseGlobalTags parses a DD_TAGS-style string into a tag map, dropping
+// git-metadata tags so they don't leak onto every span. Returns nil when no
+// usable tags remain.
+func parseGlobalTags(v string) map[string]any {
+	if v == "" {
+		return nil
+	}
+	parsed := internal.ParseTagString(v)
+	internal.CleanGitMetadataTags(parsed)
+	if len(parsed) == 0 {
+		return nil
+	}
+	tags := make(map[string]any, len(parsed))
+	for k, val := range parsed {
+		tags[k] = val
+	}
+	return tags
+}
+
+// reportGlobalTagTelemetry reports the per-key "global_tag_<key>" telemetry.
+func reportGlobalTagTelemetry(key string, value any, origin telemetry.Origin) {
+	configtelemetry.Report("global_tag_"+key, value, origin)
 }

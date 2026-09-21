@@ -9,11 +9,14 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"net"
 	"net/url"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/DataDog/dd-trace-go/v2/internal"
@@ -72,12 +75,23 @@ type Config struct {
 
 	// Config fields are protected by the mutex.
 	agentURL *url.URL
-	debug    bool
+	// dogstatsdAddr is the address to connect for sending metrics to the
+	// Datadog Agent. If not set, it defaults to "localhost:8125" or to the
+	// combination of the environment variables DD_AGENT_HOST and DD_DOGSTATSD_PORT.
+	dogstatsdAddr *url.URL
+	// dogstatsdAddrExplicit is true when the user explicitly configured the DogStatsD
+	// address (via DD_DOGSTATSD_PORT or DD_DOGSTATSD_URL), so agent-reported ports must not overwrite it.
+	dogstatsdAddrExplicit bool
+	debug                 bool
 	// logStartup, when true, causes various startup info to be written when the tracer starts.
 	logStartup bool
 	// serviceName specifies the name of this application.
 	serviceName string
 	version     string
+	// universalVersion, when true, applies the configured version tag to every span
+	// regardless of service. When false, only spans whose service matches the
+	// configured service get the version tag.
+	universalVersion bool
 	// env contains the environment that this application will run under.
 	env string
 	// serviceMappings holds a set of service mappings to dynamically rename services
@@ -88,6 +102,7 @@ type Config struct {
 	hostnameLookupError        error
 	runtimeMetrics             bool
 	runtimeMetricsV2           bool
+	runtimeMetricsOtel         bool
 	profilerHotspots           bool
 	profilerEndpoints          bool
 	spanAttributeSchemaVersion int
@@ -104,16 +119,52 @@ type Config struct {
 	// partialFlushEnabled specifices whether the tracer should enable partial flushing. Value
 	// from DD_TRACE_PARTIAL_FLUSH_ENABLED, default false.
 	partialFlushEnabled bool
+	// internalMetricsEnabled enables the tracer's internal metrics (statsd) client.
+	// Value from DD_TRACE_INTERNAL_METRICS_ENABLED, default true.
+	internalMetricsEnabled bool
 	// statsComputationEnabled enables client-side stats computation (aka trace metrics).
-	statsComputationEnabled      bool
+	statsComputationEnabled bool
+	traceAnalyticsEnabled   bool
+	// experimentalFeaturesEnabled controls tracer features that are not generally available.
+	experimentalFeaturesEnabled bool
+	// statsAdditionalTags is a list of tag keys to extract from spans and use as
+	// additional aggregation dimensions for client-side stats.
+	// Configured via DD_TRACE_STATS_ADDITIONAL_TAGS (comma-separated).
+	statsAdditionalTags []string
+	// statsAdditionalTagsCardinalityLimit is the maximum number of distinct
+	// additional metric tag stats entries per bucket.
+	statsAdditionalTagsCardinalityLimit int
+	// statsWholeKeyCardinalityLimit caps total distinct BucketsAggregationKeys per bucket.
+	// Configured via DD_TRACE_STATS_CARDINALITY_LIMIT.
+	statsWholeKeyCardinalityLimit int
+	// statsResourceCardinalityLimit caps distinct resource values per bucket.
+	// Configured via DD_TRACE_STATS_RESOURCE_CARDINALITY_LIMIT.
+	statsResourceCardinalityLimit int
+	// statsHTTPEndpointCardinalityLimit caps distinct http_endpoint values per bucket.
+	// Configured via DD_TRACE_STATS_HTTP_ENDPOINT_CARDINALITY_LIMIT.
+	statsHTTPEndpointCardinalityLimit int
+	// statsPeerTagsCardinalityLimit caps distinct peer_tags combinations per bucket.
+	// Configured via DD_TRACE_STATS_PEER_TAGS_CARDINALITY_LIMIT.
+	statsPeerTagsCardinalityLimit int
+	// statsOriginCardinalityLimit caps distinct origin values per bucket.
+	// Configured via DD_TRACE_STATS_ORIGIN_CARDINALITY_LIMIT.
+	statsOriginCardinalityLimit  int
 	dataStreamsMonitoringEnabled bool
-	// dynamicInstrumentationEnabled controls if the target application can be modified by Dynamic Instrumentation or not.
-	dynamicInstrumentationEnabled bool
+	// dynamicInstrumentationEnabled controls whether the target application can
+	// be modified by Dynamic Instrumentation / Live Debugger. If the value is
+	// explicitly set to false (as opposed to starting as false by default), then
+	// it is frozen -- it cannot be overwritten by Remote Config.
+	dynamicInstrumentationEnabled *DynamicConfig[bool]
 	// globalSampleRate holds the sample rate for the tracer.
 	globalSampleRate *DynamicConfig[float64]
+	// globalTags holds a set of tags applied to all spans.
+	globalTags *DynamicConfig[map[string]any]
+	// headerAsTags holds the header as tags configuration.
+	headerAsTags *DynamicConfig[[]string]
 	// ciVisibilityEnabled controls if the tracer is loaded with CI Visibility mode. default false
-	ciVisibilityEnabled   bool
-	ciVisibilityAgentless bool
+	ciVisibilityEnabled    bool
+	ciVisibilityAgentless  bool
+	ciVisibilityNoopTracer bool
 	// logDirectory is directory for tracer logs
 	logDirectory string
 	// traceRateLimitPerSecond specifies the rate limit per second for traces.
@@ -133,12 +184,32 @@ type Config struct {
 	retryInterval time.Duration
 	// logsOTelEnabled controls if the OpenTelemetry Logs SDK pipeline should be enabled
 	logsOTelEnabled bool
-	// traceProtocol is the Datadog trace protocol version (TraceProtocolV04 or TraceProtocolV1).
+	// traceProtocol is the Datadog trace protocol version the user requested
+	// (TraceProtocolV04 or TraceProtocolV1). This is independent of whether the
+	// trace-agent actually supports it — see RequestedTraceProtocol's doc.
 	// Only meaningful when otlpExportMode is false.
 	traceProtocol float64
+	// effectiveTraceProtocolBits is the last value reported via
+	// ReportEffectiveTraceProtocol, stored as float64 bits so repeated reports
+	// of the same value can be deduplicated without inflating config-telemetry
+	// seqIDs on every agent-info poll. Deliberately not under mu: it is written
+	// from the tracer's poll goroutine and must not contend with hot-path reads
+	// of unrelated fields.
+	effectiveTraceProtocolBits atomic.Uint64
+	// effectiveStatsComputation is the last value reported via
+	// ReportEffectiveStatsComputation, as a tri-state: 0 = never reported,
+	// 1 = false, 2 = true. The tri-state (rather than an atomic.Bool) makes
+	// the first report fire even when the reported value is the zero value.
+	// Deliberately not under mu, for the same reason as effectiveTraceProtocolBits.
+	effectiveStatsComputation atomic.Uint32
 	// otlpExportMode indicates traces should be exported via OTLP rather than
 	// a Datadog protocol.
 	otlpExportMode bool
+	// otlpSpanMetricsEnabled controls OTLP span metrics export; nil auto-enables when otlpExportMode && runtimeMetricsOtel.
+	otlpSpanMetricsEnabled *bool
+	// otlpExportMetricsMode indicates metrics should be exported via OTLP rather than
+	// a Datadog protocol.
+	otlpExportMetricsMode bool
 	// otlpTraceURL is the OTLP collector endpoint for traces
 	otlpTraceURL string
 	// otlpHeaders holds the resolved OTLP trace headers from
@@ -148,6 +219,12 @@ type Config struct {
 	traceID128BitEnabled bool
 	// apiKey is the Datadog API key from DD_API_KEY (used for agentless intake, LLM Obs, etc.).
 	apiKey string
+	// httpClientTimeout is the timeout for HTTP requests to the Datadog Agent.
+	httpClientTimeout time.Duration
+	// sendRetries is the number of times a trace or CI Visibility payload send is retried upon failure.
+	sendRetries int
+	// spanPoolEnabled enables the experimental span pool.
+	spanPoolEnabled bool
 }
 
 // checkProductConflict enforces the cross-product gate for programmatic API calls.
@@ -195,14 +272,24 @@ func loadConfig() *Config {
 	agentPort := p.GetString("DD_TRACE_AGENT_PORT", "")
 	cfg.agentURL = resolveAgentURL(agentURLStr, agentHost, agentPort)
 
+	dogstatsdURL := p.GetString("DD_DOGSTATSD_URL", "")
+	dogstatsdHost := p.GetString("DD_DOGSTATSD_HOST", "")
+	dogstatsdPort := p.GetString("DD_DOGSTATSD_PORT", "")
+	if dogstatsdPort != "" || dogstatsdURL != "" {
+		cfg.dogstatsdAddrExplicit = true
+	}
+	cfg.dogstatsdAddr = initialDogstatsdURL(dogstatsdURL, dogstatsdHost, dogstatsdPort, agentHost, DefaultSocketDSDPath)
+
 	cfg.debug = p.GetBool("DD_TRACE_DEBUG", false)
 	cfg.logStartup = p.GetBool("DD_TRACE_STARTUP_LOGS", true)
 	cfg.serviceName = p.GetString("DD_SERVICE", "")
 	cfg.version = p.GetString("DD_VERSION", "")
+	cfg.universalVersion = p.GetBool("DD_TRACE_UNIVERSAL_VERSION_ENABLED", false)
 	cfg.env = p.GetString("DD_ENV", "")
 	cfg.serviceMappings = p.GetMap("DD_SERVICE_MAPPING", nil, internal.DDTagsDelimiter)
 	cfg.runtimeMetrics = p.GetBool("DD_RUNTIME_METRICS_ENABLED", false)
 	cfg.runtimeMetricsV2 = p.GetBool("DD_RUNTIME_METRICS_V2_ENABLED", true)
+	cfg.runtimeMetricsOtel = p.GetBool("DD_METRICS_OTEL_ENABLED", false)
 	cfg.profilerHotspots = p.GetBool("DD_PROFILING_CODE_HOTSPOTS_COLLECTION_ENABLED", true)
 	cfg.profilerEndpoints = p.GetBool("DD_PROFILING_ENDPOINT_COLLECTION_ENABLED", true)
 	cfg.peerServiceDefaultsEnabled = p.GetBool("DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED", false)
@@ -212,16 +299,62 @@ func loadConfig() *Config {
 	cfg.partialFlushMinSpans = p.GetIntWithValidator("DD_TRACE_PARTIAL_FLUSH_MIN_SPANS", 1000, validatePartialFlushMinSpans)
 	cfg.partialFlushEnabled = p.GetBool("DD_TRACE_PARTIAL_FLUSH_ENABLED", false)
 	cfg.statsComputationEnabled = p.GetBool("DD_TRACE_STATS_COMPUTATION_ENABLED", true)
+	cfg.traceAnalyticsEnabled = p.GetBool("DD_TRACE_ANALYTICS_ENABLED", false)
+	cfg.experimentalFeaturesEnabled = p.GetBool("DD_TRACE_EXPERIMENTAL_FEATURES_ENABLED", false)
+	if v := p.GetString("DD_TRACE_STATS_ADDITIONAL_TAGS", ""); v != "" {
+		var tags []string
+		for t := range strings.SplitSeq(v, ",") {
+			if t := strings.TrimSpace(t); t != "" {
+				tags = append(tags, t)
+			}
+		}
+		cfg.statsAdditionalTags = capAdditionalTagKeys(tags)
+	}
+	cfg.statsAdditionalTagsCardinalityLimit = p.GetInt("DD_TRACE_STATS_ADDITIONAL_TAGS_CARDINALITY_LIMIT", defaultStatsAdditionalTagsCardinalityLimit)
+	if cfg.statsAdditionalTagsCardinalityLimit <= 0 {
+		log.Warn("ignoring DD_TRACE_STATS_ADDITIONAL_TAGS_CARDINALITY_LIMIT: non-positive value %d", cfg.statsAdditionalTagsCardinalityLimit)
+		cfg.statsAdditionalTagsCardinalityLimit = defaultStatsAdditionalTagsCardinalityLimit
+	}
+	cfg.statsWholeKeyCardinalityLimit = p.GetInt("DD_TRACE_STATS_CARDINALITY_LIMIT", defaultStatsWholeKeyCardinalityLimit)
+	if cfg.statsWholeKeyCardinalityLimit <= 0 {
+		log.Warn("ignoring DD_TRACE_STATS_CARDINALITY_LIMIT: non-positive value %d, using default %d", cfg.statsWholeKeyCardinalityLimit, defaultStatsWholeKeyCardinalityLimit)
+		cfg.statsWholeKeyCardinalityLimit = defaultStatsWholeKeyCardinalityLimit
+	}
+	cfg.statsResourceCardinalityLimit = p.GetInt("DD_TRACE_STATS_RESOURCE_CARDINALITY_LIMIT", defaultStatsResourceCardinalityLimit)
+	if cfg.statsResourceCardinalityLimit <= 0 {
+		log.Warn("ignoring DD_TRACE_STATS_RESOURCE_CARDINALITY_LIMIT: non-positive value %d, using default %d", cfg.statsResourceCardinalityLimit, defaultStatsResourceCardinalityLimit)
+		cfg.statsResourceCardinalityLimit = defaultStatsResourceCardinalityLimit
+	}
+	cfg.statsHTTPEndpointCardinalityLimit = p.GetInt("DD_TRACE_STATS_HTTP_ENDPOINT_CARDINALITY_LIMIT", defaultStatsHTTPEndpointCardinalityLimit)
+	if cfg.statsHTTPEndpointCardinalityLimit <= 0 {
+		log.Warn("ignoring DD_TRACE_STATS_HTTP_ENDPOINT_CARDINALITY_LIMIT: non-positive value %d, using default %d", cfg.statsHTTPEndpointCardinalityLimit, defaultStatsHTTPEndpointCardinalityLimit)
+		cfg.statsHTTPEndpointCardinalityLimit = defaultStatsHTTPEndpointCardinalityLimit
+	}
+	cfg.statsPeerTagsCardinalityLimit = p.GetInt("DD_TRACE_STATS_PEER_TAGS_CARDINALITY_LIMIT", defaultStatsPeerTagsCardinalityLimit)
+	if cfg.statsPeerTagsCardinalityLimit <= 0 {
+		log.Warn("ignoring DD_TRACE_STATS_PEER_TAGS_CARDINALITY_LIMIT: non-positive value %d, using default %d", cfg.statsPeerTagsCardinalityLimit, defaultStatsPeerTagsCardinalityLimit)
+		cfg.statsPeerTagsCardinalityLimit = defaultStatsPeerTagsCardinalityLimit
+	}
+	cfg.statsOriginCardinalityLimit = p.GetInt("DD_TRACE_STATS_ORIGIN_CARDINALITY_LIMIT", defaultStatsOriginCardinalityLimit)
+	if cfg.statsOriginCardinalityLimit <= 0 {
+		log.Warn("ignoring DD_TRACE_STATS_ORIGIN_CARDINALITY_LIMIT: non-positive value %d, using default %d", cfg.statsOriginCardinalityLimit, defaultStatsOriginCardinalityLimit)
+		cfg.statsOriginCardinalityLimit = defaultStatsOriginCardinalityLimit
+	}
 	cfg.dataStreamsMonitoringEnabled = p.GetBool("DD_DATA_STREAMS_ENABLED", false)
-	cfg.dynamicInstrumentationEnabled = p.GetBool("DD_DYNAMIC_INSTRUMENTATION_ENABLED", false)
 	cfg.ciVisibilityEnabled = p.GetBool(constants.CIVisibilityEnabledEnvironmentVariable, false)
-	cfg.ciVisibilityAgentless = p.GetBool("DD_CIVISIBILITY_AGENTLESS_ENABLED", false)
+	cfg.ciVisibilityAgentless = p.GetBool(constants.CIVisibilityAgentlessEnabledEnvironmentVariable, false)
+	cfg.ciVisibilityNoopTracer = p.GetBool(constants.CIVisibilityUseNoopTracer, false)
 	cfg.logDirectory = p.GetString("DD_TRACE_LOG_DIRECTORY", "")
 	cfg.traceRateLimitPerSecond = p.GetFloatWithValidator("DD_TRACE_RATE_LIMIT", DefaultRateLimit, validateRateLimit)
 	cfg.debugStack = p.GetBool("DD_TRACE_DEBUG_STACK", true)
 	cfg.retryInterval = p.GetDuration("DD_TRACE_RETRY_INTERVAL", time.Millisecond)
+	cfg.sendRetries = p.GetIntWithValidator("DD_TRACE_SEND_RETRIES", 0, validateSendRetries)
 	cfg.logsOTelEnabled = p.GetBool("DD_LOGS_OTEL_ENABLED", false)
-	cfg.traceProtocol = resolveTraceProtocol(p.GetStringWithValidator("DD_TRACE_AGENT_PROTOCOL_VERSION", TraceProtocolVersionStringV04, validateTraceProtocolVersion))
+	if v := p.GetString("OTEL_LOGS_EXPORTER", ""); v != "" {
+		log.Warn("OTEL_LOGS_EXPORTER is not supported")
+	}
+	cfg.otlpExportMetricsMode = p.GetString("OTEL_METRICS_EXPORTER", "otlp") == "otlp"
+	cfg.traceProtocol = resolveTraceProtocol(p.GetStringWithValidator("DD_TRACE_AGENT_PROTOCOL_VERSION", TraceProtocolVersionStringV1, validateTraceProtocolVersion))
 	cfg.otlpExportMode = p.GetString("OTEL_TRACES_EXPORTER", "") == "otlp"
 	// DD_TRACE_AGENT_PROTOCOL_VERSION overrides OTEL_TRACES_EXPORTER
 	if p.IsSet("DD_TRACE_AGENT_PROTOCOL_VERSION") {
@@ -230,9 +363,23 @@ func loadConfig() *Config {
 	cfg.otlpTraceURL = resolveOTLPTraceURL(cfg.agentURL, p.GetString("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", ""))
 	cfg.otlpHeaders = buildOTLPHeaders(p.GetMap("OTEL_EXPORTER_OTLP_TRACES_HEADERS", nil, internal.OtelTagsDelimeter))
 	cfg.traceID128BitEnabled = p.GetBool("DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED", true)
+	cfg.httpClientTimeout = time.Duration(p.GetIntWithValidator("DD_TRACE_AGENT_TIMEOUT", 10, validateAgentTimeout)) * time.Second
+	cfg.spanPoolEnabled = p.GetBool("DD_TRACER_EXPERIMENTAL_SPAN_POOL_ENABLED", false)
 
 	sampleRate, sampleRateOrigin := p.GetFloatWithValidatorOrigin("DD_TRACE_SAMPLE_RATE", math.NaN(), validateSampleRate)
-	cfg.globalSampleRate = newDynamicConfig("trace_sample_rate", sampleRate, sampleRateOrigin, equalFloat)
+	cfg.globalSampleRate = newDynamicConfig("trace_sample_rate", sampleRate, sampleRateOrigin, equalFloat, nil)
+
+	enabled, origin := p.GetBoolWithOrigin("DD_DYNAMIC_INSTRUMENTATION_ENABLED", false)
+	cfg.dynamicInstrumentationEnabled = newDynamicConfig("dynamic_instrumentation_enabled", enabled, origin, equal[bool], nil)
+
+	headerTags, headerTagsOrigin := parseHeaderAsTagsFromEnv(p)
+	cfg.headerAsTags = newDynamicConfig("trace_header_tags", headerTags, headerTagsOrigin, equalSlice[string], propagateHeaderAsTagsToGlobalConfig)
+
+	rawTags, globalTagsOrigin := p.GetStringWithOrigin("DD_TAGS", "")
+	cfg.globalTags = newDynamicConfig("trace_tags", parseGlobalTags(rawTags), globalTagsOrigin, equalMap[string], nil)
+	for k, v := range cfg.globalTags.Get() {
+		reportGlobalTagTelemetry(k, v, globalTagsOrigin)
+	}
 
 	// Parse feature flags from DD_TRACE_FEATURES as a set
 	cfg.featureFlags = make(map[string]struct{})
@@ -264,6 +411,10 @@ func loadConfig() *Config {
 			cfg.isLambdaFunction = true
 		}
 	}
+
+	// Internal metrics default to off in Lambda: they add per-invocation statsd
+	// overhead for little value and are not usable as distributions there.
+	cfg.internalMetricsEnabled = p.GetBool("DD_TRACE_INTERNAL_METRICS_ENABLED", !cfg.isLambdaFunction)
 
 	// Hostname lookup, if DD_TRACE_REPORT_HOSTNAME is true
 	// If the hostname lookup fails, an error is set and the hostname is not reported
@@ -367,6 +518,53 @@ func (c *Config) AgentURL() *url.URL {
 	return u
 }
 
+func (c *Config) DogstatsdAddr() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return formatDogstatsdAddr(c.dogstatsdAddr)
+}
+
+// SetDogstatsdAddr records a user-configured DogStatsD address and marks it
+// explicit so agent-reported ports cannot overwrite it. Call this only from
+// user-facing paths (options, env vars). For agent-reported updates use
+// ApplyAgentReportedStatsdPort.
+func (c *Config) SetDogstatsdAddr(addr string, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if addr == "" {
+		return
+	}
+	if c.checkProductConflict("DD_DOGSTATSD_URL", origin, addr, product...) {
+		return
+	}
+	c.dogstatsdAddr = parseDogstatsdAddr(addr)
+	c.dogstatsdAddrExplicit = true
+	configtelemetry.Report("DD_DOGSTATSD_URL", addr, origin)
+}
+
+// ApplyAgentReportedStatsdPort applies a port from the agent /info response.
+// For user-configured addresses use SetDogstatsdAddr instead. No-op when the
+// user already provided an explicit address or the current address is a unix socket.
+func (c *Config) ApplyAgentReportedStatsdPort(port int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if port <= 0 {
+		return
+	}
+	if _, claimed := c.overrides["DD_DOGSTATSD_URL"]; claimed {
+		return
+	}
+	// dogstatsdAddr is always set non-nil by loadConfig.
+	if c.dogstatsdAddr.Scheme == "unix" {
+		return
+	}
+	if c.dogstatsdAddrExplicit {
+		return
+	}
+	c.dogstatsdAddr.Host = net.JoinHostPort(c.dogstatsdAddr.Hostname(), strconv.Itoa(port))
+	configtelemetry.Report("DD_DOGSTATSD_URL", formatDogstatsdAddr(c.dogstatsdAddr), telemetry.OriginCalculated)
+}
+
 func (c *Config) Debug() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -444,6 +642,22 @@ func (c *Config) SetRuntimeMetricsV2Enabled(enabled bool, origin telemetry.Origi
 	}
 	c.runtimeMetricsV2 = enabled
 	configtelemetry.Report("DD_RUNTIME_METRICS_V2_ENABLED", enabled, origin)
+}
+
+func (c *Config) RuntimeMetricsOtelEnabled() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.runtimeMetricsOtel
+}
+
+func (c *Config) SetRuntimeMetricsOtelEnabled(enabled bool, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("DD_METRICS_OTEL_ENABLED", origin, enabled, product...) {
+		return
+	}
+	c.runtimeMetricsOtel = enabled
+	configtelemetry.Report("DD_METRICS_OTEL_ENABLED", enabled, origin)
 }
 
 func (c *Config) DataStreamsMonitoringEnabled() bool {
@@ -526,6 +740,79 @@ func (c *Config) SetGlobalSampleRate(rate float64, origin telemetry.Origin, prod
 	}
 	c.globalSampleRate.setBaseline(rate, origin)
 	configtelemetry.Report("DD_TRACE_SAMPLE_RATE", rate, origin)
+}
+
+// GlobalTags returns a copy of the global tags applied to all spans. If no
+// global tags are set, returns nil.
+func (c *Config) GlobalTags() map[string]any {
+	current := c.globalTags.Get()
+	if current == nil {
+		return nil
+	}
+	result := make(map[string]any, len(current))
+	maps.Copy(result, current)
+	return result
+}
+
+// GlobalTagsConfig returns the DynamicConfig for global tags, used by the
+// tracer's Remote Config handler to apply tracing_tags updates and resets.
+func (c *Config) GlobalTagsConfig() *DynamicConfig[map[string]any] {
+	return c.globalTags
+}
+
+// SetGlobalTag adds or overwrites a single global tag. Like SetServiceMapping it
+// is additive, so it carries no cross-product gate. The read-modify-write of the
+// startup baseline is guarded by c.mu.
+func (c *Config) SetGlobalTag(key string, value any, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	cur, curOrigin := c.globalTags.Baseline()
+	nm := make(map[string]any, len(cur)+1)
+	maps.Copy(nm, cur)
+	nm[key] = value
+	c.globalTags.setBaseline(nm, curOrigin)
+	c.mu.Unlock()
+	reportGlobalTagTelemetry(key, value, origin)
+}
+
+func (c *Config) DynamicInstrumentationEnabled() bool {
+	return c.dynamicInstrumentationEnabled.Get()
+}
+
+// DynamicInstrumentationEnabledConfig returns the DynamicConfig for the
+// dynamic instrumentation enabled flag. Products use this to apply RC updates
+// and inspect the baseline for local-explicit gating.
+func (c *Config) DynamicInstrumentationEnabledConfig() *DynamicConfig[bool] {
+	return c.dynamicInstrumentationEnabled
+}
+
+func (c *Config) SetDynamicInstrumentationEnabled(enabled bool, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("DD_DYNAMIC_INSTRUMENTATION_ENABLED", origin, enabled, product...) {
+		return
+	}
+	c.dynamicInstrumentationEnabled.setBaseline(enabled, origin)
+	configtelemetry.Report("DD_DYNAMIC_INSTRUMENTATION_ENABLED", enabled, origin)
+}
+
+func (c *Config) HeaderAsTags() []string {
+	return c.headerAsTags.Get()
+}
+
+// HeaderAsTagsConfig returns the DynamicConfig for header-as-tags. Used by the
+// tracer's RC handler to invoke HandleRC on remote-config updates.
+func (c *Config) HeaderAsTagsConfig() *DynamicConfig[[]string] {
+	return c.headerAsTags
+}
+
+func (c *Config) SetHeaderAsTags(headerAsTags []string, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("DD_TRACE_HEADER_TAGS", origin, headerAsTags, product...) {
+		return
+	}
+	c.headerAsTags.setBaseline(headerAsTags, origin)
+	configtelemetry.Report("DD_TRACE_HEADER_TAGS", strings.Join(headerAsTags, ","), origin)
 }
 
 func (c *Config) TraceRateLimitPerSecond() float64 {
@@ -621,6 +908,12 @@ func (c *Config) SetDebugStack(enabled bool, origin telemetry.Origin, product ..
 	configtelemetry.Report("DD_TRACE_DEBUG_STACK", enabled, origin)
 }
 
+func (c *Config) InternalMetricsEnabled() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.internalMetricsEnabled
+}
+
 func (c *Config) StatsComputationEnabled() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -635,6 +928,144 @@ func (c *Config) SetStatsComputationEnabled(enabled bool, origin telemetry.Origi
 	}
 	c.statsComputationEnabled = enabled
 	configtelemetry.Report("DD_TRACE_STATS_COMPUTATION_ENABLED", enabled, origin)
+}
+
+func (c *Config) TraceAnalyticsEnabled() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.traceAnalyticsEnabled
+}
+
+func (c *Config) ExperimentalFeaturesEnabled() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.experimentalFeaturesEnabled
+}
+
+func (c *Config) StatsAdditionalTags() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if !c.experimentalFeaturesEnabled {
+		return nil
+	}
+	return c.statsAdditionalTags
+}
+
+func (c *Config) SetStatsAdditionalTags(tags []string, origin telemetry.Origin, product ...Product) {
+	tags = capAdditionalTagKeys(tags)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("DD_TRACE_STATS_ADDITIONAL_TAGS", origin, tags, product...) {
+		return
+	}
+	c.statsAdditionalTags = tags
+	configtelemetry.Report("DD_TRACE_STATS_ADDITIONAL_TAGS", tags, origin)
+}
+
+func (c *Config) StatsAdditionalTagsCardinalityLimit() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.statsAdditionalTagsCardinalityLimit
+}
+
+func (c *Config) StatsWholeKeyCardinalityLimit() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.statsWholeKeyCardinalityLimit
+}
+
+func (c *Config) SetStatsWholeKeyCardinalityLimit(limit int, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if limit <= 0 {
+		log.Warn("ignoring DD_TRACE_STATS_CARDINALITY_LIMIT: non-positive value %d", limit)
+		return
+	}
+	if c.checkProductConflict("DD_TRACE_STATS_CARDINALITY_LIMIT", origin, limit, product...) {
+		return
+	}
+	c.statsWholeKeyCardinalityLimit = limit
+	configtelemetry.Report("DD_TRACE_STATS_CARDINALITY_LIMIT", limit, origin)
+}
+
+func (c *Config) StatsResourceCardinalityLimit() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.statsResourceCardinalityLimit
+}
+
+func (c *Config) SetStatsResourceCardinalityLimit(limit int, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if limit <= 0 {
+		log.Warn("ignoring DD_TRACE_STATS_RESOURCE_CARDINALITY_LIMIT: non-positive value %d", limit)
+		return
+	}
+	if c.checkProductConflict("DD_TRACE_STATS_RESOURCE_CARDINALITY_LIMIT", origin, limit, product...) {
+		return
+	}
+	c.statsResourceCardinalityLimit = limit
+	configtelemetry.Report("DD_TRACE_STATS_RESOURCE_CARDINALITY_LIMIT", limit, origin)
+}
+
+func (c *Config) StatsHTTPEndpointCardinalityLimit() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.statsHTTPEndpointCardinalityLimit
+}
+
+func (c *Config) SetStatsHTTPEndpointCardinalityLimit(limit int, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if limit <= 0 {
+		log.Warn("ignoring DD_TRACE_STATS_HTTP_ENDPOINT_CARDINALITY_LIMIT: non-positive value %d", limit)
+		return
+	}
+	if c.checkProductConflict("DD_TRACE_STATS_HTTP_ENDPOINT_CARDINALITY_LIMIT", origin, limit, product...) {
+		return
+	}
+	c.statsHTTPEndpointCardinalityLimit = limit
+	configtelemetry.Report("DD_TRACE_STATS_HTTP_ENDPOINT_CARDINALITY_LIMIT", limit, origin)
+}
+
+func (c *Config) StatsPeerTagsCardinalityLimit() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.statsPeerTagsCardinalityLimit
+}
+
+func (c *Config) SetStatsPeerTagsCardinalityLimit(limit int, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if limit <= 0 {
+		log.Warn("ignoring DD_TRACE_STATS_PEER_TAGS_CARDINALITY_LIMIT: non-positive value %d", limit)
+		return
+	}
+	if c.checkProductConflict("DD_TRACE_STATS_PEER_TAGS_CARDINALITY_LIMIT", origin, limit, product...) {
+		return
+	}
+	c.statsPeerTagsCardinalityLimit = limit
+	configtelemetry.Report("DD_TRACE_STATS_PEER_TAGS_CARDINALITY_LIMIT", limit, origin)
+}
+
+func (c *Config) StatsOriginCardinalityLimit() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.statsOriginCardinalityLimit
+}
+
+func (c *Config) SetStatsOriginCardinalityLimit(limit int, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if limit <= 0 {
+		log.Warn("ignoring DD_TRACE_STATS_ORIGIN_CARDINALITY_LIMIT: non-positive value %d", limit)
+		return
+	}
+	if c.checkProductConflict("DD_TRACE_STATS_ORIGIN_CARDINALITY_LIMIT", origin, limit, product...) {
+		return
+	}
+	c.statsOriginCardinalityLimit = limit
+	configtelemetry.Report("DD_TRACE_STATS_ORIGIN_CARDINALITY_LIMIT", limit, origin)
 }
 
 func (c *Config) LogDirectory() string {
@@ -696,6 +1127,22 @@ func (c *Config) SetVersion(version string, origin telemetry.Origin, product ...
 	}
 	c.version = version
 	configtelemetry.Report("DD_VERSION", version, origin)
+}
+
+func (c *Config) UniversalVersion() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.universalVersion
+}
+
+func (c *Config) SetUniversalVersion(enabled bool, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("DD_TRACE_UNIVERSAL_VERSION_ENABLED", origin, enabled, product...) {
+		return
+	}
+	c.universalVersion = enabled
+	configtelemetry.Report("DD_TRACE_UNIVERSAL_VERSION_ENABLED", enabled, origin)
 }
 
 func (c *Config) Env() string {
@@ -932,6 +1379,28 @@ func (c *Config) SetCIVisibilityEnabled(enabled bool, origin telemetry.Origin, p
 	configtelemetry.Report(constants.CIVisibilityEnabledEnvironmentVariable, enabled, origin)
 }
 
+// CIVisibilityAgentless returns the raw DD_CIVISIBILITY_AGENTLESS_ENABLED value.
+// Only valid inside a CIVisibilityEnabled() block; prefer CIVisibilityAgentlessActive() elsewhere.
+func (c *Config) CIVisibilityAgentless() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.ciVisibilityAgentless
+}
+
+func (c *Config) CIVisibilityNoopTracer() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.ciVisibilityNoopTracer
+}
+
+// CIVisibilityAgentlessActive reports whether agentless CI Visibility mode is in effect.
+// Agentless is only meaningful when CI Visibility itself is enabled.
+func (c *Config) CIVisibilityAgentlessActive() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.ciVisibilityEnabled && c.ciVisibilityAgentless
+}
+
 func (c *Config) LogsOTelEnabled() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -948,12 +1417,22 @@ func (c *Config) SetLogsOTelEnabled(enabled bool, origin telemetry.Origin, produ
 	configtelemetry.Report("DD_LOGS_OTEL_ENABLED", enabled, origin)
 }
 
-func (c *Config) TraceProtocol() float64 {
+// RequestedTraceProtocol returns the Datadog trace protocol version to use for
+// /vX/traces (TraceProtocolV04 or TraceProtocolV1). It reflects what has been
+// asked for, by the user or by a derived override; it carries no information
+// about whether the trace-agent actually supports that protocol. Callers that
+// need the protocol in effect on the wire must combine this with agent
+// capability.
+func (c *Config) RequestedTraceProtocol() float64 {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.traceProtocol
 }
 
+// SetTraceProtocol sets the requested trace protocol version. It never
+// expresses an agent-capability downgrade: callers that need to report the
+// wire protocol actually in use should call ReportEffectiveTraceProtocol
+// instead, which does not mutate the requested value.
 func (c *Config) SetTraceProtocol(v float64, origin telemetry.Origin, product ...Product) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -961,7 +1440,57 @@ func (c *Config) SetTraceProtocol(v float64, origin telemetry.Origin, product ..
 		return
 	}
 	c.traceProtocol = v
-	configtelemetry.Report("DD_TRACE_AGENT_PROTOCOL_VERSION", v, origin)
+	// Report the wire-version string, not the float64. The env-var load path
+	// reports this key through the provider as the raw string ("1.0"), so
+	// reporting a float64 here made the same telemetry key arrive with two
+	// different types depending on which source last set it.
+	configtelemetry.Report("DD_TRACE_AGENT_PROTOCOL_VERSION", TraceProtocolVersionString(v), origin)
+}
+
+// ReportEffectiveTraceProtocol records the wire protocol version actually in
+// use (the requested protocol, downgraded when the agent lacks support) for
+// DD_TRACE_AGENT_PROTOCOL_VERSION config telemetry. It reports only when the
+// value changes from the last report, so periodic re-evaluation (e.g. on an
+// agent-info poll) cannot inflate config-telemetry seqIDs. It does NOT modify
+// the value returned by RequestedTraceProtocol. Returns true if this call
+// changed the recorded value.
+func (c *Config) ReportEffectiveTraceProtocol(v float64) bool {
+	next := math.Float64bits(v)
+	for {
+		prev := c.effectiveTraceProtocolBits.Load()
+		if prev == next {
+			return false
+		}
+		if c.effectiveTraceProtocolBits.CompareAndSwap(prev, next) {
+			configtelemetry.Report("DD_TRACE_AGENT_PROTOCOL_VERSION", TraceProtocolVersionString(v), telemetry.OriginCalculated)
+			return true
+		}
+	}
+}
+
+// ReportEffectiveStatsComputation records whether client-side stats are
+// actually being computed — which can differ from the configured
+// DD_TRACE_STATS_COMPUTATION_ENABLED when an agent-capability workaround
+// forces them on — for DD_TRACE_STATS_COMPUTATION_ENABLED config telemetry.
+// Like ReportEffectiveTraceProtocol it reports only on change, so periodic
+// re-evaluation cannot inflate config-telemetry seqIDs. It does NOT modify
+// the value returned by StatsComputationEnabled. Returns true if this call
+// changed the recorded value.
+func (c *Config) ReportEffectiveStatsComputation(enabled bool) bool {
+	next := uint32(1)
+	if enabled {
+		next = 2
+	}
+	for {
+		prev := c.effectiveStatsComputation.Load()
+		if prev == next {
+			return false
+		}
+		if c.effectiveStatsComputation.CompareAndSwap(prev, next) {
+			configtelemetry.Report("DD_TRACE_STATS_COMPUTATION_ENABLED", enabled, telemetry.OriginCalculated)
+			return true
+		}
+	}
 }
 
 func (c *Config) OTLPTraceURL() string {
@@ -986,12 +1515,49 @@ func (c *Config) SetOTLPExportMode(v bool, origin telemetry.Origin, product ...P
 	configtelemetry.Report("OTEL_TRACES_EXPORTER", v, origin)
 }
 
+func (c *Config) OTLPExportMetricsMode() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.otlpExportMetricsMode
+}
+
+func (c *Config) SetOTLPExportMetricsMode(v bool, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("OTEL_METRICS_EXPORTER", origin, v, product...) {
+		return
+	}
+	c.otlpExportMetricsMode = v
+	configtelemetry.Report("OTEL_METRICS_EXPORTER", v, origin)
+}
+
 // OTLPHeaders returns a copy of the OTLP headers map. If no headers are set, returns nil.
 // Safe to return the full map because it is not called in hot paths.
 func (c *Config) OTLPHeaders() map[string]string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return maps.Clone(c.otlpHeaders)
+}
+
+// OTLPSpanMetricsEnabled reports whether span metrics export is active; auto-enables when OTEL_TRACES_EXPORTER=otlp and DD_METRICS_OTEL_ENABLED=true.
+func (c *Config) OTLPSpanMetricsEnabled() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.otlpSpanMetricsEnabled != nil {
+		return *c.otlpSpanMetricsEnabled
+	}
+	return c.otlpExportMode && c.runtimeMetricsOtel
+}
+
+func (c *Config) SetOTLPSpanMetricsEnabled(enabled bool, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("OTEL_TRACES_SPAN_METRICS_ENABLED", origin, enabled, product...) {
+		return
+	}
+	v := enabled
+	c.otlpSpanMetricsEnabled = &v
+	configtelemetry.Report("OTEL_TRACES_SPAN_METRICS_ENABLED", enabled, origin)
 }
 
 func (c *Config) TraceID128BitEnabled() bool {
@@ -1005,4 +1571,56 @@ func (c *Config) APIKey() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.apiKey
+}
+
+// AgentTimeout returns the HTTP client timeout used for requests to the Datadog Agent.
+func (c *Config) AgentTimeout() time.Duration {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.httpClientTimeout
+}
+
+// SetAgentTimeout sets the HTTP client timeout used for requests to the Datadog Agent.
+func (c *Config) SetAgentTimeout(timeout time.Duration, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("DD_TRACE_AGENT_TIMEOUT", origin, timeout, product...) {
+		return
+	}
+	c.httpClientTimeout = timeout
+	configtelemetry.Report("DD_TRACE_AGENT_TIMEOUT", timeout, origin)
+}
+
+// SendRetries returns the configured retry count for payload sends.
+func (c *Config) SendRetries() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.sendRetries
+}
+
+// SetSendRetries sets the retry count for payload sends.
+func (c *Config) SetSendRetries(retries int, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("DD_TRACE_SEND_RETRIES", origin, retries, product...) {
+		return
+	}
+	c.sendRetries = retries
+	configtelemetry.Report("DD_TRACE_SEND_RETRIES", retries, origin)
+}
+
+func (c *Config) SpanPoolEnabled() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.spanPoolEnabled
+}
+
+func (c *Config) SetSpanPoolEnabled(enabled bool, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("DD_TRACER_EXPERIMENTAL_SPAN_POOL_ENABLED", origin, enabled, product...) {
+		return
+	}
+	c.spanPoolEnabled = enabled
+	configtelemetry.Report("DD_TRACER_EXPERIMENTAL_SPAN_POOL_ENABLED", enabled, origin)
 }
