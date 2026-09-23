@@ -3,7 +3,7 @@ package pubsub
 import (
 	"context"
 
-	"cloud.google.com/go/pubsub"
+	"cloud.google.com/go/pubsub/v2"
 	"github.com/pkg/errors"
 	"google.golang.org/api/option"
 
@@ -41,7 +41,7 @@ func (c *Client) PublishMetrics(ctx context.Context, metrics common.Metrics) (er
 
 	msg := pubsub.Message{Data: b}
 
-	_ = c.pubsubClient.Topic(c.pubsubTopicID).Publish(ctx, &msg)
+	_ = c.pubsubClient.Publisher(c.pubsubTopicID).Publish(ctx, &msg)
 
 	return nil
 }
