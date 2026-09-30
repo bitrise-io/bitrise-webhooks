@@ -134,6 +134,17 @@ func triggerBuild(ctx context.Context, triggerURL *url.URL, apiToken string, tri
 	return responseModel, isSuccess, nil
 }
 
+func requestLogFields(r *http.Request, serviceID, appSlug string) []zap.Field {
+	fields := []zap.Field{
+		zap.String("service_id", serviceID),
+		zap.String("app_slug", appSlug),
+	}
+	if deliveryID := r.Header.Get("X-GitHub-Delivery"); deliveryID != "" {
+		fields = append(fields, zap.String("github_delivery_id", deliveryID))
+	}
+	return fields
+}
+
 // ------------------------------
 // --- Main HTTP Handler code ---
 
@@ -144,7 +155,7 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	appSlug := vars["app-slug"]
 	apiToken := vars["api-token"]
 
-	reqContext := r.Context()
+	reqContext := logging.NewContext(r.Context(), requestLogFields(r, serviceID, appSlug)...)
 
 	logger := logging.WithContext(reqContext)
 
@@ -278,6 +289,9 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 			commitMessage := aBuildTriggerParam.BuildParams.CommitMessage
 
 			if hookCommon.ContainsSkipInstruction(commitMessage) {
+				logger.Info("Build skipped: skip ci keyword in commit message",
+					zap.String("commit_hash", aBuildTriggerParam.BuildParams.CommitHash),
+					zap.String("branch", aBuildTriggerParam.BuildParams.Branch))
 				respondWith.SkippedTriggerResponses = append(respondWith.SkippedTriggerResponses, hookCommon.SkipAPIResponseModel{
 					Message:       "Build skipped because the commit message included a skip ci keyword ([skip ci] or [ci skip]).",
 					CommitHash:    aBuildTriggerParam.BuildParams.CommitHash,
@@ -286,6 +300,9 @@ func (c *Client) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 				})
 				continue
 			} else if hookCommon.ContainsSkipInstruction(aBuildTriggerParam.BuildParams.PullRequestComment) {
+				logger.Info("Build skipped: skip ci keyword in PR comment",
+					zap.String("commit_hash", aBuildTriggerParam.BuildParams.CommitHash),
+					zap.String("branch", aBuildTriggerParam.BuildParams.Branch))
 				respondWith.SkippedTriggerResponses = append(respondWith.SkippedTriggerResponses, hookCommon.SkipAPIResponseModel{
 					Message:       "Build skipped because the PR comment included a skip ci keyword ([skip ci] or [ci skip]).",
 					CommitHash:    aBuildTriggerParam.BuildParams.CommitHash,
