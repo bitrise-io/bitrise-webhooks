@@ -34,6 +34,8 @@ If the (commit) message includes `[skip ci]`, `[ci skip]`, `[skip bitrise]` or `
   * handled on the path: `/h/deveo/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * [Assembla](https://assembla.com)
   * handled on the path: `/h/assembla/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
+* [Entire](https://entire.io) - internal, events are verified and forwarded by the Bitrise Monolith
+  * handled on the path: `/h/entire/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 
 Service independent:
 
@@ -209,6 +211,22 @@ Follow these steps to add your `bitrise-webhooks` URL to your [Assembla](https:/
 9. Click `Add`
 
 That's all! The next time you __push code__ a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
+
+### Entire - internal:
+
+Entire delivers its events to a single webhook URL per plugin, which belongs to the Bitrise Monolith.
+The Monolith verifies each delivery's signature and forwards the event body, once per linked Bitrise app,
+to `.../h/entire/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`.
+
+**You do not register this URL manually** - connecting an Entire repository on Bitrise sets everything up.
+
+This endpoint only accepts forwarded deliveries: the `X-Bitrise-Entire-Verified: 1` header (set by the Monolith after
+verification) is required, and no signature verification happens here. Supported events:
+
+* `ref.created` / `ref.updated` on `refs/heads/*` and `refs/tags/*` trigger a build (commit message comes from the
+  Monolith-added `bitrise_enrichment` object)
+* `ref.deleted` and `installation.*` events are acknowledged but skipped
+
 
 ### Slack - setup & usage:
 

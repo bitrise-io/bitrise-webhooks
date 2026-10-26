@@ -6,7 +6,15 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/entire"
 )
+
+func Test_supportedProviders(t *testing.T) {
+	providers := supportedProviders(zap.NewNop())
+
+	require.Equal(t, entire.HookProvider{}, providers["entire"])
+}
 
 func Test_requestLogFields(t *testing.T) {
 	t.Log("GitHub delivery")

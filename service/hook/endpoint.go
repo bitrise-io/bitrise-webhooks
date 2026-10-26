@@ -24,6 +24,7 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/bitbucketv2"
 	hookCommon "github.com/bitrise-io/bitrise-webhooks/service/hook/common"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/deveo"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/entire"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/github"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/gitlab"
 	"github.com/bitrise-io/bitrise-webhooks/service/hook/gogs"
@@ -48,6 +49,7 @@ func supportedProviders(logger *zap.Logger) map[string]hookCommon.Provider {
 		gogs.ProviderID:                     gogs.HookProvider{},
 		deveo.ProviderID:                    deveo.HookProvider{},
 		assembla.ProviderID:                 assembla.HookProvider{},
+		entire.ProviderID:                   entire.HookProvider{},
 		passthrough.ProviderID:              passthrough.HookProvider{},
 	}
 }
