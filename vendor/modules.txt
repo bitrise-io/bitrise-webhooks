@@ -2,7 +2,7 @@
 ## explicit; go 1.24.0
 cloud.google.com/go/internal/detect
 cloud.google.com/go/internal/pubsub
-# cloud.google.com/go/auth v0.24.0
+# cloud.google.com/go/auth v0.24.1-0.20261001053825-dbc26066f70a
 ## explicit; go 1.26.0
 cloud.google.com/go/auth
 cloud.google.com/go/auth/credentials
@@ -80,19 +80,19 @@ github.com/DataDog/datadog-agent/pkg/trace/traceutil/normalize
 # github.com/DataDog/datadog-go/v5 v5.9.0
 ## explicit; go 1.13
 github.com/DataDog/datadog-go/v5/statsd
-# github.com/DataDog/dd-trace-go/contrib/gorilla/mux/v2 v2.10.1
-## explicit; go 1.25.0
+# github.com/DataDog/dd-trace-go/contrib/gorilla/mux/v2 v2.11.2
+## explicit; go 1.26.0
 github.com/DataDog/dd-trace-go/contrib/gorilla/mux/v2
-# github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.10.1
-## explicit; go 1.25.0
+# github.com/DataDog/dd-trace-go/contrib/net/http/v2 v2.11.2
+## explicit; go 1.26.0
 github.com/DataDog/dd-trace-go/contrib/net/http/v2
 github.com/DataDog/dd-trace-go/contrib/net/http/v2/client
 github.com/DataDog/dd-trace-go/contrib/net/http/v2/internal/config
 github.com/DataDog/dd-trace-go/contrib/net/http/v2/internal/orchestrion
 github.com/DataDog/dd-trace-go/contrib/net/http/v2/internal/pattern
 github.com/DataDog/dd-trace-go/contrib/net/http/v2/internal/wrap
-# github.com/DataDog/dd-trace-go/v2 v2.10.1
-## explicit; go 1.25.0
+# github.com/DataDog/dd-trace-go/v2 v2.11.2
+## explicit; go 1.26.0
 github.com/DataDog/dd-trace-go/v2/appsec/events
 github.com/DataDog/dd-trace-go/v2/datastreams/options
 github.com/DataDog/dd-trace-go/v2/ddtrace
@@ -102,6 +102,7 @@ github.com/DataDog/dd-trace-go/v2/ddtrace/internal
 github.com/DataDog/dd-trace-go/v2/ddtrace/internal/tracerstats
 github.com/DataDog/dd-trace-go/v2/ddtrace/tracer
 github.com/DataDog/dd-trace-go/v2/ddtrace/tracer/internal
+github.com/DataDog/dd-trace-go/v2/ddtrace/x/agenttest
 github.com/DataDog/dd-trace-go/v2/instrumentation
 github.com/DataDog/dd-trace-go/v2/instrumentation/appsec/dyngo
 github.com/DataDog/dd-trace-go/v2/instrumentation/appsec/emitter/graphqlsec
@@ -137,10 +138,12 @@ github.com/DataDog/dd-trace-go/v2/internal/appsec/listener/sqlsec
 github.com/DataDog/dd-trace-go/v2/internal/appsec/listener/trace
 github.com/DataDog/dd-trace-go/v2/internal/appsec/listener/usersec
 github.com/DataDog/dd-trace-go/v2/internal/appsec/listener/waf
+github.com/DataDog/dd-trace-go/v2/internal/appsec/status
 github.com/DataDog/dd-trace-go/v2/internal/bazel
 github.com/DataDog/dd-trace-go/v2/internal/civisibility/constants
 github.com/DataDog/dd-trace-go/v2/internal/civisibility/utils
 github.com/DataDog/dd-trace-go/v2/internal/civisibility/utils/telemetry
+github.com/DataDog/dd-trace-go/v2/internal/clientip
 github.com/DataDog/dd-trace-go/v2/internal/config
 github.com/DataDog/dd-trace-go/v2/internal/config/configtelemetry
 github.com/DataDog/dd-trace-go/v2/internal/config/provider
@@ -171,6 +174,7 @@ github.com/DataDog/dd-trace-go/v2/internal/otelprocesscontext
 github.com/DataDog/dd-trace-go/v2/internal/processtags
 github.com/DataDog/dd-trace-go/v2/internal/remoteconfig
 github.com/DataDog/dd-trace-go/v2/internal/samplernames
+github.com/DataDog/dd-trace-go/v2/internal/samplingrules
 github.com/DataDog/dd-trace-go/v2/internal/stableconfig
 github.com/DataDog/dd-trace-go/v2/internal/stacktrace
 github.com/DataDog/dd-trace-go/v2/internal/telemetry
@@ -284,7 +288,7 @@ github.com/google/go-github/v77/github
 # github.com/google/go-querystring v1.2.0
 ## explicit; go 1.13
 github.com/google/go-querystring/query
-# github.com/google/s2a-go v0.1.10
+# github.com/google/s2a-go v0.1.11
 ## explicit; go 1.20
 github.com/google/s2a-go
 github.com/google/s2a-go/fallback
@@ -310,7 +314,7 @@ github.com/google/s2a-go/stream
 # github.com/google/uuid v1.6.0
 ## explicit
 github.com/google/uuid
-# github.com/googleapis/enterprise-certificate-proxy v0.3.22
+# github.com/googleapis/enterprise-certificate-proxy v0.3.23
 ## explicit; go 1.25.0
 github.com/googleapis/enterprise-certificate-proxy/client
 github.com/googleapis/enterprise-certificate-proxy/client/util
@@ -390,9 +394,9 @@ github.com/planetscale/vtprotobuf/protohelpers
 # github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55
 ## explicit; go 1.14
 github.com/power-devops/perfstat
-# github.com/puzpuzpuz/xsync/v3 v3.5.1
-## explicit; go 1.18
-github.com/puzpuzpuz/xsync/v3
+# github.com/puzpuzpuz/xsync/v4 v4.5.0
+## explicit; go 1.24
+github.com/puzpuzpuz/xsync/v4
 # github.com/secure-systems-lab/go-securesystemslib v0.11.0
 ## explicit; go 1.25.0
 github.com/secure-systems-lab/go-securesystemslib/cjson
@@ -506,9 +510,10 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.opentelemetry.io/proto/otlp v1.10.0
-## explicit; go 1.24.0
+# go.opentelemetry.io/proto/otlp v1.11.0
+## explicit; go 1.25.0
 go.opentelemetry.io/proto/otlp/common/v1
+go.opentelemetry.io/proto/otlp/metrics/v1
 go.opentelemetry.io/proto/otlp/resource/v1
 go.opentelemetry.io/proto/otlp/trace/v1
 # go.uber.org/atomic v1.11.0
@@ -540,7 +545,7 @@ go.uber.org/zap/zapcore
 # go.yaml.in/yaml/v3 v3.0.5
 ## explicit; go 1.16
 go.yaml.in/yaml/v3
-# golang.org/x/crypto v0.57.0
+# golang.org/x/crypto v0.58.0
 ## explicit; go 1.26.0
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/chacha20poly1305
@@ -552,10 +557,10 @@ golang.org/x/crypto/internal/poly1305
 # golang.org/x/exp v0.0.0-20260529124908-c761662dc8c9
 ## explicit; go 1.25.0
 golang.org/x/exp/constraints
-# golang.org/x/mod v0.41.0
+# golang.org/x/mod v0.42.0
 ## explicit; go 1.26.0
 golang.org/x/mod/semver
-# golang.org/x/net v0.59.0
+# golang.org/x/net v0.61.0
 ## explicit; go 1.26.0
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
@@ -577,17 +582,17 @@ golang.org/x/oauth2/google/internal/stsexchange
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.23.0
+# golang.org/x/sync v0.24.0
 ## explicit; go 1.26.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.48.0
+# golang.org/x/sys v0.49.0
 ## explicit; go 1.26.0
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/text v0.42.0
+# golang.org/x/text v0.43.0
 ## explicit; go 1.26.0
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
@@ -600,7 +605,7 @@ golang.org/x/time/rate
 ## explicit; go 1.18
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.300.0
+# google.golang.org/api v0.304.0
 ## explicit; go 1.26.0
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport
@@ -619,11 +624,11 @@ google.golang.org/api/transport/http
 # google.golang.org/genproto v0.0.0-20260715232425-e75dac1f907d
 ## explicit; go 1.25.0
 google.golang.org/genproto/googleapis/type/expr
-# google.golang.org/genproto/googleapis/api v0.0.0-20260715232425-e75dac1f907d
+# google.golang.org/genproto/googleapis/api v0.0.0-20260803160001-6ac0973c030d
 ## explicit; go 1.25.0
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20260921155816-b14227669459
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20261005182115-fad411399dd8
 ## explicit; go 1.26.0
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails

@@ -70,7 +70,7 @@ func (c TextMapCarrier) ForeachKey(handler func(key, val string) error) error {
 }
 
 const (
-	// headerPropagationBehaviorExtract specifies how to handle incoming trace
+	// envPropagationBehaviorExtract specifies how to handle incoming trace
 	// context. Allowed values:
 	// - "continue" (default): Continue the trace from incoming headers.
 	//   Baggage is propagated.
@@ -79,16 +79,16 @@ const (
 	//   Baggage is propagated.
 	// - "ignore": Start a new trace with a new trace ID and sampling
 	//   decision. No span links are created. Baggage is dropped.
-	headerPropagationBehaviorExtract = "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT"
+	envPropagationBehaviorExtract = "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT"
 
 	propagationBehaviorExtractContinue = "continue"
 	propagationBehaviorExtractRestart  = "restart"
 	propagationBehaviorExtractIgnore   = "ignore"
 
-	headerPropagationExtractFirst = "DD_TRACE_PROPAGATION_EXTRACT_FIRST"
-	headerPropagationStyleInject  = "DD_TRACE_PROPAGATION_STYLE_INJECT"
-	headerPropagationStyleExtract = "DD_TRACE_PROPAGATION_STYLE_EXTRACT"
-	headerPropagationStyle        = "DD_TRACE_PROPAGATION_STYLE"
+	envPropagationExtractFirst = "DD_TRACE_PROPAGATION_EXTRACT_FIRST"
+	envPropagationStyleInject  = "DD_TRACE_PROPAGATION_STYLE_INJECT"
+	envPropagationStyleExtract = "DD_TRACE_PROPAGATION_STYLE_EXTRACT"
+	envPropagationStyle        = "DD_TRACE_PROPAGATION_STYLE"
 )
 
 const (
@@ -149,17 +149,28 @@ type PropagatorConfig struct {
 	// BaggageHeader specifies the map key that will be used to store the baggage key-value pairs.
 	// It defaults to DefaultBaggageHeader.
 	BaggageHeader string
+
+	// InjectStyle specifies the propagation style(s) used for injection,
+	// as a comma-separated list (e.g. "datadog,tracecontext").
+	InjectStyle string
+
+	// ExtractStyle specifies the propagation style(s) used for extraction,
+	// as a comma-separated list (e.g. "datadog,tracecontext").
+	ExtractStyle string
+
+	// BehaviorExtract controls what happens when an incoming trace context is
+	// found: "continue" (default), "restart", or "ignore".
+	BehaviorExtract string
+
+	// ExtractFirst, when true, stops extraction after the first successful
+	// extractor rather than trying all of them.
+	// A nil pointer means the value is unset.
+	ExtractFirst *bool
 }
 
 // NewPropagator returns a new propagator which uses TextMap to inject
 // and extract values. It propagates trace and span IDs and baggage.
 // To use the defaults, nil may be provided in place of the config.
-//
-// The inject and extract propagators are determined using environment variables
-// with the following order of precedence:
-//  1. DD_TRACE_PROPAGATION_STYLE_INJECT
-//  2. DD_TRACE_PROPAGATION_STYLE (applies to both inject and extract)
-//  3. If none of the above, use default values
 func NewPropagator(cfg *PropagatorConfig, propagators ...Propagator) Propagator {
 	if cfg == nil {
 		cfg = new(PropagatorConfig)
@@ -180,26 +191,42 @@ func NewPropagator(cfg *PropagatorConfig, propagators ...Propagator) Propagator 
 		cfg.BaggageHeader = DefaultBaggageHeader
 	}
 	cp := new(chainedPropagator)
-	cp.onlyExtractFirst = internal.BoolEnv(headerPropagationExtractFirst, false)
-	cp.propagationBehaviorExtract = env.Get(headerPropagationBehaviorExtract)
-	switch cp.propagationBehaviorExtract {
+	// For each propagation setting, the PropagatorConfig field takes precedence
+	// over its corresponding DD_TRACE_PROPAGATION_* environment variable.
+	// When NewPropagator is called directly (not via tracer.Start), these fields
+	// are typically zero and the environment variable is used. When called by the
+	// tracer, they are pre-populated from the tracer's configuration.
+	if cfg.ExtractFirst != nil {
+		cp.onlyExtractFirst = *cfg.ExtractFirst
+	} else {
+		cp.onlyExtractFirst = internal.BoolEnv(envPropagationExtractFirst, false)
+	}
+	if cfg.BehaviorExtract == "" {
+		cfg.BehaviorExtract = env.Get(envPropagationBehaviorExtract)
+	}
+	switch cfg.BehaviorExtract {
 	case propagationBehaviorExtractContinue, propagationBehaviorExtractRestart, propagationBehaviorExtractIgnore:
 		// valid
 	default:
-		if cp.propagationBehaviorExtract != "" {
-			log.Warn("unrecognized propagation behavior: %s. Defaulting to continue", cp.propagationBehaviorExtract)
+		if cfg.BehaviorExtract != "" {
+			log.Warn("unrecognized propagation behavior: %s. Defaulting to continue", cfg.BehaviorExtract)
 		}
-		cp.propagationBehaviorExtract = propagationBehaviorExtractContinue
+		cfg.BehaviorExtract = propagationBehaviorExtractContinue
 	}
+	cp.propagationBehaviorExtract = cfg.BehaviorExtract
 	if len(propagators) > 0 {
 		cp.injectors = propagators
 		cp.extractors = propagators
 		return cp
 	}
-	injectorsPs := env.Get(headerPropagationStyleInject)
-	extractorsPs := env.Get(headerPropagationStyleExtract)
-	cp.injectors, cp.injectorNames = getPropagators(cfg, injectorsPs)
-	cp.extractors, cp.extractorsNames = getPropagators(cfg, extractorsPs)
+	if cfg.InjectStyle == "" {
+		cfg.InjectStyle = env.Get(envPropagationStyleInject)
+	}
+	if cfg.ExtractStyle == "" {
+		cfg.ExtractStyle = env.Get(envPropagationStyleExtract)
+	}
+	cp.injectors, cp.injectorNames = getPropagators(cfg, cfg.InjectStyle)
+	cp.extractors, cp.extractorsNames = getPropagators(cfg, cfg.ExtractStyle)
 	return cp
 }
 
@@ -536,6 +563,22 @@ func (p *propagatorW3c) propagateTracestate(ctx *SpanContext, w3cCtx *SpanContex
 	// Note: Other trace context fields like sampling priority, propagated tags,
 	// and origin will remain unchanged.
 	ts := w3cCtx.trace.propagatingTag(tracestateHeader)
+	// On the dual-header path (both Datadog and W3C headers, same trace ID) the
+	// Datadog context wins extraction and carries no ot= of its own, while the
+	// inbound OTel sampling decision was parsed onto the W3C context. Carry it
+	// over so composeTracestate re-emits it; otherwise it strips the inbound ot=
+	// from the raw tracestate and the threshold is lost.
+	if crv, cth, _ := ctx.trace.otelTracestate(); crv == nil && cth == nil {
+		wrv, wth, wunknown := w3cCtx.trace.otelTracestate()
+		var rv, th uint64
+		if wrv != nil {
+			rv = *wrv
+		}
+		if wth != nil {
+			th = *wth
+		}
+		ctx.trace.setOtelUpstream(rv, wrv != nil, th, wth != nil, wunknown)
+	}
 	priority, _ := ctx.SamplingPriority()
 	setPropagatingTag(ctx, tracestateHeader, composeTracestate(ctx, priority, ts))
 	ctx.isRemote = (w3cCtx.isRemote)
@@ -1106,6 +1149,9 @@ const (
 	// tracestateMemberMaxSize bounds the length of a single non-dd list-member
 	// kept from an incoming tracestate, per the W3C recommendation.
 	tracestateMemberMaxSize = 512
+	// tracestateHeaderReserve is the byte budget consumed by the fixed dd= prefix
+	// (e.g. "dd=s:1;p:<16-hex-chars>") before any t.* tag entries are written.
+	tracestateHeaderReserve = 28
 )
 
 // propagatorW3c implements Propagator and injects/extracts span contexts
@@ -1415,12 +1461,29 @@ func composeTracestate(ctx *SpanContext, priority int, oldState string) string {
 		b.WriteString(value)
 		return true
 	})
+	// Emit the OpenTelemetry `ot=` member as the second list-member (right
+	// after `dd=`), keeping both DD-managed members at the front so a crowded
+	// tracestate can't truncate them. An inherited value may be rv-only or
+	// th-only; a DD-generated one is always the rv+th pair.
+	rv, th, unknown := ctx.trace.otelTracestate()
+	if rv != nil || th != nil || unknown != "" {
+		b.WriteString(",ot=")
+		appendOtelValue(&b, rv, th, unknown)
+		listLength++
+	}
 	// the old state is split by vendors, must be concatenated with a `,`
 	if len(oldState) == 0 {
 		return b.String()
 	}
 	for s := range strings.SplitSeq(strings.Trim(oldState, " \t"), ",") {
-		if strings.HasPrefix(s, "dd=") {
+		// The W3C spec allows optional whitespace (OWS) around the commas
+		// separating list-members, so an entry may arrive as " dd=..." or
+		// " ot=...". Trim before the prefix check: filtering on the raw entry
+		// would miss OWS-prefixed managed members and re-emit them here,
+		// producing duplicate dd=/ot= list-members and an invalid tracestate.
+		s = strings.Trim(s, " \t")
+		// dd= and ot= are DD-managed and re-emitted above; drop any inbound copy.
+		if strings.HasPrefix(s, "dd=") || strings.HasPrefix(s, "ot=") {
 			continue
 		}
 		if len(s) > tracestateMemberMaxSize {
@@ -1443,7 +1506,7 @@ func composeTracestate(ctx *SpanContext, priority int, oldState string) string {
 			break
 		}
 		b.WriteString(",")
-		b.WriteString(strings.Trim(s, " \t"))
+		b.WriteString(s)
 	}
 	return b.String()
 }
@@ -1645,6 +1708,19 @@ func parseTracestate(ctx *SpanContext, header string) {
 	needsCleaning := false
 	for group := range strings.SplitSeq(header, ",") {
 		group = strings.Trim(group, "\t ")
+		if after, ok := strings.CutPrefix(group, "ot="); ok {
+			// OpenTelemetry consistent probability sampling: read rv/th so DD
+			// can honor an upstream decision. Malformed values are treated as
+			// absent (never reject the trace).
+			rv, rvOK, th, thOK, unknown := parseOtelTracestate(after)
+			if rvOK || thOK || unknown != "" {
+				if ctx.trace == nil {
+					ctx.trace = newTrace()
+				}
+				ctx.trace.setOtelUpstream(rv, rvOK, th, thOK, unknown)
+			}
+			continue
+		}
 		if !strings.HasPrefix(group, "dd=") {
 			if tracestateEntryOversized(group) {
 				needsCleaning = true
