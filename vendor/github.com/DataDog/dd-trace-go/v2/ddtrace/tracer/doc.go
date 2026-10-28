@@ -59,6 +59,18 @@
 //	export DD_TRACE_SAMPLING_RULES='[{"name": "web.request", "sample_rate": 1.0}]'
 //	export DD_SPAN_SAMPLING_RULES='[{"service":"test.?","name": "web.*", "sample_rate": 1.0, "max_per_second":100}]'
 //
+// When the tracer makes a probability-based sampling decision (the agent rate,
+// a global rate, or a sampling rule), it additionally expresses that decision as
+// an OpenTelemetry consistent-probability-sampling pair (ot.th/ot.rv, per OTEP 235)
+// on the W3C tracestate header, as the ot= list-member. This lets OpenTelemetry-native
+// downstream services make and verify the same keep/drop decision and extrapolate
+// span counts across a mixed Datadog/OpenTelemetry trace. An inbound ot= is honored
+// and forwarded unchanged; non-probability decisions (manual keep, AppSec, or a
+// rate-limiter drop) omit the threshold. This is automatic, requires no configuration,
+// and leaves the existing Datadog propagation unchanged. When spans are exported over
+// OTLP, the same ot= member is carried on the span's trace_state and the W3C sampled
+// trace-flag is set, so the export matches what wire propagation would emit.
+//
 // To create spans, use the functions StartSpan and StartSpanFromContext. Both accept
 // StartSpanOptions that can be used to configure the span. A span that is started
 // with no parent will begin a new trace. See the function documentation for details
@@ -180,20 +192,7 @@
 // still in effect keeps going to /v1.0/traces, since it was already
 // committed to that wire format, and may be rejected there; a payload the
 // Agent rejects outright is dropped rather than re-encoded and redelivered on
-// 0.4.
-//
-// Issue #5258 diagnostic build: this loss window is temporarily wider than
-// described above. New traces accepted after a downgrade is discovered are
-// no longer rerouted into a fresh 0.4 payload immediately — they land in
-// whatever payload already existed at that moment (built for the
-// still-believed-good 1.0 protocol) and ride along with it, potentially
-// through more than one rejected send, until a scheduled or size-triggered
-// flush happens to rebuild the payload against the now-settled 0.4 protocol.
-// This trades a wider, but still bounded and self-correcting, loss window
-// for removing add()'s per-call protocol check, which production telemetry
-// suggested was disproportionate to how rarely this path actually fires.
-//
-// Under concurrent flush traffic this is not limited to a single
+// 0.4. Under concurrent flush traffic this is not limited to a single
 // payload: several payloads can be in flight (or queued waiting for a
 // connection slot) at once, so a real Agent-side rollback can cost up to the
 // tracer's concurrent-connection limit worth of payloads already committed to
@@ -220,4 +219,14 @@
 // Other trace-agent implementations that do not follow this versioning
 // scheme (for example, an OpenTelemetry Collector exporter acting as a
 // Datadog trace-agent) are never affected by this override.
+// # Feature Flags Remote Config subscription
+//
+// The tracer eagerly subscribes to the FFE_FLAGS Remote Config product during Start, but only when
+// the resolved Feature Flags delivery source is remote_config. By default, and whenever
+// DD_FEATURE_FLAGS_CONFIGURATION_SOURCE is agentless (the default) or Feature Flags are disabled,
+// this subscription is skipped: Feature Flags configuration is instead polled directly from Datadog
+// over HTTPS by the openfeature package's provider, once the application creates it, with no Agent
+// dependency and no Remote Config capability advertised. See the openfeature package's
+// documentation for the full set of DD_FEATURE_FLAGS_* environment variables and the source
+// selection rules.
 package tracer // import "github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"

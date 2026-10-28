@@ -25,6 +25,7 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/internal/config/provider"
 	"github.com/DataDog/dd-trace-go/v2/internal/env"
 	"github.com/DataDog/dd-trace-go/v2/internal/log"
+	"github.com/DataDog/dd-trace-go/v2/internal/samplingrules"
 	"github.com/DataDog/dd-trace-go/v2/internal/telemetry"
 	"github.com/DataDog/dd-trace-go/v2/internal/traceprof"
 )
@@ -53,6 +54,8 @@ type Product string
 const (
 	ProductTracer   Product = "tracer"
 	ProductProfiler Product = "profiler"
+	ProductAppsec   Product = "appsec"
+	ProductLLMObs   Product = "llmobs"
 )
 
 // programmaticOverride records which product claimed a field via programmatic API.
@@ -94,7 +97,9 @@ type Config struct {
 	universalVersion bool
 	// env contains the environment that this application will run under.
 	env string
-	// serviceMappings holds a set of service mappings to dynamically rename services
+	// site specifies the Datadog site to send data to
+	site string
+	// serviceMappings holds a set of service mappings to dynamically rename services.
 	serviceMappings map[string]string
 	// hostname is automatically assigned from the OS hostname, or from the DD_TRACE_SOURCE_HOSTNAME environment variable or WithHostname() option.
 	hostname string
@@ -161,6 +166,9 @@ type Config struct {
 	globalTags *DynamicConfig[map[string]any]
 	// headerAsTags holds the header as tags configuration.
 	headerAsTags *DynamicConfig[[]string]
+	// tracingEnabled controls whether tracing is active. RC can only disable it,
+	// never re-enable it once disabled by a local source.
+	tracingEnabled *DynamicConfig[bool]
 	// ciVisibilityEnabled controls if the tracer is loaded with CI Visibility mode. default false
 	ciVisibilityEnabled    bool
 	ciVisibilityAgentless  bool
@@ -205,16 +213,29 @@ type Config struct {
 	// otlpExportMode indicates traces should be exported via OTLP rather than
 	// a Datadog protocol.
 	otlpExportMode bool
-	// otlpSpanMetricsEnabled controls OTLP span metrics export; nil auto-enables when otlpExportMode && runtimeMetricsOtel.
-	otlpSpanMetricsEnabled *bool
 	// otlpExportMetricsMode indicates metrics should be exported via OTLP rather than
 	// a Datadog protocol.
 	otlpExportMetricsMode bool
+	// otlpEndpoint is the resolved OTEL_EXPORTER_OTLP_ENDPOINT base URL; always non-empty.
+	otlpEndpoint string
+	// otelSemanticsEnabled makes OTLP-exported spans match the pure OTel SDK
+	// by omitting Datadog-specific attributes. Set via DD_TRACE_OTEL_SEMANTICS_ENABLED.
+	otelSemanticsEnabled bool
 	// otlpTraceURL is the OTLP collector endpoint for traces
 	otlpTraceURL string
 	// otlpHeaders holds the resolved OTLP trace headers from
 	// OTEL_EXPORTER_OTLP_TRACES_HEADERS plus Content-Type: application/x-protobuf.
 	otlpHeaders map[string]string
+	// otlpSpanMetricsEnabled controls OTLP span metrics export; nil auto-enables when otlpExportMode && runtimeMetricsOtel.
+	otlpSpanMetricsEnabled *bool
+	// otlpMetricsURL is the resolved OTLP metrics endpoint (e.g. http://host:4318/v1/metrics).
+	otlpMetricsURL string
+	// otlpMetricsHeaders holds HTTP headers for OTLP metrics export.
+	otlpMetricsHeaders map[string]string
+	// otlpMetricsFlushInterval is the span metrics flush cadence (default 10s).
+	otlpMetricsFlushInterval time.Duration
+	// otlpMetricsProtocol is the OTLP export protocol for metrics: "http/json" or "http/protobuf".
+	otlpMetricsProtocol string
 	// traceID128BitEnabled controls if trace IDs are generated as 128-bits or 64-bits.
 	traceID128BitEnabled bool
 	// apiKey is the Datadog API key from DD_API_KEY (used for agentless intake, LLM Obs, etc.).
@@ -223,8 +244,66 @@ type Config struct {
 	httpClientTimeout time.Duration
 	// sendRetries is the number of times a trace or CI Visibility payload send is retried upon failure.
 	sendRetries int
+	// propagationStyleInject specifies the propagation style for injection.
+	propagationStyleInject string
+	// propagationStyleExtract specifies the propagation style for extraction.
+	propagationStyleExtract string
+	// propagationBehaviorExtract controls what happens when an incoming trace context is found.
+	propagationBehaviorExtract string
+	// propagationExtractFirst, when true, stops extraction after the first successful extractor.
+	propagationExtractFirst bool
+	// traceSamplingRules holds the RC-aware trace sampling rules (DD_TRACE_SAMPLING_RULES).
+	traceSamplingRules *DynamicConfig[[]samplingrules.SamplingRule]
+	// spanSamplingRules holds the single-span sampling rules (DD_SPAN_SAMPLING_RULES).
+	spanSamplingRules []samplingrules.SamplingRule
+	// spanSamplingRulesOrigin tracks origin separately because, unlike traceSamplingRules,
+	// this field isn't a DynamicConfig (no RC support yet).
+	spanSamplingRulesOrigin telemetry.Origin
+	// appKey is the Datadog application key.
+	appKey string
+	// ciVisibilityAgentlessURL is a custom agentless endpoint for CI Visibility.
+	ciVisibilityAgentlessURL string
+	// experimentalFlaggingProviderEnabled enables the experimental OpenFeature RC provider.
+	experimentalFlaggingProviderEnabled bool
+	// experimentalFlaggingProviderEnabledSet reports whether DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED
+	// was explicitly set, distinguishing an opted-in legacy customer from one who never set it.
+	experimentalFlaggingProviderEnabledSet bool
+	// featureFlagsEnabled is DD_FEATURE_FLAGS_ENABLED, the stable Feature Flagging kill switch.
+	// nil means not explicitly set.
+	featureFlagsEnabled *bool
+	// featureFlagsConfigurationSource is DD_FEATURE_FLAGS_CONFIGURATION_SOURCE, kept raw:
+	// trimming, casing and validity are resolved by openfeature.resolveSource, which needs
+	// to tell a blank value apart from an unrecognized one.
+	featureFlagsConfigurationSource string
+	// featureFlagsConfigurationSourceSet reports whether featureFlagsConfigurationSource was
+	// explicitly configured (any origin other than the default), regardless of whether the
+	// value itself is blank.
+	featureFlagsConfigurationSourceSet bool
+	// featureFlagsAgentlessBaseURL is DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL.
+	// SENSITIVE: may embed credentials; never log.
+	featureFlagsAgentlessBaseURL string
+	// featureFlagsAgentlessPollInterval is DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS.
+	// An out-of-range value falls back to the default instead of being clamped, so a
+	// misconfigured billed-polling interval surfaces rather than quietly becoming a valid one.
+	// See validateFeatureFlagsAgentlessPollInterval for the accepted range.
+	featureFlagsAgentlessPollInterval time.Duration
+	// featureFlagsAgentlessRequestTimeout is DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS.
+	// Bounded from above as well as below: an unbounded value overflows once multiplied into
+	// a time.Duration, and http.Client reads the resulting negative timeout as "no timeout".
+	// See validateFeatureFlagsAgentlessRequestTimeout for the accepted range.
+	featureFlagsAgentlessRequestTimeout time.Duration
+	// flaggingProviderInitTimeout is DD_EXPERIMENTAL_FLAGGING_PROVIDER_INITIALIZATION_TIMEOUT_MS.
+	flaggingProviderInitTimeout time.Duration
 	// spanPoolEnabled enables the experimental span pool.
 	spanPoolEnabled bool
+	// llmObsEnabled controls if LLM Observability is enabled
+	llmObsEnabled bool
+	// llmObsMLApp is the ML App for LLM Observability
+	llmObsMLApp string
+	// llmObsProjectName is the project name for LLM Observability
+	llmObsProjectName string
+	// llmObsAgentlessEnabled controls if LLM Observability is enabled in agentless mode
+	llmObsAgentlessEnabled *bool
 }
 
 // checkProductConflict enforces the cross-product gate for programmatic API calls.
@@ -286,6 +365,7 @@ func loadConfig() *Config {
 	cfg.version = p.GetString("DD_VERSION", "")
 	cfg.universalVersion = p.GetBool("DD_TRACE_UNIVERSAL_VERSION_ENABLED", false)
 	cfg.env = p.GetString("DD_ENV", "")
+	cfg.site = p.GetString("DD_SITE", "datadoghq.com")
 	cfg.serviceMappings = p.GetMap("DD_SERVICE_MAPPING", nil, internal.DDTagsDelimiter)
 	cfg.runtimeMetrics = p.GetBool("DD_RUNTIME_METRICS_ENABLED", false)
 	cfg.runtimeMetricsV2 = p.GetBool("DD_RUNTIME_METRICS_V2_ENABLED", true)
@@ -350,6 +430,8 @@ func loadConfig() *Config {
 	cfg.retryInterval = p.GetDuration("DD_TRACE_RETRY_INTERVAL", time.Millisecond)
 	cfg.sendRetries = p.GetIntWithValidator("DD_TRACE_SEND_RETRIES", 0, validateSendRetries)
 	cfg.logsOTelEnabled = p.GetBool("DD_LOGS_OTEL_ENABLED", false)
+	otelSemantics, otelSemanticsOrigin := p.GetBoolWithOrigin("DD_TRACE_OTEL_SEMANTICS_ENABLED", false)
+	cfg.SetOTelSemanticsEnabled(otelSemantics, otelSemanticsOrigin)
 	if v := p.GetString("OTEL_LOGS_EXPORTER", ""); v != "" {
 		log.Warn("OTEL_LOGS_EXPORTER is not supported")
 	}
@@ -362,12 +444,75 @@ func loadConfig() *Config {
 	}
 	cfg.otlpTraceURL = resolveOTLPTraceURL(cfg.agentURL, p.GetString("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", ""))
 	cfg.otlpHeaders = buildOTLPHeaders(p.GetMap("OTEL_EXPORTER_OTLP_TRACES_HEADERS", nil, internal.OtelTagsDelimeter))
+	v, origin := p.GetBoolWithOrigin("OTEL_TRACES_SPAN_METRICS_ENABLED", false)
+	if origin != telemetry.OriginDefault {
+		cfg.otlpSpanMetricsEnabled = &v
+		// When OTEL_TRACES_SPAN_METRICS_ENABLED is explicitly set to false and
+		// DD_TRACE_STATS_COMPUTATION_ENABLED was not explicitly configured,
+		// disable native stats too: the user has signalled they want no SDK-side
+		// span metrics, and the Datadog-Client-Computed-Stats header should
+		// therefore be absent.
+		if !v {
+			if _, statsOrigin := p.GetBoolWithOrigin("DD_TRACE_STATS_COMPUTATION_ENABLED", true); statsOrigin == telemetry.OriginDefault {
+				cfg.SetStatsComputationEnabled(false, telemetry.OriginCalculated)
+			}
+		}
+	}
+	cfg.otlpEndpoint = resolveOTLPEndpoint(cfg.agentURL, p.GetString("OTEL_EXPORTER_OTLP_ENDPOINT", ""))
+	cfg.otlpMetricsURL = resolveOTLPMetricsURL(
+		p.GetString("OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", ""),
+		cfg.otlpEndpoint,
+	)
+	cfg.otlpMetricsHeaders = buildOTLPMetricsHeaders(
+		p.GetMap("OTEL_EXPORTER_OTLP_HEADERS", nil, internal.OtelTagsDelimeter),
+		p.GetMap("OTEL_EXPORTER_OTLP_METRICS_HEADERS", nil, internal.OtelTagsDelimeter),
+	)
+	cfg.otlpMetricsFlushInterval = resolveOTLPMetricsFlushInterval(env.Get("_DD_TRACE_STATS_INTERVAL"))
+	// The protocol is only consumed by the OTLP span metrics exporter. Values
+	// such as "grpc" are valid for other OpenTelemetry components, so only warn
+	// about them when this exporter is going to use the value.
+	warnOTLPProtocol := cfg.OTLPSpanMetricsEnabled()
+	// The signal-specific protocol takes precedence over the generic one, so
+	// the generic value never reaches the exporter when it is set; warn about
+	// it only when it is the effective protocol.
+	warnGeneric := warnOTLPProtocol && !p.IsSet("OTEL_EXPORTER_OTLP_METRICS_PROTOCOL")
+	otlpProtocolFallback := p.GetString("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf")
+	if !validateOTLPProtocol(otlpProtocolFallback, "OTEL_EXPORTER_OTLP_PROTOCOL", warnGeneric) {
+		otlpProtocolFallback = "http/protobuf"
+	}
+	cfg.otlpMetricsProtocol = p.GetStringWithValidator("OTEL_EXPORTER_OTLP_METRICS_PROTOCOL", otlpProtocolFallback, func(v string) bool {
+		return validateOTLPProtocol(v, "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL", warnOTLPProtocol)
+	})
 	cfg.traceID128BitEnabled = p.GetBool("DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED", true)
 	cfg.httpClientTimeout = time.Duration(p.GetIntWithValidator("DD_TRACE_AGENT_TIMEOUT", 10, validateAgentTimeout)) * time.Second
+	cfg.propagationStyleInject = p.GetString("DD_TRACE_PROPAGATION_STYLE_INJECT", "")
+	cfg.propagationStyleExtract = p.GetString("DD_TRACE_PROPAGATION_STYLE_EXTRACT", "")
+	cfg.propagationBehaviorExtract = p.GetString("DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT", "continue")
+	cfg.propagationExtractFirst = p.GetBool("DD_TRACE_PROPAGATION_EXTRACT_FIRST", false)
+	cfg.appKey = p.GetString("DD_APP_KEY", "")
+	cfg.ciVisibilityAgentlessURL = p.GetString("DD_CIVISIBILITY_AGENTLESS_URL", "")
+	legacyFlaggingProviderEnabled, legacyFlaggingProviderOrigin := p.GetBoolWithOrigin("DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED", false)
+	cfg.experimentalFlaggingProviderEnabled = legacyFlaggingProviderEnabled
+	cfg.experimentalFlaggingProviderEnabledSet = legacyFlaggingProviderOrigin != telemetry.OriginDefault
 	cfg.spanPoolEnabled = p.GetBool("DD_TRACER_EXPERIMENTAL_SPAN_POOL_ENABLED", false)
+
+	featureFlagsEnabled, featureFlagsEnabledOrigin := p.GetBoolWithOrigin("DD_FEATURE_FLAGS_ENABLED", true)
+	if featureFlagsEnabledOrigin != telemetry.OriginDefault {
+		cfg.featureFlagsEnabled = &featureFlagsEnabled
+	}
+	featureFlagsSource, featureFlagsSourceOrigin := p.GetStringWithOrigin("DD_FEATURE_FLAGS_CONFIGURATION_SOURCE", "agentless")
+	cfg.featureFlagsConfigurationSource = featureFlagsSource
+	cfg.featureFlagsConfigurationSourceSet = featureFlagsSourceOrigin != telemetry.OriginDefault
+	cfg.featureFlagsAgentlessBaseURL = p.GetString("DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL", "")
+	cfg.featureFlagsAgentlessPollInterval = time.Duration(p.GetIntWithValidator("DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS", 30, validateFeatureFlagsAgentlessPollInterval)) * time.Second
+	cfg.featureFlagsAgentlessRequestTimeout = time.Duration(p.GetIntWithValidator("DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS", 5, validateFeatureFlagsAgentlessRequestTimeout)) * time.Second
+	cfg.flaggingProviderInitTimeout = time.Duration(p.GetIntWithValidator("DD_EXPERIMENTAL_FLAGGING_PROVIDER_INITIALIZATION_TIMEOUT_MS", 10000, validateFlaggingProviderInitTimeout)) * time.Millisecond
 
 	sampleRate, sampleRateOrigin := p.GetFloatWithValidatorOrigin("DD_TRACE_SAMPLE_RATE", math.NaN(), validateSampleRate)
 	cfg.globalSampleRate = newDynamicConfig("trace_sample_rate", sampleRate, sampleRateOrigin, equalFloat, nil)
+
+	tracingEnabled, tracingEnabledOrigin := p.GetBoolWithOrigin("DD_TRACE_ENABLED", true)
+	cfg.tracingEnabled = newDynamicConfig("tracing_enabled", tracingEnabled, tracingEnabledOrigin, equal[bool], nil)
 
 	enabled, origin := p.GetBoolWithOrigin("DD_DYNAMIC_INSTRUMENTATION_ENABLED", false)
 	cfg.dynamicInstrumentationEnabled = newDynamicConfig("dynamic_instrumentation_enabled", enabled, origin, equal[bool], nil)
@@ -436,7 +581,23 @@ func loadConfig() *Config {
 		cfg.reportHostname = true
 	}
 
-	cfg.apiKey = env.Get("DD_API_KEY")
+	cfg.apiKey = p.GetString("DD_API_KEY", "")
+
+	traceRules, traceOrigin := samplingRulesFromSource(p, "DD_TRACE_SAMPLING_RULES", samplingrules.SamplingRuleTrace)
+	cfg.traceSamplingRules = newDynamicConfig("trace_sample_rules", traceRules, traceOrigin, samplingrules.EqualsFalseNegative, nil)
+	configtelemetry.ReportDefault("trace_sample_rules", traceRules)
+
+	spanRules, spanOrigin := samplingRulesFromSource(p, "DD_SPAN_SAMPLING_RULES", samplingrules.SamplingRuleSpan)
+	cfg.spanSamplingRules = spanRules
+	cfg.spanSamplingRulesOrigin = spanOrigin
+	configtelemetry.ReportDefault("span_sample_rules", spanRules)
+
+	cfg.llmObsEnabled = p.GetBool("DD_LLMOBS_ENABLED", false)
+	cfg.llmObsMLApp = p.GetString("DD_LLMOBS_ML_APP", "")
+	cfg.llmObsProjectName = p.GetString("DD_LLMOBS_PROJECT_NAME", "")
+	if v, origin := p.GetBoolWithOrigin("DD_LLMOBS_AGENTLESS_ENABLED", false); origin != telemetry.OriginDefault {
+		cfg.llmObsAgentlessEnabled = &v
+	}
 
 	return cfg
 }
@@ -815,6 +976,29 @@ func (c *Config) SetHeaderAsTags(headerAsTags []string, origin telemetry.Origin,
 	configtelemetry.Report("DD_TRACE_HEADER_TAGS", strings.Join(headerAsTags, ","), origin)
 }
 
+func (c *Config) TracingEnabled() bool {
+	return c.tracingEnabled.Get()
+}
+
+// TracingEnabledConfig returns the DynamicConfig for the tracing-enabled flag.
+// Use this only for RC updates (HandleRC). For user-configured changes use SetTracingEnabled.
+func (c *Config) TracingEnabledConfig() *DynamicConfig[bool] {
+	return c.tracingEnabled
+}
+
+// SetTracingEnabled records a user-configured tracing-enabled value. Call this
+// only from user-facing paths (options, env vars). For agent/RC updates use
+// TracingEnabledConfig().HandleRC(...).
+func (c *Config) SetTracingEnabled(enabled bool, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("DD_TRACE_ENABLED", origin, enabled, product...) {
+		return
+	}
+	c.tracingEnabled.setBaseline(enabled, origin)
+	configtelemetry.Report("DD_TRACE_ENABLED", enabled, origin)
+}
+
 func (c *Config) TraceRateLimitPerSecond() float64 {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -1161,6 +1345,22 @@ func (c *Config) SetEnv(env string, origin telemetry.Origin, product ...Product)
 	configtelemetry.Report("DD_ENV", env, origin)
 }
 
+func (c *Config) Site() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.site
+}
+
+func (c *Config) SetSite(site string, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("DD_SITE", origin, site, product...) {
+		return
+	}
+	c.site = site
+	configtelemetry.Report("DD_SITE", site, origin)
+}
+
 // SetFeatureFlags adds to the feature flag set. No cross-product gate because this is additive, not a replacement.
 func (c *Config) SetFeatureFlags(features []string, origin telemetry.Origin, product ...Product) {
 	c.mu.Lock()
@@ -1417,12 +1617,33 @@ func (c *Config) SetLogsOTelEnabled(enabled bool, origin telemetry.Origin, produ
 	configtelemetry.Report("DD_LOGS_OTEL_ENABLED", enabled, origin)
 }
 
+func (c *Config) OTelSemanticsEnabled() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.otelSemanticsEnabled
+}
+
+// SetOTelSemanticsEnabled sets whether OTLP-exported spans should match the pure
+// OpenTelemetry SDK, and reports the value to configuration telemetry.
+func (c *Config) SetOTelSemanticsEnabled(enabled bool, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("DD_TRACE_OTEL_SEMANTICS_ENABLED", origin, enabled, product...) {
+		return
+	}
+	c.otelSemanticsEnabled = enabled
+	configtelemetry.Report("DD_TRACE_OTEL_SEMANTICS_ENABLED", enabled, origin)
+}
+
 // RequestedTraceProtocol returns the Datadog trace protocol version to use for
 // /vX/traces (TraceProtocolV04 or TraceProtocolV1). It reflects what has been
 // asked for, by the user or by a derived override; it carries no information
 // about whether the trace-agent actually supports that protocol. Callers that
 // need the protocol in effect on the wire must combine this with agent
-// capability.
+// capability. It is independent of stats computation: both native Client-Side
+// Stats and OTLP span metrics are signalled out-of-band (the
+// Datadog-Client-Computed-Stats header and the separate /v0.6/stats endpoint)
+// and are handled identically by the Agent on either protocol.
 func (c *Config) RequestedTraceProtocol() float64 {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -1499,6 +1720,12 @@ func (c *Config) OTLPTraceURL() string {
 	return c.otlpTraceURL
 }
 
+func (c *Config) OTLPEndpoint() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.otlpEndpoint
+}
+
 func (c *Config) OTLPExportMode() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -1560,6 +1787,32 @@ func (c *Config) SetOTLPSpanMetricsEnabled(enabled bool, origin telemetry.Origin
 	configtelemetry.Report("OTEL_TRACES_SPAN_METRICS_ENABLED", enabled, origin)
 }
 
+func (c *Config) OTLPMetricsURL() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.otlpMetricsURL
+}
+
+// OTLPMetricsHeaders returns a copy of the resolved OTLP metrics headers map.
+func (c *Config) OTLPMetricsHeaders() map[string]string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return maps.Clone(c.otlpMetricsHeaders)
+}
+
+func (c *Config) OTLPMetricsFlushInterval() time.Duration {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.otlpMetricsFlushInterval
+}
+
+// OTLPMetricsProtocol returns the OTLP export protocol for metrics ("http/json" or "http/protobuf").
+func (c *Config) OTLPMetricsProtocol() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.otlpMetricsProtocol
+}
+
 func (c *Config) TraceID128BitEnabled() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -1609,6 +1862,147 @@ func (c *Config) SetSendRetries(retries int, origin telemetry.Origin, product ..
 	configtelemetry.Report("DD_TRACE_SEND_RETRIES", retries, origin)
 }
 
+func (c *Config) PropagationStyleInject() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.propagationStyleInject
+}
+
+func (c *Config) PropagationStyleExtract() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.propagationStyleExtract
+}
+
+func (c *Config) PropagationBehaviorExtract() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.propagationBehaviorExtract
+}
+
+func (c *Config) PropagationExtractFirst() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.propagationExtractFirst
+}
+
+func (c *Config) TraceSamplingRules() []samplingrules.SamplingRule {
+	return c.traceSamplingRules.Get()
+}
+
+// TraceSamplingRulesConfig returns the DynamicConfig for trace sampling rules.
+// Used by the tracer's RC handler to apply remote-config updates.
+func (c *Config) TraceSamplingRulesConfig() *DynamicConfig[[]samplingrules.SamplingRule] {
+	return c.traceSamplingRules
+}
+
+func (c *Config) SetTraceSamplingRules(rules []samplingrules.SamplingRule, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	_, baselineOrigin := c.traceSamplingRules.Baseline()
+	if samplingRulesBlockedByPrecedence("DD_TRACE_SAMPLING_RULES", baselineOrigin, origin) {
+		return
+	}
+	if c.checkProductConflict("DD_TRACE_SAMPLING_RULES", origin, rules, product...) {
+		return
+	}
+	c.traceSamplingRules.setBaseline(rules, origin)
+	configtelemetry.Report("trace_sample_rules", rules, origin)
+}
+
+func (c *Config) SpanSamplingRules() []samplingrules.SamplingRule {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.spanSamplingRules
+}
+
+func (c *Config) SetSpanSamplingRules(rules []samplingrules.SamplingRule, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if samplingRulesBlockedByPrecedence("DD_SPAN_SAMPLING_RULES", c.spanSamplingRulesOrigin, origin) {
+		return
+	}
+	if c.checkProductConflict("DD_SPAN_SAMPLING_RULES", origin, rules, product...) {
+		return
+	}
+	c.spanSamplingRules = rules
+	c.spanSamplingRulesOrigin = origin
+	configtelemetry.Report("span_sample_rules", rules, origin)
+}
+
+func (c *Config) AppKey() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.appKey
+}
+
+func (c *Config) CIVisibilityAgentlessURL() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.ciVisibilityAgentlessURL
+}
+
+// ExperimentalFlaggingProviderEnabled returns DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED and
+// whether it was explicitly set, distinguishing an opted-in legacy customer from one who
+// never set it.
+func (c *Config) ExperimentalFlaggingProviderEnabled() (enabled, explicit bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.experimentalFlaggingProviderEnabled, c.experimentalFlaggingProviderEnabledSet
+}
+
+// FeatureFlagsEnabled returns DD_FEATURE_FLAGS_ENABLED and whether it was explicitly set.
+// enabled is only meaningful when explicit is true.
+func (c *Config) FeatureFlagsEnabled() (enabled, explicit bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.featureFlagsEnabled == nil {
+		return false, false
+	}
+	return *c.featureFlagsEnabled, true
+}
+
+// FeatureFlagsConfigurationSource returns DD_FEATURE_FLAGS_CONFIGURATION_SOURCE and whether
+// it was explicitly configured, regardless of whether the value itself is blank.
+func (c *Config) FeatureFlagsConfigurationSource() (source string, explicit bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.featureFlagsConfigurationSource, c.featureFlagsConfigurationSourceSet
+}
+
+// FeatureFlagsAgentlessBaseURL returns DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL.
+// SENSITIVE: may embed credentials; callers must never log this value.
+func (c *Config) FeatureFlagsAgentlessBaseURL() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.featureFlagsAgentlessBaseURL
+}
+
+// FeatureFlagsAgentlessPollInterval returns DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS,
+// or the default when the configured value was out of range. The value is always positive,
+// so callers need not guard a ticker against it.
+func (c *Config) FeatureFlagsAgentlessPollInterval() time.Duration {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.featureFlagsAgentlessPollInterval
+}
+
+// FeatureFlagsAgentlessRequestTimeout returns DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS,
+// or the default when the configured value was out of range. The value is always positive,
+// so it is safe to hand to http.Client, which treats a non-positive Timeout as no timeout.
+func (c *Config) FeatureFlagsAgentlessRequestTimeout() time.Duration {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.featureFlagsAgentlessRequestTimeout
+}
+
+// FlaggingProviderInitTimeout returns DD_EXPERIMENTAL_FLAGGING_PROVIDER_INITIALIZATION_TIMEOUT_MS.
+func (c *Config) FlaggingProviderInitTimeout() time.Duration {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.flaggingProviderInitTimeout
+}
+
 func (c *Config) SpanPoolEnabled() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -1623,4 +2017,82 @@ func (c *Config) SetSpanPoolEnabled(enabled bool, origin telemetry.Origin, produ
 	}
 	c.spanPoolEnabled = enabled
 	configtelemetry.Report("DD_TRACER_EXPERIMENTAL_SPAN_POOL_ENABLED", enabled, origin)
+}
+
+// LLMObsEnabled returns DD_LLMOBS_ENABLED.
+func (c *Config) LLMObsEnabled() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.llmObsEnabled
+}
+
+// SetLLMObsEnabled sets DD_LLMOBS_ENABLED.
+func (c *Config) SetLLMObsEnabled(enabled bool, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("DD_LLMOBS_ENABLED", origin, enabled, product...) {
+		return
+	}
+	c.llmObsEnabled = enabled
+	configtelemetry.Report("DD_LLMOBS_ENABLED", enabled, origin)
+}
+
+// LLMObsMLApp returns DD_LLMOBS_ML_APP.
+func (c *Config) LLMObsMLApp() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.llmObsMLApp
+}
+
+// SetLLMObsMLApp sets DD_LLMOBS_ML_APP.
+func (c *Config) SetLLMObsMLApp(mlApp string, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("DD_LLMOBS_ML_APP", origin, mlApp, product...) {
+		return
+	}
+	c.llmObsMLApp = mlApp
+	configtelemetry.Report("DD_LLMOBS_ML_APP", mlApp, origin)
+}
+
+// LLMObsProjectName returns DD_LLMOBS_PROJECT_NAME.
+func (c *Config) LLMObsProjectName() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.llmObsProjectName
+}
+
+// SetLLMObsProjectName sets DD_LLMOBS_PROJECT_NAME.
+func (c *Config) SetLLMObsProjectName(name string, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.checkProductConflict("DD_LLMOBS_PROJECT_NAME", origin, name, product...) {
+		return
+	}
+	c.llmObsProjectName = name
+	configtelemetry.Report("DD_LLMOBS_PROJECT_NAME", name, origin)
+}
+
+// LLMObsAgentlessEnabled returns DD_LLMOBS_AGENTLESS_ENABLED. It returns nil
+// when unset, allowing callers to distinguish an explicit false from unset.
+func (c *Config) LLMObsAgentlessEnabled() *bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.llmObsAgentlessEnabled
+}
+
+// SetLLMObsAgentlessEnabled sets DD_LLMOBS_AGENTLESS_ENABLED. A nil value
+// indicates the setting is unset (tri-state).
+func (c *Config) SetLLMObsAgentlessEnabled(v *bool, origin telemetry.Origin, product ...Product) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	conflictValue := "unset"
+	if v != nil {
+		conflictValue = strconv.FormatBool(*v)
+	}
+	if c.checkProductConflict("DD_LLMOBS_AGENTLESS_ENABLED", origin, conflictValue, product...) {
+		return
+	}
+	c.llmObsAgentlessEnabled = v
+	configtelemetry.Report("DD_LLMOBS_AGENTLESS_ENABLED", conflictValue, origin)
 }
