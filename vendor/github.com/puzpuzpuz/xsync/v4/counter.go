@@ -16,8 +16,8 @@ var ptokenPool sync.Pool
 // the counter
 type ptoken struct {
 	idx uint32
-	//lint:ignore U1000 prevents false sharing
-	pad [cacheLineSize - 4]byte
+	// Padding to prevent false sharing.
+	_ [cacheLineSize - 4]byte
 }
 
 // A Counter is a striped int64 counter.
@@ -33,13 +33,13 @@ type Counter struct {
 
 type cstripe struct {
 	c int64
-	//lint:ignore U1000 prevents false sharing
-	pad [cacheLineSize - 8]byte
+	// Padding to prevent false sharing.
+	_ [cacheLineSize - 8]byte
 }
 
 // NewCounter creates a new Counter instance.
 func NewCounter() *Counter {
-	nstripes := nextPowOf2(parallelism())
+	nstripes := uint32(nextPowOf2(uint64(parallelism())))
 	c := Counter{
 		stripes: make([]cstripe, nstripes),
 		mask:    nstripes - 1,
@@ -62,7 +62,7 @@ func (c *Counter) Add(delta int64) {
 	t, ok := ptokenPool.Get().(*ptoken)
 	if !ok {
 		t = new(ptoken)
-		t.idx = runtime_fastrand()
+		t.idx = runtime_cheaprand()
 	}
 	for {
 		stripe := &c.stripes[t.idx&c.mask]
@@ -71,7 +71,7 @@ func (c *Counter) Add(delta int64) {
 			break
 		}
 		// Give a try with another randomly selected stripe.
-		t.idx = runtime_fastrand()
+		t.idx = runtime_cheaprand()
 	}
 	ptokenPool.Put(t)
 }

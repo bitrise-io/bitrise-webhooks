@@ -16,8 +16,8 @@ var rtokenPool sync.Pool
 // RToken is a reader lock token.
 type RToken struct {
 	slot uint32
-	//lint:ignore U1000 prevents false sharing
-	pad [cacheLineSize - 4]byte
+	// Padding to prevent false sharing.
+	_ [cacheLineSize - 4]byte
 }
 
 // A RBMutex is a reader biased reader/writer mutual exclusion lock.
@@ -55,7 +55,7 @@ type rslot struct {
 
 // NewRBMutex creates a new RBMutex instance.
 func NewRBMutex() *RBMutex {
-	nslots := nextPowOf2(parallelism())
+	nslots := uint32(nextPowOf2(uint64(parallelism())))
 	mu := RBMutex{
 		rslots: make([]rslot, nslots),
 		rmask:  nslots - 1,
@@ -103,7 +103,7 @@ func (mu *RBMutex) fastRlock() *RToken {
 		t, ok := rtokenPool.Get().(*RToken)
 		if !ok {
 			t = new(RToken)
-			t.slot = runtime_fastrand()
+			t.slot = runtime_cheaprand()
 		}
 		// Try all available slots to distribute reader threads to slots.
 		for i := 0; i < len(mu.rslots); i++ {
