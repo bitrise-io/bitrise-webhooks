@@ -7,15 +7,21 @@ package config
 
 import (
 	"fmt"
+	"maps"
+	"math"
 	"net"
 	"net/url"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/DataDog/dd-trace-go/v2/internal"
 	configtelemetry "github.com/DataDog/dd-trace-go/v2/internal/config/configtelemetry"
+	"github.com/DataDog/dd-trace-go/v2/internal/config/provider"
 	"github.com/DataDog/dd-trace-go/v2/internal/log"
+	"github.com/DataDog/dd-trace-go/v2/internal/samplingrules"
 	"github.com/DataDog/dd-trace-go/v2/internal/telemetry"
 )
 
@@ -72,10 +78,14 @@ const (
 
 	// OTLP standard traces path and default collector port.
 	otlpTracesPath  = "/v1/traces"
+	otlpMetricsPath = "/v1/metrics"
 	otlpDefaultPort = "4318"
 
 	// OTLPContentTypeHeader is the Content-Type header value required for HTTP protobuf payloads.
 	OTLPContentTypeHeader = "application/x-protobuf"
+
+	// OTLPMetricsFlushInterval is the default cadence for flushing and exporting span metrics.
+	OTLPMetricsFlushInterval = 10 * time.Second
 )
 
 func validateSampleRate(rate float64) bool {
@@ -97,6 +107,41 @@ func validateRateLimit(rate float64) bool {
 func validateAgentTimeout(timeout int) bool {
 	if timeout < 0 {
 		log.Warn("ignoring DD_TRACE_AGENT_TIMEOUT: negative value %d", timeout)
+		return false
+	}
+	return true
+}
+
+// validateFeatureFlagsAgentlessPollInterval rejects rather than clamps: clamping would
+// silently move a misconfigured billed-polling interval to a valid one.
+func validateFeatureFlagsAgentlessPollInterval(seconds int) bool {
+	if seconds <= 0 || seconds > 3600 {
+		log.Warn("ignoring DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_POLL_INTERVAL_SECONDS: value %d out of range (0, 3600]", seconds)
+		return false
+	}
+	return true
+}
+
+// validateFeatureFlagsAgentlessRequestTimeout caps the upper bound because a larger value
+// overflows int64 as a nanosecond duration, and http.Client reads a negative Timeout as
+// "no timeout".
+func validateFeatureFlagsAgentlessRequestTimeout(seconds int) bool {
+	if seconds <= 0 || seconds > 300 {
+		log.Warn("ignoring DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_REQUEST_TIMEOUT_SECONDS: value %d out of range (0, 300]", seconds)
+		return false
+	}
+	return true
+}
+
+// maxFlaggingProviderInitTimeoutMs is the largest value that still converts to a
+// time.Duration without overflowing int64 into a negative duration.
+const maxFlaggingProviderInitTimeoutMs = math.MaxInt64 / int64(time.Millisecond)
+
+// validateFlaggingProviderInitTimeout rejects an overflow-prone value so the caller falls
+// back to the default rather than Init receiving an already-expired context.
+func validateFlaggingProviderInitTimeout(ms int) bool {
+	if ms <= 0 || int64(ms) > maxFlaggingProviderInitTimeoutMs {
+		log.Warn("ignoring DD_EXPERIMENTAL_FLAGGING_PROVIDER_INITIALIZATION_TIMEOUT_MS: value %d out of range (0, %d]", ms, maxFlaggingProviderInitTimeoutMs)
 		return false
 	}
 	return true
@@ -308,17 +353,27 @@ func formatDogstatsdAddr(u *url.URL) string {
 	return u.Host
 }
 
-// resolveOTLPTraceURL resolves the OTLP trace endpoint from OTEL_EXPORTER_OTLP_TRACES_ENDPOINT if set, else agentURL host + default OTLP port 4318 + /v1/traces.
-// When the user-provided endpoint is set, it is validated: it must be a parseable URL with an http or https scheme.
-// If validation fails, the default endpoint is used instead.
+// parseAndValidateOTLPURL parses rawURL and validates that it uses http or https.
+// Logs a warning and returns (nil, false) on failure.
+func parseAndValidateOTLPURL(envVar, rawURL string) (*url.URL, bool) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		log.Warn("Failed to parse %s %q: %s. Falling back to default.", envVar, rawURL, err.Error())
+		return nil, false
+	}
+	if u.Scheme != URLSchemeHTTP && u.Scheme != URLSchemeHTTPS {
+		log.Warn("Unsupported scheme %q in %s %q. Must be %s or %s. Falling back to default.", u.Scheme, envVar, rawURL, URLSchemeHTTP, URLSchemeHTTPS)
+		return nil, false
+	}
+	return u, true
+}
+
+// resolveOTLPTraceURL resolves the OTLP trace endpoint from OTEL_EXPORTER_OTLP_TRACES_ENDPOINT if set,
+// else derives a default from agentURL host + port 4318 + /v1/traces.
+// When the user-provided endpoint is set it is validated; if invalid the default is used instead.
 func resolveOTLPTraceURL(rawAgentURL *url.URL, otlpTracesEndpoint string) string {
 	if otlpTracesEndpoint != "" {
-		u, err := url.Parse(otlpTracesEndpoint)
-		if err != nil {
-			log.Warn("Failed to parse OTEL_EXPORTER_OTLP_TRACES_ENDPOINT %q: %s. Falling back to default.", otlpTracesEndpoint, err.Error())
-		} else if u.Scheme != URLSchemeHTTP && u.Scheme != URLSchemeHTTPS {
-			log.Warn("Unsupported scheme %q in OTEL_EXPORTER_OTLP_TRACES_ENDPOINT %q. Must be %s or %s. Falling back to default.", u.Scheme, otlpTracesEndpoint, URLSchemeHTTP, URLSchemeHTTPS)
-		} else {
+		if _, ok := parseAndValidateOTLPURL("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", otlpTracesEndpoint); ok {
 			return otlpTracesEndpoint
 		}
 	}
@@ -328,7 +383,7 @@ func resolveOTLPTraceURL(rawAgentURL *url.URL, otlpTracesEndpoint string) string
 			host = h
 		}
 	}
-	return fmt.Sprintf("http://%s:%s%s", host, otlpDefaultPort, otlpTracesPath)
+	return fmt.Sprintf("http://%s%s", net.JoinHostPort(host, otlpDefaultPort), otlpTracesPath)
 }
 
 // buildOTLPHeaders builds the OTLP headers map from the provided map.
@@ -339,6 +394,40 @@ func buildOTLPHeaders(headers map[string]string) map[string]string {
 	}
 	headers["Content-Type"] = OTLPContentTypeHeader
 	return headers
+}
+
+// samplingRulesFromSource resolves rules for key, falling back to the key+"_FILE" path
+// when the inline value is empty; file-derived rules are still reported as OriginEnvVar.
+func samplingRulesFromSource(p *provider.Provider, key string, spanType samplingrules.SamplingRuleType) ([]samplingrules.SamplingRule, telemetry.Origin) {
+	raw, origin := p.GetStringWithOrigin(key, "")
+	rulesFile := p.GetString(key+"_FILE", "")
+	if raw != "" && rulesFile != "" {
+		log.Warn("DIAGNOSTICS Error(s): %s is available and will take precedence over %s_FILE", key, key)
+	} else if raw == "" && rulesFile != "" {
+		b, err := os.ReadFile(rulesFile)
+		if err != nil {
+			log.Warn("DIAGNOSTICS Error(s): couldn't read file from %s_FILE: %s", key, err)
+		} else {
+			raw = string(b)
+			origin = telemetry.OriginEnvVar
+		}
+	}
+	rules, err := samplingrules.UnmarshalSamplingRules([]byte(raw), spanType)
+	if err != nil {
+		log.Warn("DIAGNOSTICS Error(s) parsing %s: %s", key, err)
+	}
+	return rules, origin
+}
+
+// samplingRulesBlockedByPrecedence reports whether a WithSamplingRules call (origin
+// OriginCode) should be dropped because current already came from a non-default,
+// non-code source — env/declarative config takes precedence per ddtrace/tracer/doc.go.
+func samplingRulesBlockedByPrecedence(field string, current, incoming telemetry.Origin) bool {
+	if incoming != telemetry.OriginCode || current == telemetry.OriginDefault || current == telemetry.OriginCode {
+		return false
+	}
+	log.Warn("config: %s is already set via %s; ignoring WithSamplingRules", field, current)
+	return true
 }
 
 // parseGlobalTags parses a DD_TAGS-style string into a tag map, dropping
@@ -363,4 +452,73 @@ func parseGlobalTags(v string) map[string]any {
 // reportGlobalTagTelemetry reports the per-key "global_tag_<key>" telemetry.
 func reportGlobalTagTelemetry(key string, value any, origin telemetry.Origin) {
 	configtelemetry.Report("global_tag_"+key, value, origin)
+}
+
+// resolveOTLPEndpoint returns the OTEL_EXPORTER_OTLP_ENDPOINT base URL, defaulting to http://<agent-host>:4318.
+func resolveOTLPEndpoint(rawAgentURL *url.URL, endpoint string) string {
+	if endpoint != "" {
+		if _, ok := parseAndValidateOTLPURL("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint); ok {
+			return endpoint
+		}
+	}
+	host := internal.DefaultAgentHostname
+	if rawAgentURL != nil {
+		if h := rawAgentURL.Hostname(); h != "" {
+			host = h
+		}
+	}
+	return "http://" + net.JoinHostPort(host, otlpDefaultPort)
+}
+
+// resolveOTLPMetricsURL resolves the OTLP metrics endpoint; metricsEndpoint takes precedence over genericEndpoint.
+func resolveOTLPMetricsURL(metricsEndpoint, genericEndpoint string) string {
+	if metricsEndpoint != "" {
+		if u, ok := parseAndValidateOTLPURL("OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", metricsEndpoint); ok {
+			if u.Path == "" || u.Path == "/" {
+				u.Path = otlpMetricsPath
+			}
+			return u.String()
+		}
+	}
+	u, _ := url.Parse(genericEndpoint) // already validated by resolveOTLPEndpoint
+	u.Path = strings.TrimRight(u.Path, "/") + otlpMetricsPath
+	return u.String()
+}
+
+// buildOTLPMetricsHeaders merges generic and signal-specific OTLP headers; signal headers take precedence.
+func buildOTLPMetricsHeaders(genericHeaders, signalHeaders map[string]string) map[string]string {
+	if len(genericHeaders) == 0 && len(signalHeaders) == 0 {
+		return nil
+	}
+	merged := make(map[string]string, len(genericHeaders)+len(signalHeaders))
+	maps.Copy(merged, genericHeaders)
+	maps.Copy(merged, signalHeaders)
+	return merged
+}
+
+// validateOTLPProtocol returns true for the two supported OTLP HTTP protocol values.
+// envVar is used in the warning message to identify which env var had the bad value.
+// The warning is only logged when warn is true.
+func validateOTLPProtocol(v, envVar string, warn bool) bool {
+	if v == "http/json" || v == "http/protobuf" {
+		return true
+	}
+	if warn {
+		log.Warn("Unsupported %s %q; must be http/json or http/protobuf. Falling back to default.", envVar, v)
+	}
+	return false
+}
+
+// resolveOTLPMetricsFlushInterval parses _DD_TRACE_STATS_INTERVAL (milliseconds).
+// The variable is internal and intended for tests only; in production it returns the default 10 s.
+func resolveOTLPMetricsFlushInterval(raw string) time.Duration {
+	if raw == "" {
+		return OTLPMetricsFlushInterval
+	}
+	ms, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || ms <= 0 {
+		log.Warn("Invalid _DD_TRACE_STATS_INTERVAL %q; using default %s.", raw, OTLPMetricsFlushInterval)
+		return OTLPMetricsFlushInterval
+	}
+	return time.Duration(ms) * time.Millisecond
 }
