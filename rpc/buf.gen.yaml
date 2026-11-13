@@ -1,0 +1,15 @@
+# The Go code of the api-contracts packages this service calls. Generated, never edited by hand.
+# Run from this directory:
+#   buf generate https://github.com/bitrise-io/api-contracts.git --path git_provider
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: github.com/bitrise-io/bitrise-webhooks/rpc
+plugins:
+  - name: go
+    out: ./
+    opt: paths=source_relative
+  - name: twirp
+    out: ./
+    opt: paths=source_relative

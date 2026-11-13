@@ -178,7 +178,7 @@ workflows:
                 if [ -x "$(command -v asdf)" ]; then
                     asdf reshim golang
                 fi
-                errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
+                errcheck -asserts=true -blank=true -ignoregenerated $GOLIST_WITHOUT_VENDOR
       - script:
           title: Go Lint
           inputs:

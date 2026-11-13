@@ -1,0 +1,9 @@
+coverage.out
+*.test
+
+# Developer and agent tooling configuration stays local to each checkout,
+# except the trail runners, which Entire reads from the default branch.
+/.claude/
+/.codex/
+/.entire/*
+!/.entire/runners/

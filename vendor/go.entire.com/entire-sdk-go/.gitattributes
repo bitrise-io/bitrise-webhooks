@@ -1,0 +1,3 @@
+# Check out every file with LF endings on every platform, so gofmt agrees on
+# Windows.
+* text=auto eol=lf
