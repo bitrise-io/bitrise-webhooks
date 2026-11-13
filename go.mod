@@ -15,10 +15,13 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.12.1
+	github.com/twitchtv/twirp v8.1.3+incompatible
 	github.com/xanzy/go-gitlab v0.115.0
+	go.entire.com/entire-sdk-go v0.5.0
 	go.uber.org/automaxprocs v1.6.0
 	go.uber.org/zap v1.28.0
 	google.golang.org/api v0.300.0
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
@@ -114,5 +117,4 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20260715232425-e75dac1f907d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260921155816-b14227669459 // indirect
 	google.golang.org/grpc v1.84.0 // indirect
-	google.golang.org/protobuf v1.36.12 // indirect
 )

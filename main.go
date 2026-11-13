@@ -12,6 +12,7 @@ import (
 	"github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 	"github.com/bitrise-io/bitrise-webhooks/config"
 	"github.com/bitrise-io/bitrise-webhooks/internal/pubsub"
+	"github.com/bitrise-io/bitrise-webhooks/service/hook/entire"
 )
 
 func main() {
@@ -82,12 +83,53 @@ func main() {
 	// }
 
 	// Routing
-	setupRoutes(pubsubClient)
+	setupRoutes(pubsubClient, entireWebhookHandler())
 
 	log.Println("Starting - using port:", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Failed to ListenAndServe: %s", err)
 	}
+}
+
+// entireWebhookHandler returns the handler of Entire's webhook deliveries, or nil when Entire is not
+// configured: the route exists only where the plugin's registration points at this service.
+func entireWebhookHandler() http.Handler {
+	pluginSlug := os.Getenv("ENTIRE_PLUGIN_SLUG")
+	deliveryJWKSURL := os.Getenv("ENTIRE_DELIVERY_JWKS_URL")
+	if pluginSlug == "" || deliveryJWKSURL == "" {
+		return nil
+	}
+
+	// GitProviderService is served by the Monolith, next to the build trigger endpoint.
+	gitProviderServiceURL := config.BuildTriggerURL
+	if rawURL := os.Getenv("GIT_PROVIDER_SERVICE_URL"); rawURL != "" {
+		parsedURL, err := url.Parse(rawURL)
+		if err != nil {
+			log.Fatalf("Failed to parse GIT_PROVIDER_SERVICE_URL (%s) as a URL, error: %s", rawURL, err)
+		}
+		gitProviderServiceURL = parsedURL
+	}
+	if gitProviderServiceURL == nil {
+		log.Fatal("Entire webhooks need BUILD_TRIGGER_URL or GIT_PROVIDER_SERVICE_URL to reach the GitProviderService")
+	}
+
+	handler, err := entire.NewHandler(entire.Config{
+		PluginSlug:       pluginSlug,
+		DeliveryJWKSURL:  deliveryJWKSURL,
+		BuildTriggerURL:  config.BuildTriggerURL,
+		SendRequestToURL: config.SendRequestToURL,
+		LogOnlyMode:      config.LogOnlyMode,
+	}, entire.NewGitProviderClient(gitProviderServiceURL))
+	if err != nil {
+		log.Fatalf("Failed to set up the Entire webhook handler, error: %s", err)
+	}
+	httpHandler, err := handler.HTTPHandler()
+	if err != nil {
+		log.Fatalf("Failed to set up the Entire webhook handler, error: %s", err)
+	}
+
+	log.Printf("Entire webhooks are handled on /h/entire for the plugin: %s", pluginSlug)
+	return httpHandler
 }
 
 func stringFlagOrEnv(flagValue *string, envKey string) string {

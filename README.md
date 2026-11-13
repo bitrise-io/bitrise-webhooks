@@ -34,6 +34,8 @@ If the (commit) message includes `[skip ci]`, `[ci skip]`, `[skip bitrise]` or `
   * handled on the path: `/h/deveo/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
 * [Assembla](https://assembla.com)
   * handled on the path: `/h/assembla/BITRISE-APP-SLUG/BITRISE-APP-API-TOKEN`
+* [Entire](https://entire.io) - Bitrise internal, not for self-hosted use
+  * handled on the path: `/h/entire`
 
 Service independent:
 
@@ -209,6 +211,29 @@ Follow these steps to add your `bitrise-webhooks` URL to your [Assembla](https:/
 9. Click `Add`
 
 That's all! The next time you __push code__ a build will be triggered (if you have Trigger mapping defined for the event(s) on Bitrise).
+
+### Entire - internal:
+
+Entire delivers the events of a plugin to one webhook URL, so a delivery names an installation
+and a repository, but no Bitrise app. This is why Entire has a route of its own, `/h/entire`,
+without an app slug and API token, and why it only works inside Bitrise:
+
+1. the delivery is verified with Entire's Go SDK (`go.entire.com/entire-sdk-go`),
+1. for a branch or tag push the handler asks the Bitrise Monolith's internal `GitProviderService`
+   which apps the repository belongs to, and what the commit message is,
+1. the usual [CI Skip](#ci-skip) check runs on that message,
+1. then a build is triggered for each app, the same way as for every other provider. Entire is
+   answered without waiting for these triggers.
+
+Installation events (suspended, resumed, deleted, updated) are passed on to the same internal service.
+Every other event type is acknowledged and ignored.
+
+The route is only registered if both `ENTIRE_PLUGIN_SLUG` (the slug Entire registered the plugin with)
+and `ENTIRE_DELIVERY_JWKS_URL` (the JWKS URL Entire gave for delivery JWTs) are set. The internal service
+is called on `BUILD_TRIGGER_URL`, unless `GIT_PROVIDER_SERVICE_URL` names another address.
+
+The client code in `rpc/` is generated from the API contracts with `buf` (see `rpc/buf.gen.yaml`);
+don't edit it by hand.
 
 ### Slack - setup & usage:
 
