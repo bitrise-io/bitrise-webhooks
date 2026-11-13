@@ -15,7 +15,7 @@ import (
 	"github.com/bitrise-io/bitrise-webhooks/service/root"
 )
 
-func setupRoutes(pubsubClient *pubsub.Client) {
+func setupRoutes(pubsubClient *pubsub.Client, entireHandler http.Handler) {
 	r := mux.NewRouter(mux.WithService("webhooks"))
 	r.Use(dropTraceMiddleware())
 
@@ -23,6 +23,11 @@ func setupRoutes(pubsubClient *pubsub.Client) {
 	hookClient := hook.Client{PubsubClient: pubsubClient}
 	r.HandleFunc("/h/{service-id}/{app-slug}/{api-token}", metrics.WrapHandlerFunc(hookClient.HTTPHandler)).
 		Methods("POST")
+	// An Entire delivery names no project, so it cannot use the per-project route above.
+	if entireHandler != nil {
+		r.HandleFunc("/h/entire", metrics.WrapHandlerFunc(entireHandler.ServeHTTP)).
+			Methods("POST")
+	}
 	//
 	r.HandleFunc("/", metrics.WrapHandlerFunc(root.HTTPHandler)).
 		Methods("GET")
